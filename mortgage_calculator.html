@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>房贷计算器</title>
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 React 和 ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- 引入 Babel 用于解析 JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <style>
+        /* 隐藏滚动条但保留滚动功能 */
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-slate-50">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- 图标组件 (内嵌 SVG 以替代 lucide-react 依赖) ---
+        const Calculator = (props) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><rect width="16" height="20" x="4" y="2" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></svg>
+        );
+        const Building2 = (props) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg>
+        );
+        const Landmark = (props) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><line x1="3" x2="21" y1="22" y2="22"/><line x1="6" x2="6" y1="18" y2="11"/><line x1="10" x2="10" y1="18" y2="11"/><line x1="14" x2="14" y1="18" y2="11"/><line x1="18" x2="18" y1="18" y2="11"/><polygon points="12 2 20 7 4 7"/></svg>
+        );
+        const PieChart = (props) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+        );
+        const Info = (props) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+        );
+        const Home = (props) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        );
+        const Banknote = (props) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
+        );
+        const Percent = (props) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><line x1="19" x2="5" y1="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>
+        );
+
+        // --- 主组件 ---
+        const MortgageCalculator = () => {
+            // Calculation Method: 'loan' (按贷款额度) or 'price' (按房屋总价)
+            const [calcMethod, setCalcMethod] = useState('loan');
+
+            // House Info Inputs
+            const [unitPrice, setUnitPrice] = useState(50000); // Yuan/m²
+            const [area, setArea] = useState(100); // m²
+            const [downPaymentPercent, setDownPaymentPercent] = useState(30); // %
+
+            // Loan Inputs
+            const [loanType, setLoanType] = useState('commercial'); // commercial, fund, combined
+            const [amountCommercial, setAmountCommercial] = useState(100); // in 10k (wan)
+            const [amountFund, setAmountFund] = useState(50); // in 10k (wan)
+            const [years, setYears] = useState(30);
+            const [rateCommercial, setRateCommercial] = useState(3.45); // Percentage
+            const [rateFund, setRateFund] = useState(2.85); // Percentage
+
+            // Results State
+            const [results, setResults] = useState({
+                equalInterest: null,
+                equalPrincipal: null
+            });
+
+            // Computed values for House Price Mode
+            const totalPrice = (unitPrice * area) / 10000; // in Wan
+            const totalLoanNeeded = totalPrice * (1 - downPaymentPercent / 100); // in Wan
+            const downPaymentAmount = totalPrice * (downPaymentPercent / 100); // in Wan
+
+            // Auto-update amounts when in 'price' mode
+            useEffect(() => {
+                if (calcMethod === 'price') {
+                if (loanType === 'commercial') {
+                    setAmountCommercial(totalLoanNeeded);
+                } else if (loanType === 'fund') {
+                    setAmountFund(totalLoanNeeded);
+                } else if (loanType === 'combined') {
+                    // In combined mode, total loan is fixed. 
+                    // Commercial = Total - Fund. 
+                    // Ensure commercial is not negative.
+                    const newCommercial = Math.max(0, totalLoanNeeded - amountFund);
+                    setAmountCommercial(newCommercial);
+                }
+                }
+            }, [calcMethod, unitPrice, area, downPaymentPercent, loanType, amountFund, totalLoanNeeded]);
+
+            const formatCurrency = (value) => {
+                return new Intl.NumberFormat('zh-CN', {
+                style: 'currency',
+                currency: 'CNY',
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+                }).format(value);
+            };
+
+            const calculate = () => {
+                const months = years * 12;
+                
+                const calcPart = (principalWan, ratePercent) => {
+                const principal = principalWan * 10000;
+                const monthlyRate = (ratePercent / 100) / 12;
+
+                if (principal <= 0) return {
+                    principal: 0, monthlyPaymentEI: 0, totalInterestEI: 0, totalRepaymentEI: 0,
+                    firstMonthPaymentEP: 0, monthlyDecreaseEP: 0, totalInterestEP: 0, totalRepaymentEP: 0
+                };
+
+                // 1. Equal Interest (等额本息)
+                const x = Math.pow(1 + monthlyRate, months);
+                const monthlyPaymentEI = (principal * monthlyRate * x) / (x - 1);
+                const totalRepaymentEI = monthlyPaymentEI * months;
+                const totalInterestEI = totalRepaymentEI - principal;
+
+                // 2. Equal Principal (等额本金)
+                const monthlyPrincipal = principal / months;
+                const firstMonthPaymentEP = monthlyPrincipal + (principal * monthlyRate);
+                const monthlyDecreaseEP = monthlyPrincipal * monthlyRate;
+                const totalInterestEP = ((months + 1) * principal * monthlyRate) / 2;
+                const totalRepaymentEP_Correct = principal + totalInterestEP;
+
+                return {
+                    principal,
+                    monthlyPaymentEI,
+                    totalInterestEI,
+                    totalRepaymentEI,
+                    firstMonthPaymentEP,
+                    monthlyDecreaseEP,
+                    totalInterestEP,
+                    totalRepaymentEP: totalRepaymentEP_Correct
+                };
+                };
+
+                let resEI = { monthly: 0, totalInterest: 0, totalRepayment: 0, principal: 0 };
+                let resEP = { firstMonth: 0, decrease: 0, totalInterest: 0, totalRepayment: 0, principal: 0 };
+
+                if (loanType === 'commercial' || loanType === 'combined') {
+                const c = calcPart(amountCommercial, rateCommercial);
+                resEI.monthly += c.monthlyPaymentEI;
+                resEI.totalInterest += c.totalInterestEI;
+                resEI.totalRepayment += c.totalRepaymentEI;
+                resEI.principal += c.principal;
+
+                resEP.firstMonth += c.firstMonthPaymentEP;
+                resEP.decrease += c.monthlyDecreaseEP;
+                resEP.totalInterest += c.totalInterestEP;
+                resEP.totalRepayment += c.totalRepaymentEP;
+                resEP.principal += c.principal;
+                }
+
+                if (loanType === 'fund' || loanType === 'combined') {
+                const f = calcPart(amountFund, rateFund);
+                resEI.monthly += f.monthlyPaymentEI;
+                resEI.totalInterest += f.totalInterestEI;
+                resEI.totalRepayment += f.totalRepaymentEI;
+                resEI.principal += f.principal;
+
+                resEP.firstMonth += f.firstMonthPaymentEP;
+                resEP.decrease += f.monthlyDecreaseEP;
+                resEP.totalInterest += f.totalInterestEP;
+                resEP.totalRepayment += f.totalRepaymentEP;
+                resEP.principal += f.principal;
+                }
+
+                setResults({
+                equalInterest: resEI,
+                equalPrincipal: resEP
+                });
+            };
+
+            useEffect(() => {
+                calculate();
+            }, [loanType, amountCommercial, amountFund, years, rateCommercial, rateFund]);
+
+            return (
+                <div className="min-h-screen bg-slate-50 p-4 font-sans text-slate-800">
+                <div className="max-w-5xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden">
+                    {/* Header */}
+                    <div className="bg-blue-600 p-6 text-white flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <Calculator className="w-8 h-8" />
+                        <h1 className="text-2xl font-bold">房贷计算器</h1>
+                    </div>
+                    <div className="text-blue-100 text-sm hidden sm:block">
+                        按房价或贷款额度精准计算
+                    </div>
+                    </div>
+
+                    <div className="flex flex-col lg:flex-row">
+                    {/* Left Column: Inputs */}
+                    <div className="w-full lg:w-5/12 p-6 border-b lg:border-b-0 lg:border-r border-slate-200 space-y-6 bg-white">
+                        
+                        {/* Calculation Method Tabs */}
+                        <div className="flex p-1 bg-slate-100 rounded-xl">
+                        <button
+                            onClick={() => setCalcMethod('loan')}
+                            className={`flex-1 py-2 px-4 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-2 ${
+                            calcMethod === 'loan' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                            }`}
+                        >
+                            <Banknote className="w-4 h-4" />
+                            按贷款额度
+                        </button>
+                        <button
+                            onClick={() => setCalcMethod('price')}
+                            className={`flex-1 py-2 px-4 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-2 ${
+                            calcMethod === 'price' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                            }`}
+                        >
+                            <Home className="w-4 h-4" />
+                            按房屋总价
+                        </button>
+                        </div>
+
+                        {/* House Info Inputs (Only for 'price' method) */}
+                        {calcMethod === 'price' && (
+                        <div className="space-y-4 p-4 bg-indigo-50 rounded-xl border border-indigo-100 animate-in fade-in slide-in-from-top-2 duration-300">
+                            <div className="flex items-center gap-2 text-indigo-700 font-semibold mb-2">
+                            <Home className="w-4 h-4" />
+                            <span>房产信息</span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                            <div className="col-span-2 sm:col-span-1">
+                                <label className="block text-xs font-medium text-slate-500 mb-1">单价 (元/m²)</label>
+                                <input 
+                                type="number" 
+                                value={unitPrice} 
+                                onChange={(e) => setUnitPrice(Number(e.target.value))}
+                                className="w-full p-2 border border-indigo-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                                />
+                            </div>
+                            <div className="col-span-2 sm:col-span-1">
+                                <label className="block text-xs font-medium text-slate-500 mb-1">面积 (m²)</label>
+                                <input 
+                                type="number" 
+                                value={area} 
+                                onChange={(e) => setArea(Number(e.target.value))}
+                                className="w-full p-2 border border-indigo-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                                />
+                            </div>
+                            <div className="col-span-2">
+                                <label className="block text-xs font-medium text-slate-500 mb-1">首付比例 (%)</label>
+                                <div className="space-y-2">
+                                    {/* Input Field for Custom Percentage */}
+                                    <div className="relative">
+                                        <input 
+                                            type="number" 
+                                            min="0"
+                                            max="100"
+                                            value={downPaymentPercent}
+                                            onChange={(e) => setDownPaymentPercent(Number(e.target.value))}
+                                            className="w-full p-2 border border-indigo-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                                            placeholder="输入首付比例"
+                                        />
+                                        <div className="absolute right-3 top-2 text-sm text-slate-400 pointer-events-none">
+                                            %
+                                        </div>
+                                    </div>
+
+                                    {/* Quick Select Buttons */}
+                                    <div className="flex gap-2 overflow-x-auto pb-1 hide-scrollbar">
+                                        {[15, 20, 30, 40, 50, 60, 70].map(pct => (
+                                            <button 
+                                                key={pct}
+                                                onClick={() => setDownPaymentPercent(pct)}
+                                                className={`px-3 py-1.5 rounded text-xs font-medium whitespace-nowrap border flex-shrink-0 transition-colors ${downPaymentPercent === pct ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
+                                            >
+                                                {pct}%
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                            </div>
+                            
+                            {/* Summary of House Calculation */}
+                            <div className="grid grid-cols-3 gap-2 pt-2 border-t border-indigo-100">
+                                <div className="text-center">
+                                    <div className="text-[10px] text-slate-500">房产总价</div>
+                                    <div className="text-sm font-bold text-slate-800">{totalPrice.toFixed(0)}万</div>
+                                </div>
+                                <div className="text-center">
+                                    <div className="text-[10px] text-slate-500">首付金额</div>
+                                    <div className="text-sm font-bold text-slate-800">{downPaymentAmount.toFixed(0)}万</div>
+                                </div>
+                                <div className="text-center">
+                                    <div className="text-[10px] text-slate-500">贷款总额</div>
+                                    <div className="text-sm font-bold text-indigo-600">{totalLoanNeeded.toFixed(0)}万</div>
+                                </div>
+                            </div>
+                        </div>
+                        )}
+                        
+                        {/* Loan Type Selector */}
+                        <div>
+                        <label className="block text-sm font-medium text-slate-600 mb-2">贷款类型</label>
+                        <div className="grid grid-cols-3 gap-2">
+                            {['commercial', 'fund', 'combined'].map(type => (
+                            <button 
+                                key={type}
+                                onClick={() => setLoanType(type)}
+                                className={`py-2 px-1 rounded-lg text-sm font-medium transition-colors border-2 
+                                ${loanType === type 
+                                    ? 'bg-blue-50 text-blue-700 border-blue-500' 
+                                    : 'bg-slate-50 text-slate-600 border-transparent hover:bg-slate-100'}`}
+                            >
+                                {type === 'commercial' && '商业贷款'}
+                                {type === 'fund' && '公积金贷款'}
+                                {type === 'combined' && '组合贷款'}
+                            </button>
+                            ))}
+                        </div>
+                        </div>
+
+                        {/* Commercial Loan Inputs */}
+                        {(loanType === 'commercial' || loanType === 'combined') && (
+                        <div className="space-y-4 p-4 bg-slate-50 rounded-xl border border-slate-100">
+                            <div className="flex items-center justify-between text-blue-700 font-semibold mb-2">
+                            <div className="flex items-center gap-2">
+                                <Building2 className="w-4 h-4" />
+                                <span>商业贷款</span>
+                            </div>
+                            {calcMethod === 'price' && loanType === 'combined' && (
+                                <span className="text-xs bg-blue-100 px-2 py-0.5 rounded text-blue-800">自动计算剩余</span>
+                            )}
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-xs font-medium text-slate-500 mb-1">贷款金额 (万元)</label>
+                                <input 
+                                type="number" 
+                                value={amountCommercial.toFixed(2)} 
+                                disabled={calcMethod === 'price'} // Read-only in price mode if single loan, or auto-calc in combined
+                                onChange={(e) => setAmountCommercial(Number(e.target.value))}
+                                className={`w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none ${calcMethod === 'price' ? 'bg-slate-100 text-slate-500 border-slate-200 cursor-not-allowed' : 'bg-white border-slate-300'}`}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-slate-500 mb-1">年利率 (%)</label>
+                                <input 
+                                type="number" 
+                                step="0.01"
+                                value={rateCommercial} 
+                                onChange={(e) => setRateCommercial(Number(e.target.value))}
+                                className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                />
+                            </div>
+                            </div>
+                            <div className="text-xs text-slate-400">当前LPR参考：3.45%</div>
+                        </div>
+                        )}
+
+                        {/* Fund Loan Inputs */}
+                        {(loanType === 'fund' || loanType === 'combined') && (
+                        <div className="space-y-4 p-4 bg-orange-50 rounded-xl border border-orange-100">
+                            <div className="flex items-center gap-2 text-orange-700 font-semibold mb-2">
+                            <Landmark className="w-4 h-4" />
+                            <span>公积金贷款</span>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-xs font-medium text-slate-500 mb-1">贷款金额 (万元)</label>
+                                <input 
+                                type="number" 
+                                value={amountFund} 
+                                // Only disabled if in price mode AND Single Fund loan (must match total). 
+                                // Enabled in Combined mode to allow user to set the fund cap.
+                                disabled={calcMethod === 'price' && loanType === 'fund'}
+                                onChange={(e) => setAmountFund(Number(e.target.value))}
+                                className={`w-full p-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none ${calcMethod === 'price' && loanType === 'fund' ? 'bg-slate-100 text-slate-500 border-slate-200 cursor-not-allowed' : 'bg-white border-slate-300'}`}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-slate-500 mb-1">年利率 (%)</label>
+                                <input 
+                                type="number" 
+                                step="0.01"
+                                value={rateFund} 
+                                onChange={(e) => setRateFund(Number(e.target.value))}
+                                className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none"
+                                />
+                            </div>
+                            </div>
+                            <div className="text-xs text-slate-400">公积金基准利率：2.85%</div>
+                        </div>
+                        )}
+
+                        {/* Common Inputs */}
+                        <div>
+                        <label className="block text-sm font-medium text-slate-600 mb-2">贷款期限</label>
+                        <div className="relative pt-1">
+                            <input 
+                            type="range" 
+                            min="1" 
+                            max="30" 
+                            value={years} 
+                            onChange={(e) => setYears(Number(e.target.value))}
+                            className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                            />
+                            <div className="flex justify-between text-xs text-slate-400 mt-2">
+                            <span>1年</span>
+                            <span className="font-bold text-blue-600 text-base">{years} 年 ({years * 12} 期)</span>
+                            <span>30年</span>
+                            </div>
+                        </div>
+                        </div>
+
+                    </div>
+
+                    {/* Right Column: Results */}
+                    <div className="w-full lg:w-7/12 bg-slate-50 flex flex-col">
+                        {/* Equal Interest Result (Default View) */}
+                        <ResultCard 
+                        title="等额本息" 
+                        description="每月还款额固定"
+                        color="blue"
+                        data={results.equalInterest}
+                        isActive={true}
+                        />
+
+                        {/* Equal Principal Result */}
+                        <ResultCard 
+                        title="等额本金" 
+                        description="首月还款最多，每月递减"
+                        color="emerald"
+                        data={results.equalPrincipal}
+                        isPrincipalType={true}
+                        isActive={true}
+                        />
+                        
+                        <div className="p-6 flex-1">
+                            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm h-full">
+                                <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
+                                    <PieChart className="w-4 h-4" />
+                                    方案差异对比
+                                </h3>
+                                <div className="space-y-4">
+                                    <ComparisonRow 
+                                        label="支付利息" 
+                                        val1={results.equalInterest?.totalInterest} 
+                                        val2={results.equalPrincipal?.totalInterest} 
+                                    />
+                                    <ComparisonRow 
+                                        label="还款总额" 
+                                        val1={results.equalInterest?.totalRepayment} 
+                                        val2={results.equalPrincipal?.totalRepayment} 
+                                    />
+                                    
+                                    <div className="mt-4 p-3 bg-slate-50 rounded-lg text-xs text-slate-500 flex items-start gap-2">
+                                        <Info className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
+                                        <div className="space-y-1">
+                                            <p><span className="font-semibold text-slate-700">等额本息：</span>适合收入稳定，前期希望还款压力较小的人群。</p>
+                                            <p><span className="font-semibold text-slate-700">等额本金：</span>适合当前收入较高，希望节省总利息的人群。前期月供高，随后逐月递减。</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                    </div>
+                </div>
+                </div>
+            );
+        };
+
+        const ResultCard = ({ title, description, color, data, isPrincipalType = false }) => {
+            if (!data) return null;
+
+            const formatCurrency = (val) => new Intl.NumberFormat('zh-CN', { style: 'currency', currency: 'CNY', maximumFractionDigits: 0 }).format(val);
+            
+            const total = data.totalRepayment;
+            const principal = data.principal;
+            const interest = data.totalInterest;
+            const interestPercent = total > 0 ? (interest / total) * 100 : 0;
+
+            const theme = {
+                blue: { bg: 'bg-white', text: 'text-blue-800', border: 'border-blue-100', bar: 'bg-blue-500', subtext: 'text-blue-600' },
+                emerald: { bg: 'bg-white', text: 'text-emerald-800', border: 'border-emerald-100', bar: 'bg-emerald-500', subtext: 'text-emerald-600' }
+            }[color];
+
+            return (
+                <div className={`p-6 border-b border-slate-200 ${theme.bg}`}>
+                <div className="flex justify-between items-start mb-4">
+                    <div>
+                    <div className="flex items-baseline gap-2">
+                        <h2 className={`text-lg font-bold ${theme.text}`}>{title}</h2>
+                        <span className="text-xs text-slate-400">{description}</span>
+                    </div>
+                    </div>
+                    <div className="text-right">
+                        {isPrincipalType ? (
+                            <div>
+                                <div className={`text-2xl font-bold ${theme.text}`}>{formatCurrency(data.firstMonth)}</div>
+                                <div className={`text-xs ${theme.subtext}`}>首月月供 (每月递减 {formatCurrency(data.decrease)})</div>
+                            </div>
+                        ) : (
+                            <div>
+                                <div className={`text-2xl font-bold ${theme.text}`}>{formatCurrency(data.monthly)}</div>
+                                <div className={`text-xs ${theme.subtext}`}>每月还款</div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                <div className="bg-slate-50 rounded-xl p-3">
+                    <div className="flex justify-between text-xs text-slate-500 mb-2">
+                        <span>本金 {formatCurrency(principal)}</span>
+                        <span>总利息 {formatCurrency(interest)}</span>
+                    </div>
+                    {/* Progress Bar */}
+                    <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden flex">
+                        <div className="h-full bg-slate-400" style={{ width: `${100 - interestPercent}%` }}></div>
+                        <div className={`h-full ${theme.bar}`} style={{ width: `${interestPercent}%` }}></div>
+                    </div>
+                </div>
+                </div>
+            );
+        };
+
+        const ComparisonRow = ({ label, val1, val2 }) => {
+            const format = (v) => new Intl.NumberFormat('zh-CN', { style: 'currency', currency: 'CNY', maximumFractionDigits: 0 }).format(v);
+            const diff = val1 - val2;
+            
+            return (
+                <div className="flex items-center text-sm group">
+                    <span className="text-slate-500 w-16 font-medium">{label}</span>
+                    <div className="flex-1 grid grid-cols-2 gap-4">
+                        <div className="bg-slate-50 px-3 py-2 rounded border border-slate-100 group-hover:border-blue-200 transition-colors">
+                            <div className="text-xs text-slate-400 mb-0.5">等额本息</div>
+                            <div className="font-semibold text-slate-700">{format(val1)}</div>
+                        </div>
+                        <div className="relative bg-slate-50 px-3 py-2 rounded border border-slate-100 group-hover:border-emerald-200 transition-colors">
+                            <div className="text-xs text-slate-400 mb-0.5">等额本金</div>
+                            <div className="font-semibold text-emerald-700">{format(val2)}</div>
+                            <div className="absolute top-2 right-2 text-[10px] font-bold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded-full">
+                                省 {format(diff)}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<MortgageCalculator />);
+    </script>
+</body>
+</html>
