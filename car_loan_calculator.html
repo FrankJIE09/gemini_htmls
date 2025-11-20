@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>车贷计算器</title>
+    <!-- 引入 Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 设置 Tailwind 配置，使用 Inter 字体 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'Noto Sans SC', 'sans-serif'],
+                    },
+                    colors: {
+                        'primary': '#1D4ED8', // Blue-700
+                        'secondary': '#6B7280', // Gray-500
+                        'accent': '#F59E0B', // Amber-500
+                        'background': '#F9FAFB', // Gray-50
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* 强制所有输入框和按钮使用 Inter 字体，并确保中文友好 */
+        body {
+            font-family: 'Inter', 'Noto Sans SC', 'sans-serif';
+            background-color: theme('colors.background');
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <div class="w-full max-w-4xl bg-white shadow-2xl rounded-xl p-6 md:p-10 border border-gray-100">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">🚙 车贷月供计算器 (多方式)</h1>
+        <p class="text-secondary mb-8 text-center">输入您的贷款信息，并选择还款方式，以计算每月还款额和总利息。</p>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+            <!-- 输入表单区域 -->
+            <div class="space-y-6">
+                
+                <!-- 车辆总价 -->
+                <div class="relative">
+                    <label for="price" class="block text-sm font-medium text-gray-700 mb-1">车辆总价 (RMB)</label>
+                    <input type="number" id="price" value="200000" min="1000" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary transition duration-150" oninput="calculateLoan()">
+                    <span class="absolute right-3 top-9 text-gray-400 text-sm">RMB</span>
+                </div>
+
+                <!-- 首付比例 -->
+                <div class="space-y-2">
+                    <label for="downPaymentPercent" class="block text-sm font-medium text-gray-700 mb-1">首付比例 (%)</label>
+                    <div class="relative">
+                        <input type="number" id="downPaymentPercent" value="30" min="0" max="100" step="1" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary transition duration-150" oninput="calculateLoan()">
+                        <span class="absolute right-3 top-3 text-gray-400 text-sm">%</span>
+                    </div>
+                    <div class="text-sm text-secondary bg-gray-100 p-2 rounded-lg flex justify-between">
+                        <span>实际首付金额:</span>
+                        <span id="downPaymentAmountDisplay" class="font-semibold text-gray-800">0.00 RMB</span>
+                    </div>
+                </div>
+
+                <!-- 贷款期限 -->
+                <div class="relative">
+                    <label for="term" class="block text-sm font-medium text-gray-700 mb-1">贷款期限 (年)</label>
+                    <input type="number" id="term" value="3" min="1" max="10" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary transition duration-150" oninput="calculateLoan()">
+                    <span class="absolute right-3 top-9 text-gray-400 text-sm">年</span>
+                </div>
+
+                <!-- 贷款利率 -->
+                <div class="relative">
+                    <label for="rate" class="block text-sm font-medium text-gray-700 mb-1">年利率 (%)</label>
+                    <input type="number" id="rate" value="4.5" min="0.1" step="0.1" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary transition duration-150" oninput="calculateLoan()">
+                    <span class="absolute right-3 top-9 text-gray-400 text-sm">%</span>
+                </div>
+                
+                <!-- 还款方式选择 -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">选择还款方式</label>
+                    <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
+                        <!-- 等额本息 (EMI) -->
+                        <label for="type_emi" class="flex items-center space-x-2 p-3 rounded-lg border border-gray-300 has-[:checked]:border-primary has-[:checked]:ring-2 has-[:checked]:ring-primary transition duration-150 cursor-pointer w-full sm:w-1/2">
+                            <input type="radio" id="type_emi" name="repaymentType" value="emi" checked onchange="calculateLoan()" class="text-primary focus:ring-primary h-4 w-4">
+                            <span class="text-gray-800 font-medium">等额本息 (EMI)</span>
+                        </label>
+                        <!-- 等额本金 (EPR) -->
+                        <label for="type_epr" class="flex items-center space-x-2 p-3 rounded-lg border border-gray-300 has-[:checked]:border-primary has-[:checked]:ring-2 has-[:checked]:ring-primary transition duration-150 cursor-pointer w-full sm:w-1/2">
+                            <input type="radio" id="type_epr" name="repaymentType" value="epr" onchange="calculateLoan()" class="text-primary focus:ring-primary h-4 w-4">
+                            <span class="text-gray-800 font-medium">等额本金 (EPR)</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 结果显示区域 -->
+            <div class="bg-gray-50 p-6 rounded-xl border border-gray-200 lg:h-full flex flex-col justify-between">
+                <div>
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4 border-b pb-2 border-gray-200">💰 贷款结果概览</h2>
+                    
+                    <!-- 贷款总额 -->
+                    <div class="flex justify-between items-center py-2">
+                        <span class="text-secondary">贷款总额 (本金)</span>
+                        <span id="loanAmountOutput" class="text-lg font-medium text-gray-800">0.00 RMB</span>
+                    </div>
+
+                    <!-- 每月还款额 -->
+                    <div class="py-3 border-t border-b border-gray-200 my-2 bg-primary/5 rounded-lg px-3">
+                        <span id="monthlyPaymentLabel" class="text-base font-bold text-primary block mb-1">每月还款额</span>
+                        <div class="flex justify-between items-baseline">
+                            <span id="monthlyPaymentOutput" class="text-3xl font-extrabold text-primary">0.00 RMB</span>
+                            <span id="monthlyPaymentSubLabel" class="text-sm text-gray-600 hidden"></span>
+                        </div>
+                    </div>
+
+                    <!-- 总利息 -->
+                    <div class="flex justify-between items-center py-2">
+                        <span class="text-secondary">总利息支出</span>
+                        <span id="totalInterestOutput" class="text-lg font-medium text-red-600">0.00 RMB</span>
+                    </div>
+                </div>
+
+                <!-- 统计汇总 -->
+                <div class="mt-6 pt-4 border-t border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-700 mb-3">总计支付</h3>
+                    <div class="flex justify-between items-center">
+                        <span class="text-secondary">总计支付 (首付 + 本金 + 利息)</span>
+                        <span id="totalPaidOutput" class="text-xl font-bold text-green-600">0.00 RMB</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        
+        <!-- 错误信息 -->
+        <div id="error-message" class="mt-6 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg hidden">
+            <span class="font-semibold">输入错误：</span>
+            <span id="error-text">请确保车辆总价大于实际首付金额。</span>
+        </div>
+
+    </div>
+
+    <script>
+        // 格式化数字为人民币货币格式
+        // Note: The formatter uses the locale symbol (e.g., '¥'). We manually append ' RMB' for clarity in the UI.
+        const formatter = new Intl.NumberFormat('zh-CN', {
+            style: 'currency',
+            currency: 'CNY',
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        });
+
+        // 辅助函数：格式化货币并添加 ' RMB'
+        function formatRMB(value) {
+            return formatter.format(value).replace('CNY', '').trim() + ' RMB';
+        }
+
+        // 主要计算函数
+        function calculateLoan() {
+            // 1. 获取输入值
+            const price = parseFloat(document.getElementById('price').value);
+            const downPaymentPercent = parseFloat(document.getElementById('downPaymentPercent').value);
+            const annualRate = parseFloat(document.getElementById('rate').value);
+            const termYears = parseFloat(document.getElementById('term').value);
+            const repaymentType = document.querySelector('input[name="repaymentType"]:checked').value; // 'emi' or 'epr'
+            
+            // 2. 获取输出元素
+            const loanAmountOutput = document.getElementById('loanAmountOutput');
+            const downPaymentAmountDisplay = document.getElementById('downPaymentAmountDisplay');
+            const monthlyPaymentLabel = document.getElementById('monthlyPaymentLabel');
+            const monthlyPaymentOutput = document.getElementById('monthlyPaymentOutput');
+            const monthlyPaymentSubLabel = document.getElementById('monthlyPaymentSubLabel');
+            const totalInterestOutput = document.getElementById('totalInterestOutput');
+            const totalPaidOutput = document.getElementById('totalPaidOutput');
+            const errorMessage = document.getElementById('error-message');
+            const errorText = document.getElementById('error-text');
+
+            // 3. 基本输入校验 (检查NaN和非正数)
+            if (isNaN(price) || isNaN(downPaymentPercent) || isNaN(annualRate) || isNaN(termYears) || price <= 0 || annualRate <= 0 || termYears <= 0) {
+                errorMessage.classList.remove('hidden');
+                errorText.textContent = "所有输入项都必须是大于零的有效数字。";
+                // 清空输出
+                downPaymentAmountDisplay.textContent = '0.00 RMB';
+                loanAmountOutput.textContent = '0.00 RMB';
+                monthlyPaymentOutput.textContent = '0.00 RMB';
+                totalInterestOutput.textContent = '0.00 RMB';
+                totalPaidOutput.textContent = '0.00 RMB';
+                monthlyPaymentSubLabel.classList.add('hidden');
+                return;
+            }
+
+            // 4. 计算首付金额和贷款本金
+            const downPayment = price * (downPaymentPercent / 100);
+            downPaymentAmountDisplay.textContent = formatRMB(downPayment);
+            
+            const principal = price - downPayment;
+
+            // 5. 核心校验：贷款本金必须大于零
+            if (principal <= 0) {
+                errorMessage.classList.remove('hidden');
+                errorText.textContent = "贷款总额必须大于 0。请确保车辆总价大于实际首付金额。";
+                // 清空贷款相关输出
+                loanAmountOutput.textContent = formatRMB(principal); 
+                monthlyPaymentOutput.textContent = '0.00 RMB';
+                totalInterestOutput.textContent = '0.00 RMB';
+                totalPaidOutput.textContent = formatRMB(price);
+                monthlyPaymentSubLabel.classList.add('hidden');
+                return;
+            }
+
+            // 清除错误信息
+            errorMessage.classList.add('hidden');
+
+            // 6. 贷款参数计算
+            const termMonths = termYears * 12; // 总月数 (n)
+            const monthlyRate = annualRate / 100 / 12; // 月利率 (i)
+
+            let monthlyPaymentM1 = 0; // 首月还款额
+            let monthlyPaymentMn = 0; // 末月还款额
+            let totalInterest = 0;
+            let totalPaidPrincipalInterest = 0;
+
+            if (repaymentType === 'emi') {
+                // 等额本息 (Equal Monthly Installments - EMI)
+                monthlyPaymentLabel.textContent = '每月还款额 (等额本息)';
+                monthlyPaymentSubLabel.classList.add('hidden');
+
+                if (monthlyRate === 0) {
+                    // 无息贷款
+                    monthlyPaymentM1 = principal / termMonths;
+                    totalInterest = 0;
+                    totalPaidPrincipalInterest = principal;
+                } else {
+                    // M = P [ i(1 + i)^n ] / [ (1 + i)^n – 1 ]
+                    const power = Math.pow(1 + monthlyRate, termMonths);
+                    monthlyPaymentM1 = principal * (monthlyRate * power) / (power - 1);
+                    
+                    totalPaidPrincipalInterest = monthlyPaymentM1 * termMonths;
+                    totalInterest = totalPaidPrincipalInterest - principal;
+                }
+                monthlyPaymentMn = monthlyPaymentM1; // 月供固定
+
+            } else if (repaymentType === 'epr') {
+                // 等额本金 (Equal Principal Repayments - EPR)
+                monthlyPaymentLabel.textContent = '首月还款额 / 末月还款额 (等额本金)';
+                monthlyPaymentSubLabel.classList.remove('hidden');
+
+                const fixedPrincipal = principal / termMonths; // 每月固定还款本金
+                
+                // 1. 首月还款额 M1 = 固定本金 + 首月利息 (基于全部本金 P)
+                const interestM1 = principal * monthlyRate;
+                monthlyPaymentM1 = fixedPrincipal + interestM1;
+
+                // 2. 末月还款额 Mn = 固定本金 + 末月利息 (基于剩余本金 P/n)
+                // 最后一个月 (k=n) 的利息是基于上个月末的剩余本金 P_n-1 = P - (n-1) * P_fixed = P_fixed
+                const interestMn = fixedPrincipal * monthlyRate;
+                monthlyPaymentMn = fixedPrincipal + interestMn;
+
+                // 3. 总利息 = P * i * (n + 1) / 2
+                totalInterest = principal * monthlyRate * (termMonths + 1) / 2;
+                
+                // 4. 总还款额 (本金 + 利息)
+                totalPaidPrincipalInterest = principal + totalInterest;
+
+                // 显示递减信息
+                const decreasePerMonth = monthlyRate * fixedPrincipal; // 每月利息递减量
+                monthlyPaymentSubLabel.textContent = `每月递减约 ${formatRMB(decreasePerMonth)}`;
+                monthlyPaymentSubLabel.classList.remove('hidden');
+            }
+
+            // 7. 更新 DOM 输出
+            
+            // 贷款总额 (Principal)
+            loanAmountOutput.textContent = formatRMB(principal);
+            
+            // 每月还款额 (主显示屏)
+            if (repaymentType === 'emi') {
+                // EMI: 显示单一月供
+                monthlyPaymentOutput.textContent = formatRMB(monthlyPaymentM1);
+            } else {
+                // EPR: 显示范围 (首月 ~ 末月)
+                monthlyPaymentOutput.textContent = `${formatRMB(monthlyPaymentM1)} ~ ${formatRMB(monthlyPaymentMn)}`;
+            }
+            
+            // 总利息支出
+            totalInterestOutput.textContent = formatRMB(totalInterest);
+            
+            // 总计支付 = 贷款总还款额 + 首付
+            const totalPaid = totalPaidPrincipalInterest + downPayment;
+            totalPaidOutput.textContent = formatRMB(totalPaid);
+        }
+
+        // 页面加载完成后立即进行一次计算
+        window.onload = calculateLoan;
+    </script>
+</body>
+</html>
