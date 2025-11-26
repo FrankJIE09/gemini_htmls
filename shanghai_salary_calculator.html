@@ -34,14 +34,25 @@
             color: #1e40af; /* blue-800 */
             font-weight: 600;
         }
+        .rotated-header {
+            writing-mode: vertical-rl;
+            padding: 0 4px;
+            white-space: nowrap;
+        }
+        /* 雇主缴纳项视觉区分 */
+        .employer-col {
+            background-color: #f5f3ff; /* purple-50 */
+            color: #4c1d95; /* violet-700 */
+            font-weight: 500;
+        }
     </style>
 </head>
 <body class="p-4 md:p-8">
 
-    <div class="max-w-6xl mx-auto bg-white p-6 rounded-xl result-card">
+    <div class="max-w-7xl mx-auto bg-white p-6 rounded-xl result-card">
         <h1 class="text-3xl font-bold mb-6 text-center text-gray-800 border-b pb-3">
             <svg class="inline w-6 h-6 mr-2 text-blue-500" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M10 2a8 8 0 100 16 8 8 0 000-16zM5 9a1 1 0 000 2h10a1 1 0 100-2H5z"></path></svg>
-            上海年薪收入计算器 (累计预扣法)
+            上海年薪收入计算器 (累计预扣法 - 雇主视角)
         </h1>
 
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -53,7 +64,7 @@
             
             <!-- 公积金比例输入 -->
             <div>
-                <label for="hfRateEmployee" class="block text-sm font-medium text-gray-700 mb-1">住房公积金个人缴纳比例 (%)</label>
+                <label for="hfRateEmployee" class="block text-sm font-medium text-gray-700 mb-1">住房公积金个人/单位缴纳比例 (%)</label>
                 <input type="number" id="hfRateEmployee" value="7" min="5" max="12" step="0.5" class="input-style" placeholder="5% ~ 12%">
             </div>
 
@@ -77,10 +88,15 @@
 
         <!-- 结果展示区域 -->
         <div id="results" class="hidden">
-            <h2 class="text-2xl font-semibold mb-4 text-gray-800">计算结果摘要</h2>
+            <h2 class="text-2xl font-semibold mb-4 text-gray-800">核心年度数据摘要</h2>
             
-            <!-- 总览卡片 (3 列，共 7 张卡片) -->
+            <!-- 总览卡片 (4 列，共 8 张卡片) -->
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-6">
+                 <!-- NEW: 年度总用人成本 -->
+                <div class="bg-pink-50 border-l-4 border-pink-500 p-4 rounded-lg result-card">
+                    <p class="text-sm font-medium text-pink-600">年度总用人成本 (公司支出)</p>
+                    <p id="totalAnnualEmployerCostDisplay" class="text-2xl font-bold text-pink-700 mt-1">0.00</p>
+                </div>
                 <!-- 1: 年度税前总收入 -->
                 <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg result-card">
                     <p class="text-sm font-medium text-red-600">年度税前总收入 (含奖金)</p>
@@ -93,16 +109,22 @@
                     <p id="totalAnnualNetDisplay" class="text-2xl font-bold text-blue-700 mt-1">0.00</p>
                 </div>
 
+                <!-- 4: 年度净收入 + 公积金总和 -->
+                <div class="bg-teal-50 border-l-4 border-teal-500 p-4 rounded-lg result-card">
+                    <p class="text-sm font-medium text-teal-600">年度总净收入 + 公积金双边总计</p>
+                    <p id="totalAnnualCashPlusFundDisplay" class="text-2xl font-bold text-teal-700 mt-1">0.00</p>
+                </div>
+
                 <!-- 3: 公积金双边存入总额 -->
                 <div class="bg-indigo-50 border-l-4 border-indigo-500 p-4 rounded-lg result-card">
                     <p class="text-sm font-medium text-indigo-600">年度公积金双边存入总额</p>
                     <p id="totalAnnualHousingFundDisplay" class="text-2xl font-bold text-indigo-700 mt-1">0.00</p>
                 </div>
 
-                 <!-- NEW CARD: 年度净收入 + 公积金总和 -->
-                <div class="bg-teal-50 border-l-4 border-teal-500 p-4 rounded-lg result-card">
-                    <p class="text-sm font-medium text-teal-600">年度总净收入 + 公积金双边总计</p>
-                    <p id="totalAnnualCashPlusFundDisplay" class="text-2xl font-bold text-teal-700 mt-1">0.00</p>
+                <!-- 7: 年度公积金单边扣除 (个人) -->
+                <div class="bg-purple-50 border-l-4 border-purple-500 p-4 rounded-lg result-card">
+                    <p class="text-sm font-medium text-purple-600">年度公积金单边扣除 (个人)</p>
+                    <p id="totalAnnualHousingFundEmployeeDisplay" class="text-2xl font-bold text-purple-700 mt-1">0.00</p>
                 </div>
 
                 <!-- 5: 平均月到手 -->
@@ -116,16 +138,10 @@
                     <p class="text-sm font-medium text-yellow-600">年终奖到手 (税后)</p>
                     <p id="netBonusDisplay" class="text-2xl font-bold text-yellow-700 mt-1">0.00</p>
                 </div>
-                
-                <!-- 7: 年度公积金单边扣除 (个人) -->
-                <div class="bg-purple-50 border-l-4 border-purple-500 p-4 rounded-lg result-card">
-                    <p class="text-sm font-medium text-purple-600">年度公积金单边扣除 (个人)</p>
-                    <p id="totalAnnualHousingFundEmployeeDisplay" class="text-2xl font-bold text-purple-700 mt-1">0.00</p>
-                </div>
             </div>
 
-             <!-- 年度个人扣除明细表格 -->
-            <h3 class="text-xl font-semibold mb-3 mt-8 text-gray-800">年度个人扣除明细 (抵税基数)</h3>
+            <!-- 年度个人扣除明细表格 (抵税基数) -->
+            <h3 class="text-xl font-semibold mb-3 mt-8 text-gray-800">年度个人扣除明细 (可抵税基数)</h3>
             <div class="overflow-x-auto rounded-lg border border-gray-200 result-card mb-8">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead>
@@ -134,46 +150,65 @@
                             <th class="table-header py-3 px-4 text-right text-xs uppercase tracking-wider">年度总额 (RMB)</th>
                         </tr>
                     </thead>
-                    <tbody class="bg-white divide-y divide-gray-100 text-gray-700">
-                        <tr>
-                            <td class="px-4 py-2 text-sm">养老保险 (个人)</td>
-                            <td id="annualPensionDeduction" class="px-4 py-2 text-right text-sm text-red-600">0.00</td>
-                        </tr>
-                        <tr>
-                            <td class="px-4 py-2 text-sm">医疗保险 (个人) + 3元固定费</td>
-                            <td id="annualMedicalDeduction" class="px-4 py-2 text-right text-sm text-red-600">0.00</td>
-                        </tr>
-                        <tr>
-                            <td class="px-4 py-2 text-sm">失业保险 (个人)</td>
-                            <td id="annualUnemploymentDeduction" class="px-4 py-2 text-right text-sm text-red-600">0.00</td>
-                        </tr>
-                        <tr>
-                            <td class="px-4 py-2 text-sm font-medium">住房公积金 (个人单边)</td>
-                            <td id="annualHFDeduction" class="px-4 py-2 text-right text-sm font-medium text-purple-700">0.00</td>
-                        </tr>
-                        <tr>
-                            <td class="px-4 py-2 text-sm">专项附加扣除 (子女教育、房贷等)</td>
-                            <td id="annualSpecialDeduction" class="px-4 py-2 text-right text-sm text-red-600">0.00</td>
-                        </tr>
+                    <tbody class="bg-white divide-y divide-gray-100 text-gray-700" id="annualIndividualDeductionBody">
+                        <!-- Content populated by JS -->
+                    </tbody>
+                    <tfoot>
                          <tr>
                             <td class="px-4 py-2 text-base font-bold text-gray-800">年度综合扣除总计 (可抵税基数)</td>
                             <td id="totalAnnualTaxDeduction" class="px-4 py-2 text-right text-base font-bold text-red-700">0.00</td>
                         </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <!-- NEW: 年度雇主用人成本明细表格 -->
+            <h3 class="text-xl font-semibold mb-3 mt-8 text-gray-800">年度雇主缴纳明细 (公司成本)</h3>
+            <div class="overflow-x-auto rounded-lg border border-gray-200 result-card mb-8">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead>
+                        <tr>
+                            <th class="table-header py-3 px-4 text-left text-xs uppercase tracking-wider rounded-tl-lg">缴纳项目 (公司部分)</th>
+                            <th class="table-header py-3 px-4 text-right text-xs uppercase tracking-wider">年度总额 (RMB)</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-100 text-gray-700" id="annualEmployerCostBody">
+                         <!-- Content populated by JS -->
                     </tbody>
+                     <tfoot>
+                         <tr>
+                            <td class="px-4 py-2 text-base font-bold text-gray-800">年度公司五险一金缴纳总计</td>
+                            <td id="totalAnnualEmployerContribution" class="px-4 py-2 text-right text-base font-bold text-pink-700">0.00</td>
+                        </tr>
+                    </tfoot>
                 </table>
             </div>
 
 
-            <!-- 详细每月扣除表格 -->
-            <h3 class="text-xl font-semibold mb-3 mt-8 text-gray-800">月度工资到手明细 (累计预扣法)</h3>
+            <!-- 详细每月扣除表格 (Expanded) -->
+            <h3 class="text-xl font-semibold mb-3 mt-8 text-gray-800">月度工资到手明细与公司成本 (个人/公司详细)</h3>
             <div class="overflow-x-auto rounded-lg border border-gray-200 result-card">
-                <table class="min-w-full divide-y divide-gray-200">
+                <table class="min-w-full divide-y divide-gray-200 text-xs">
                     <thead>
-                        <tr>
-                            <th class="table-header py-3 px-4 text-left text-xs uppercase tracking-wider rounded-tl-lg">月份</th>
-                            <th class="table-header py-3 px-4 text-right text-xs uppercase tracking-wider">五险一金 & 专项扣除</th>
-                            <th class="table-header py-3 px-4 text-right text-xs uppercase tracking-wider">个税扣除</th>
-                            <th class="table-header py-3 px-4 text-right text-xs uppercase tracking-wider">税后到手工资</th>
+                        <tr class="table-header">
+                            <th class="py-3 px-2 text-left uppercase tracking-wider">月份</th>
+                            <th class="py-3 px-2 text-right uppercase tracking-wider">税前工资</th>
+                            <!-- 个人缴纳部分 -->
+                            <th class="py-3 px-2 text-right uppercase tracking-wider rotated-header">养老(个)</th>
+                            <th class="py-3 px-2 text-right uppercase tracking-wider rotated-header">医疗(个)</th>
+                            <th class="py-3 px-2 text-right uppercase tracking-wider rotated-header">失业(个)</th>
+                            <th class="py-3 px-2 text-right uppercase tracking-wider rotated-header text-purple-800">公积金(个)</th>
+                            <th class="py-3 px-2 text-right uppercase tracking-wider rotated-header">专项附加</th>
+                            <th class="py-3 px-2 text-right uppercase tracking-wider">个税扣除</th>
+                            <!-- 公司缴纳部分 -->
+                            <th class="py-3 px-2 text-right uppercase tracking-wider rotated-header employer-col">养老(司)</th>
+                            <th class="py-3 px-2 text-right uppercase tracking-wider rotated-header employer-col">医疗(司)</th>
+                            <th class="py-3 px-2 text-right uppercase tracking-wider rotated-header employer-col">失业(司)</th>
+                            <th class="py-3 px-2 text-right uppercase tracking-wider rotated-header employer-col">工伤(司)</th>
+                            <th class="py-3 px-2 text-right uppercase tracking-wider rotated-header text-purple-800 employer-col">公积金(司)</th>
+                            <!-- 汇总数据 -->
+                            <th class="py-3 px-2 text-right uppercase tracking-wider">公司月总成本</th>
+                            <th class="py-3 px-2 text-right uppercase tracking-wider">税后到手工资</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-100 text-gray-700" id="monthlyResultsTableBody">
@@ -181,10 +216,23 @@
                     </tbody>
                     <tfoot>
                          <tr>
-                            <td class="px-4 py-3 text-sm font-semibold text-gray-800">年度总计</td>
-                            <td id="totalWuxianYijin" class="px-4 py-3 text-right text-sm font-semibold text-red-600">0.00</td>
-                            <td id="totalIIT" class="px-4 py-3 text-right text-sm font-semibold text-red-600">0.00</td>
-                            <td id="totalNetSalary" class="px-4 py-3 text-right text-sm font-semibold text-green-700">0.00</td>
+                            <td class="px-2 py-3 text-sm font-semibold text-gray-800">年度总计</td>
+                            <td id="totalAnnualGrossSalary" class="px-2 py-3 text-right text-sm font-semibold text-gray-800">0.00</td>
+                            <td id="totalPensionE" class="px-2 py-3 text-right text-sm font-semibold text-red-600">0.00</td>
+                            <td id="totalMedicalE" class="px-2 py-3 text-right text-sm font-semibold text-red-600">0.00</td>
+                            <td id="totalUnemploymentE" class="px-2 py-3 text-right text-sm font-semibold text-red-600">0.00</td>
+                            <td id="totalHousingFundE" class="px-2 py-3 text-right text-sm font-semibold text-purple-700">0.00</td>
+                            <td id="totalSpecialDeduction" class="px-2 py-3 text-right text-sm font-semibold text-red-600">0.00</td>
+                            <td id="totalIIT" class="px-2 py-3 text-right text-sm font-semibold text-red-600">0.00</td>
+                            <!-- 公司缴纳总计 -->
+                            <td id="totalPensionC" class="px-2 py-3 text-right text-sm font-semibold employer-col">0.00</td>
+                            <td id="totalMedicalC" class="px-2 py-3 text-right text-sm font-semibold employer-col">0.00</td>
+                            <td id="totalUnemploymentC" class="px-2 py-3 text-right text-sm font-semibold employer-col">0.00</td>
+                            <td id="totalWorkInjuryC" class="px-2 py-3 text-right text-sm font-semibold employer-col">0.00</td>
+                            <td id="totalHousingFundC" class="px-2 py-3 text-right text-sm font-semibold text-purple-700 employer-col">0.00</td>
+                            <!-- 汇总数据 -->
+                            <td id="totalEmployerCostAnnual" class="px-2 py-3 text-right text-sm font-bold text-pink-700">0.00</td>
+                            <td id="totalNetSalary" class="px-2 py-3 text-right text-sm font-semibold text-green-700">0.00</td>
                         </tr>
                     </tfoot>
                 </table>
@@ -216,7 +264,7 @@
             <div class="mt-8 p-4 bg-yellow-50 text-yellow-800 rounded-lg text-sm border border-yellow-200">
                 <p class="font-semibold mb-1">计算说明 (上海预估基数 2024/2025):</p>
                 <ul class="list-disc list-inside space-y-0.5">
-                    <li>**公积金比例：** 个人和单位的缴纳比例相同，默认为 7%，您可修改为 5% 至 12%。</li>
+                    <li>**费率说明：** 社保费率采用了上海市常见的费率（个人养老 8%，医保 2%，失业 0.5%；单位养老 16%，医保 8%，失业 0.5%，工伤 0.26%）。实际费率可能因行业和地区而异。</li>
                     <li>**年度总净收入 + 公积金双边总计：** 衡量个人所有现金流入和长期储蓄（公积金）的总金额。</li>
                     <li>**社保公积金基数：** 采用上海市预估上下限（社保上下限约 7,310 - 36,535；公积金上下限约 2,790 - 36,535）。</li>
                     <li>**个税计算：** 严格采用**累计预扣法**，因此个税扣除金额会随着月份的累积而变化，尤其是在年初。</li>
@@ -229,14 +277,20 @@
     <script>
         // 定义五险一金费率和基数上下限 (2024年上海预估数据)
         const RATES = {
-            PENSION_E: 0.08, // 养老保险 (个人)
-            MEDICAL_E: 0.02, // 医疗保险 (个人)
-            UNEMPLOYMENT_E: 0.005, // 失业保险 (个人)
-            MEDICAL_FIXED: 3 // 医疗保险固定费用
+            // Individual (Employee - E) 个人
+            PENSION_E: 0.08,      // 养老 (个人)
+            MEDICAL_E: 0.02,      // 医疗 (个人), 移除了 3 RMB 固定费
+            UNEMPLOYMENT_E: 0.005,  // 失业 (个人)
+            
+            // Employer (Company - C) 单位
+            PENSION_C: 0.16,      // 养老 (单位)
+            MEDICAL_C: 0.08,      // 医疗 (单位)
+            UNEMPLOYMENT_C: 0.005,  // 失业 (单位)
+            WORK_INJURY_C: 0.0026, // 工伤 (单位, 示例费率)
         };
 
         const LIMITS = {
-            SS_LOWER: 7310, // 社保下限 (养老/医疗/失业)
+            SS_LOWER: 7310, // 社保下限 (养老/医疗/失业/工伤)
             SS_UPPER: 36535, // 社保上限
             HF_LOWER: 2790, // 公积金下限
             HF_UPPER: 36535, // 公积金上限
@@ -259,36 +313,43 @@
         const formatRMB = (num) => parseFloat(num).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 
         /**
-         * 计算五险一金月扣除额 (包含个人公积金和公积金双边总额)
+         * 计算五险一金月扣除额 (包含个人、单位 breakdown 及双边总额)
          * @param {number} monthlySalary - 月度税前工资
-         * @param {number} hfRateEmployee - 住房公积金个人缴纳比例 (0.05 - 0.12)
+         * @param {number} hfRateEmployee - 住房公积金个人/单位缴纳比例 (0.05 - 0.12)
          * @returns {object} 包含各项扣除额和总额
          */
         function calculateDeductions(monthlySalary, hfRateEmployee) {
-            // 确定社保基数 (养老, 医疗, 失业)
+            // 确定社保基数 (养老, 医疗, 失业, 工伤)
             let ssBase = Math.min(Math.max(monthlySalary, LIMITS.SS_LOWER), LIMITS.SS_UPPER);
             // 确定公积金基数
             let hfBase = Math.min(Math.max(monthlySalary, LIMITS.HF_LOWER), LIMITS.HF_UPPER);
 
-            const pension = ssBase * RATES.PENSION_E;
-            const medical = ssBase * RATES.MEDICAL_E + RATES.MEDICAL_FIXED;
-            const unemployment = ssBase * RATES.UNEMPLOYMENT_E;
-            
-            // 个人缴纳的公积金 (用于个人所得税抵扣)
-            const housingFundEmployee = hfBase * hfRateEmployee;
-            // 个人 + 单位缴纳的公积金总额 (用于摘要卡片显示)
-            const housingFundTotalContribution = housingFundEmployee * 2; 
+            // 1. 个人缴纳 (Employee - E)
+            const pension_e = ssBase * RATES.PENSION_E;
+            const medical_e = ssBase * RATES.MEDICAL_E; 
+            const unemployment_e = ssBase * RATES.UNEMPLOYMENT_E;
+            const housingFund_e = hfBase * hfRateEmployee;
+            const individualTotal = pension_e + medical_e + unemployment_e + housingFund_e;
 
-            // totalMonthlyDeduction 是个人强制缴纳的总额 (五险一金)
-            const totalMonthlyDeduction = pension + medical + unemployment + housingFundEmployee;
+            // 2. 单位缴纳 (Company - C)
+            const pension_c = ssBase * RATES.PENSION_C;
+            const medical_c = ssBase * RATES.MEDICAL_C;
+            const unemployment_c = ssBase * RATES.UNEMPLOYMENT_C;
+            const workInjury_c = ssBase * RATES.WORK_INJURY_C;
+            const housingFund_c = hfBase * hfRateEmployee; // 公积金单位和个人比例一致
+            const employerTotal = pension_c + medical_c + unemployment_c + workInjury_c + housingFund_c;
 
             return {
-                pension, // 养老保险 (个人)
-                medical, // 医疗保险 (个人)
-                unemployment, // 失业保险 (个人)
-                housingFund: housingFundEmployee, // 个人公积金 (用于IIT扣除)
-                housingFundTotalContribution: housingFundTotalContribution, // 双边公积金总额 (用于摘要显示)
-                total: totalMonthlyDeduction // 个人五险一金总扣除 (可抵税)
+                // Individual Breakdown
+                pension_e, medical_e, unemployment_e, housingFund_e,
+                individualTotal, // 个人五险一金总扣除 (可抵税)
+                
+                // Employer Breakdown
+                pension_c, medical_c, unemployment_c, workInjury_c, housingFund_c,
+                employerTotal, // 公司五险一金总缴纳
+
+                // Totals
+                housingFundTotalContribution: housingFund_e + housingFund_c, // 双边公积金总额
             };
         }
 
@@ -341,7 +402,6 @@
                 // 公积金比例转换为小数，并校验范围
                 let hfRateEmployee = parseFloat(document.getElementById('hfRateEmployee').value);
                 if (isNaN(hfRateEmployee) || hfRateEmployee < 5 || hfRateEmployee > 12) {
-                     // 使用默认值7%
                      hfRateEmployee = 7;
                      document.getElementById('hfRateEmployee').value = 7; 
                 }
@@ -350,16 +410,16 @@
 
                 const monthlyResults = [];
                 let cumulativeTaxPaid = 0; // 累计已缴纳个税
+                
                 let totalAnnualNetSalary = 0; // 12个月净工资
-                let totalAnnualWuxianYijin = 0; // 年度个人五险一金总扣除
                 let totalAnnualIIT = 0;
                 let totalAnnualHousingFund = 0; // 双边存入总额
-
-                // 预先计算固定的月度五险一金扣除额
+                
+                // 预先计算固定的月度五险一金扣除额和单位缴纳额
                 const deductions = calculateDeductions(monthlySalary, hfRateEmployee);
-                const totalMonthlyDeductionWuxianYijin = deductions.total; // 个人五险一金总扣除
+                const totalMonthlyDeductionWuxianYijin = deductions.individualTotal; // 个人五险一金总扣除
 
-                // 循环计算12个月 (累计预扣法核心逻辑)
+                // 2. 循环计算12个月 (累计预扣法核心逻辑)
                 for (let month = 1; month <= 12; month++) {
                     
                     // A. 月度数据 (假设月薪稳定)
@@ -367,120 +427,213 @@
                     
                     // B. 累计应纳税所得额
                     const cumulativeGross = monthlyGross * month;
-                    // cumulativeWuxianYijin 只包含个人缴纳部分 (可抵税)
                     const cumulativeWuxianYijin = totalMonthlyDeductionWuxianYijin * month; 
                     const cumulativeSpecialDeduction = specialDeductionMonthly * month;
-                    const cumulativeBasicDeduction = month * (TAX_DEDUCTION_ANNUAL_BASIC / 12); // 5000 * month
+                    const cumulativeBasicDeduction = month * (TAX_DEDUCTION_ANNUAL_BASIC / 12); 
 
-                    // 累计预扣预缴应纳税所得额 = 累计收入 - 累计五险一金(个人) - 累计专项附加 - 累计基本减除
+                    // 累计预扣预缴应纳税所得额
                     const cumulativeTaxableIncome = cumulativeGross - cumulativeWuxianYijin - cumulativeSpecialDeduction - cumulativeBasicDeduction;
 
-                    // C. 计算累计应缴税额 (Total Tax Due Cumulatively)
+                    // C. 计算累计应缴税额
                     let cumulativeTaxPayable = 0;
                     let applicableRate = 0;
-                    let applicableQuick = 0;
-
+                    
                     for (let i = TAX_BRACKETS.length - 1; i >= 0; i--) {
                         const bracket = TAX_BRACKETS[i];
                         if (cumulativeTaxableIncome > bracket.threshold) {
+                            cumulativeTaxPayable = cumulativeTaxableIncome * bracket.rate - bracket.quick;
                             applicableRate = bracket.rate;
-                            applicableQuick = bracket.quick;
-                            cumulativeTaxPayable = cumulativeTaxableIncome * applicableRate - applicableQuick;
                             break;
                         }
                     }
                     
-                    // D. 计算本月应预扣个税 (Tax Due This Month)
+                    // D. 计算本月应预扣个税
                     const monthlyIIT = Math.max(0, cumulativeTaxPayable - cumulativeTaxPaid);
                     
                     // E. 更新累计值和年度总计
                     cumulativeTaxPaid += monthlyIIT;
                     totalAnnualIIT += monthlyIIT;
-                    totalAnnualWuxianYijin += totalMonthlyDeductionWuxianYijin;
-                    // 更新年度公积金总额 (双边存入)
                     totalAnnualHousingFund += deductions.housingFundTotalContribution; 
 
                     // F. 计算月度税后到手工资
-                    const netMonthlySalary = monthlyGross - totalMonthlyDeductionWuxianYijin - specialDeductionMonthly - monthlyIIT;
+                    const netMonthlySalary = monthlyGross - totalMonthlyDeductionWuxianYijin - monthlyIIT;
                     totalAnnualNetSalary += netMonthlySalary;
+
+                    // G. 额外计算公司月总成本 (月薪 + 单位缴纳五险一金总额)
+                    const monthlyEmployerCost = monthlyGross + deductions.employerTotal;
 
                     monthlyResults.push({
                         month,
-                        wuxianYijin: totalMonthlyDeductionWuxianYijin,
+                        // Individual Deductions Breakdown
+                        pension_e: deductions.pension_e,
+                        medical_e: deductions.medical_e,
+                        unemployment_e: deductions.unemployment_e,
+                        housingFund_e: deductions.housingFund_e,
+                        // Employer Deductions Breakdown (New)
+                        pension_c: deductions.pension_c,
+                        medical_c: deductions.medical_c,
+                        unemployment_c: deductions.unemployment_c,
+                        workInjury_c: deductions.workInjury_c,
+                        housingFund_c: deductions.housingFund_c,
+
                         specialDeduction: specialDeductionMonthly,
                         iit: monthlyIIT,
                         net: netMonthlySalary,
+                        monthlyEmployerCost: monthlyEmployerCost, // NEW
                         cumulativeTaxableIncome: cumulativeTaxableIncome,
-                        applicableRate: applicableRate * 100
+                        applicableRate: applicableRate * 100,
+                        monthlyGross
                     });
                 }
                 
-                // 2. 计算年终奖数据
+                // 3. 计算年终奖数据
                 const bonusResult = calculateBonusTax(annualBonus);
                 
-                // 3. 计算年度总数据
+                // 4. 计算年度总数据
                 const totalAnnualNet = totalAnnualNetSalary + bonusResult.net;
                 const netMonthlySalaryAvg = totalAnnualNetSalary / 12;
                 
-                // 年度税前总收入
+                // 年度税前总收入 (月薪 * 12 + 年终奖)
                 const totalAnnualGross = monthlySalary * 12 + annualBonus;
                 
                 // 详细年度扣除分项计算 (使用 monthly deductions * 12)
-                const totalAnnualPension = deductions.pension * 12;
-                const totalAnnualMedical = deductions.medical * 12;
-                const totalAnnualUnemployment = deductions.unemployment * 12;
-                const totalAnnualHousingFundEmployee = deductions.housingFund * 12; // 个人单边公积金
+                const totalAnnualPensionE = deductions.pension_e * 12;
+                const totalAnnualMedicalE = deductions.medical_e * 12;
+                const totalAnnualUnemploymentE = deductions.unemployment_e * 12;
+                const totalAnnualHousingFundEmployee = deductions.housingFund_e * 12; // 个人单边公积金
                 const totalAnnualSpecialDeduction = specialDeductionMonthly * 12;
                 
                 // 年度综合扣除总计 (可抵税基数部分，即 五险一金个人 + 专项附加)
-                const totalAnnualTaxDeduction = totalAnnualWuxianYijin + totalAnnualSpecialDeduction;
+                const totalAnnualTaxDeduction = totalAnnualPensionE + totalAnnualMedicalE + totalAnnualUnemploymentE + totalAnnualHousingFundEmployee + totalAnnualSpecialDeduction;
 
-                // NEW: 年度总净收入 + 公积金总和
+                // 年度公司缴纳分项
+                const totalAnnualPensionC = deductions.pension_c * 12;
+                const totalAnnualMedicalC = deductions.medical_c * 12;
+                const totalAnnualUnemploymentC = deductions.unemployment_c * 12;
+                const totalAnnualWorkInjuryC = deductions.workInjury_c * 12;
+                const totalAnnualHousingFundC = deductions.housingFund_c * 12;
+                const totalAnnualEmployerContribution = deductions.employerTotal * 12; // 公司五险一金总缴纳
+
+                // 年度总净收入 + 公积金总和
                 const totalAnnualCashPlusFund = totalAnnualNet + totalAnnualHousingFund;
+                
+                // NEW: 年度总用人成本 = 年度税前总收入 + 年度公司五险一金缴纳总计
+                const totalAnnualEmployerCost = totalAnnualGross + totalAnnualEmployerContribution;
 
 
-                // 4. 更新UI
+                // 5. 更新UI
 
                 // A. 摘要卡片
+                document.getElementById('totalAnnualEmployerCostDisplay').textContent = formatRMB(totalAnnualEmployerCost);
                 document.getElementById('totalAnnualGrossDisplay').textContent = formatRMB(totalAnnualGross);
+                document.getElementById('totalAnnualNetDisplay').textContent = formatRMB(totalAnnualNet);
+                document.getElementById('totalAnnualCashPlusFundDisplay').textContent = formatRMB(totalAnnualCashPlusFund);
+                document.getElementById('totalAnnualHousingFundDisplay').textContent = formatRMB(totalAnnualHousingFund);
                 document.getElementById('totalAnnualHousingFundEmployeeDisplay').textContent = formatRMB(totalAnnualHousingFundEmployee);
                 document.getElementById('netMonthlySalaryAvgDisplay').textContent = formatRMB(netMonthlySalaryAvg);
                 document.getElementById('netBonusDisplay').textContent = formatRMB(bonusResult.net);
-                document.getElementById('totalAnnualHousingFundDisplay').textContent = formatRMB(totalAnnualHousingFund);
-                document.getElementById('totalAnnualNetDisplay').textContent = formatRMB(totalAnnualNet);
-                document.getElementById('totalAnnualCashPlusFundDisplay').textContent = formatRMB(totalAnnualCashPlusFund);
 
 
                 // B. 年度个人扣除明细表格
-                document.getElementById('annualPensionDeduction').textContent = formatRMB(totalAnnualPension);
-                document.getElementById('annualMedicalDeduction').textContent = formatRMB(totalAnnualMedical);
-                document.getElementById('annualUnemploymentDeduction').textContent = formatRMB(totalAnnualUnemployment);
-                document.getElementById('annualHFDeduction').textContent = formatRMB(totalAnnualHousingFundEmployee);
-                document.getElementById('annualSpecialDeduction').textContent = formatRMB(totalAnnualSpecialDeduction);
+                const annualIndividualBody = document.getElementById('annualIndividualDeductionBody');
+                annualIndividualBody.innerHTML = `
+                    <tr><td class="px-4 py-2 text-sm">养老保险 (个人)</td><td class="px-4 py-2 text-right text-sm text-red-600">${formatRMB(totalAnnualPensionE)}</td></tr>
+                    <tr><td class="px-4 py-2 text-sm">医疗保险 (个人)</td><td class="px-4 py-2 text-right text-sm text-red-600">${formatRMB(totalAnnualMedicalE)}</td></tr>
+                    <tr><td class="px-4 py-2 text-sm">失业保险 (个人)</td><td class="px-4 py-2 text-right text-sm text-red-600">${formatRMB(totalAnnualUnemploymentE)}</td></tr>
+                    <tr><td class="px-4 py-2 text-sm font-medium">住房公积金 (个人单边)</td><td class="px-4 py-2 text-right text-sm font-medium text-purple-700">${formatRMB(totalAnnualHousingFundEmployee)}</td></tr>
+                    <tr><td class="px-4 py-2 text-sm">专项附加扣除 (子女教育、房贷等)</td><td class="px-4 py-2 text-right text-sm text-red-600">${formatRMB(totalAnnualSpecialDeduction)}</td></tr>
+                `;
                 document.getElementById('totalAnnualTaxDeduction').textContent = formatRMB(totalAnnualTaxDeduction);
 
 
-                // C. 月度明细表格
+                // C. NEW: 年度雇主用人成本明细表格
+                const annualEmployerBody = document.getElementById('annualEmployerCostBody');
+                annualEmployerBody.innerHTML = `
+                    <tr><td class="px-4 py-2 text-sm">养老保险 (单位)</td><td class="px-4 py-2 text-right text-sm text-pink-600">${formatRMB(totalAnnualPensionC)}</td></tr>
+                    <tr><td class="px-4 py-2 text-sm">医疗保险 (单位)</td><td class="px-4 py-2 text-right text-sm text-pink-600">${formatRMB(totalAnnualMedicalC)}</td></tr>
+                    <tr><td class="px-4 py-2 text-sm">失业保险 (单位)</td><td class="px-4 py-2 text-right text-sm text-pink-600">${formatRMB(totalAnnualUnemploymentC)}</td></tr>
+                    <tr><td class="px-4 py-2 text-sm">工伤保险 (单位)</td><td class="px-4 py-2 text-right text-sm text-pink-600">${formatRMB(totalAnnualWorkInjuryC)}</td></tr>
+                    <tr><td class="px-4 py-2 text-sm font-medium">住房公积金 (单位单边)</td><td class="px-4 py-2 text-right text-sm font-medium text-purple-700">${formatRMB(totalAnnualHousingFundC)}</td></tr>
+                `;
+                document.getElementById('totalAnnualEmployerContribution').textContent = formatRMB(totalAnnualEmployerContribution);
+
+
+                // D. 月度明细表格
                 const resultsBody = document.getElementById('monthlyResultsTableBody');
                 resultsBody.innerHTML = ''; // 清空旧数据
 
+                let totalPensionE_month = 0;
+                let totalMedicalE_month = 0;
+                let totalUnemploymentE_month = 0;
+                let totalHousingFundE_month = 0;
+                let totalSpecialDeduction_month = 0;
+                // 新增雇主年度总计变量
+                let totalPensionC_month = 0;
+                let totalMedicalC_month = 0;
+                let totalUnemploymentC_month = 0;
+                let totalWorkInjuryC_month = 0;
+                let totalHousingFundC_month = 0;
+                let totalEmployerCost_Annual = 0; // 对应表格中的公司月总成本年度总和
+
                 monthlyResults.forEach(item => {
+                    totalPensionE_month += item.pension_e;
+                    totalMedicalE_month += item.medical_e;
+                    totalUnemploymentE_month += item.unemployment_e;
+                    totalHousingFundE_month += item.housingFund_e;
+                    totalSpecialDeduction_month += item.specialDeduction;
+                    
+                    // 雇主年度总计累加
+                    totalPensionC_month += item.pension_c;
+                    totalMedicalC_month += item.medical_c;
+                    totalUnemploymentC_month += item.unemployment_c;
+                    totalWorkInjuryC_month += item.workInjury_c;
+                    totalHousingFundC_month += item.housingFund_c;
+                    totalEmployerCost_Annual += item.monthlyEmployerCost;
+
                     const row = resultsBody.insertRow();
+                    row.className = item.month % 2 === 0 ? 'bg-gray-50' : '';
                     row.innerHTML = `
-                        <td class="px-4 py-2 whitespace-nowrap text-sm font-medium">第 ${item.month} 月 <span class="text-gray-500 text-xs"> (累计收入税率: ${item.applicableRate.toFixed(0)}%)</span></td>
-                        <td class="px-4 py-2 whitespace-nowrap text-right text-sm text-red-600">${formatRMB(item.wuxianYijin + item.specialDeduction)}</td>
-                        <td class="px-4 py-2 whitespace-nowrap text-right text-sm text-red-600">${formatRMB(item.iit)}</td>
-                        <td class="px-4 py-2 whitespace-nowrap text-right text-sm font-semibold text-green-700">${formatRMB(item.net)}</td>
+                        <td class="px-2 py-2 text-left text-sm font-medium text-gray-800">${item.month}月</td>
+                        <td class="px-2 py-2 text-right text-sm font-medium text-gray-800">${formatRMB(item.monthlyGross)}</td>
+                        <td class="px-2 py-2 text-right text-sm text-red-600">${formatRMB(item.pension_e)}</td>
+                        <td class="px-2 py-2 text-right text-sm text-red-600">${formatRMB(item.medical_e)}</td>
+                        <td class="px-2 py-2 text-right text-sm text-red-600">${formatRMB(item.unemployment_e)}</td>
+                        <td class="px-2 py-2 text-right text-sm font-medium text-purple-700">${formatRMB(item.housingFund_e)}</td>
+                        <td class="px-2 py-2 text-right text-sm text-red-600">${formatRMB(item.specialDeduction)}</td>
+                        <td class="px-2 py-2 text-right text-sm font-semibold text-red-700">${formatRMB(item.iit)}</td>
+                        
+                        <!-- 雇主缴纳明细 -->
+                        <td class="px-2 py-2 text-right text-sm employer-col">${formatRMB(item.pension_c)}</td>
+                        <td class="px-2 py-2 text-right text-sm employer-col">${formatRMB(item.medical_c)}</td>
+                        <td class="px-2 py-2 text-right text-sm employer-col">${formatRMB(item.unemployment_c)}</td>
+                        <td class="px-2 py-2 text-right text-sm employer-col">${formatRMB(item.workInjury_c)}</td>
+                        <td class="px-2 py-2 text-right text-sm font-medium text-purple-700 employer-col">${formatRMB(item.housingFund_c)}</td>
+
+                        <td class="px-2 py-2 text-right text-sm font-bold text-pink-700">${formatRMB(item.monthlyEmployerCost)}</td>
+                        <td class="px-2 py-2 text-right text-sm font-bold text-green-700">${formatRMB(item.net)}</td>
                     `;
                 });
                 
-                // D. 年度总计 (月度表格底部的汇总)
-                // totalWuxianYijin 在这里代表的是：个人五险一金总扣除 + 专项附加扣除总额
-                document.getElementById('totalWuxianYijin').textContent = formatRMB(totalAnnualTaxDeduction); 
+                // E. 月度表格底部的汇总
+                document.getElementById('totalAnnualGrossSalary').textContent = formatRMB(monthlySalary * 12); 
+                document.getElementById('totalPensionE').textContent = formatRMB(totalPensionE_month);
+                document.getElementById('totalMedicalE').textContent = formatRMB(totalMedicalE_month);
+                document.getElementById('totalUnemploymentE').textContent = formatRMB(totalUnemploymentE_month);
+                document.getElementById('totalHousingFundE').textContent = formatRMB(totalHousingFundE_month);
+                document.getElementById('totalSpecialDeduction').textContent = formatRMB(totalSpecialDeduction_month);
                 document.getElementById('totalIIT').textContent = formatRMB(totalAnnualIIT);
                 document.getElementById('totalNetSalary').textContent = formatRMB(totalAnnualNetSalary);
 
-                // E. 年终奖详情
+                // 雇主汇总更新
+                document.getElementById('totalPensionC').textContent = formatRMB(totalPensionC_month);
+                document.getElementById('totalMedicalC').textContent = formatRMB(totalMedicalC_month);
+                document.getElementById('totalUnemploymentC').textContent = formatRMB(totalUnemploymentC_month);
+                document.getElementById('totalWorkInjuryC').textContent = formatRMB(totalWorkInjuryC_month);
+                document.getElementById('totalHousingFundC').textContent = formatRMB(totalHousingFundC_month);
+                document.getElementById('totalEmployerCostAnnual').textContent = formatRMB(totalEmployerCost_Annual);
+
+
+                // F. 年终奖详情
                 document.getElementById('grossBonusDisplay').textContent = formatRMB(annualBonus);
                 document.getElementById('bonusTaxRateDisplay').textContent = bonusResult.rate;
                 document.getElementById('bonusTaxDisplay').textContent = formatRMB(bonusResult.tax);
