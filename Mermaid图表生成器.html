@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mermaid 图表生成器</title>
+    <!-- 引入 Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 Mermaid JS 库 -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+    <style>
+        /* 使用 Inter 字体 */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* 浅灰色背景 */
+        }
+        /* 自定义滚动条样式，使其更美观 */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #e5e7eb;
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #9ca3af;
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #6b7280;
+        }
+        /* 确保 Mermaid 渲染的 SVG 容器是响应式的 */
+        #diagram-output svg {
+            max-width: 100%;
+            height: auto;
+        }
+        /* 启用 resize-x, 并在桌面端设定默认宽度 */
+        #input-panel {
+            min-width: 200px; /* 最小宽度 */
+            resize: horizontal; /* 允许水平拖动 */
+            overflow: auto; /* 必须设置，以使 resize 生效 */
+            position: relative; /* 确保子元素定位正确 */
+        }
+        
+        /* 针对桌面端设置默认宽度 */
+        @media (min-width: 768px) {
+            #input-panel {
+                width: 33.333333%; /* 默认 1/3 宽度 */
+            }
+        }
+        /* Toast 通知样式 */
+        #toast-notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 50;
+        }
+        /* 全屏模式样式 */
+        #diagram-container.fullscreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            margin: 0 !important;
+            padding: 20px;
+            background-color: #fff;
+            z-index: 1000;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+            /* 必须覆盖md:h-[calc(100vh-360px)] */
+            height: 100vh; 
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary-blue': '#3B82F6', // Blue 500
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="p-4 md:p-8">
+
+    <header id="app-header" class="mb-6 text-center">
+        <h1 class="text-3xl md:text-4xl font-extrabold text-gray-900 mb-2">Mermaid 实时图表生成器</h1>
+        <p class="text-gray-600">输入 Mermaid 语法，即时预览流程图、时序图等。</p>
+    </header>
+
+    <main class="md:flex md:space-x-6 h-full min-h-[70vh]">
+        <!-- -------------------- 输入区域 (现在可调节宽度) -------------------- -->
+        <div id="input-panel" class="mb-6 md:mb-0 pr-3">
+            <div class="flex justify-between items-center mb-3">
+                <h2 class="text-xl font-semibold text-gray-800 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-primary-blue" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                    </svg>
+                    Mermaid 语法输入
+                </h2>
+                <!-- 复制按钮 -->
+                <button 
+                    onclick="copyCode()" 
+                    class="ml-4 px-3 py-1 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-300 transition duration-150 shadow-sm flex items-center"
+                    title="复制 Mermaid 语法"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h6a2 2 0 012 2v10a2 2 0 01-2 2h-6a2 2 0 01-2-2v-2m0-4h.01M8 12h.01" />
+                    </svg>
+                    复制代码
+                </button>
+            </div>
+            
+
+            <textarea
+                id="mermaid-input"
+                class="w-full h-80 md:h-[calc(100vh-360px)] p-4 text-sm font-mono border border-gray-300 rounded-xl shadow-lg focus:ring-primary-blue focus:border-primary-blue transition duration-200 custom-scrollbar resize-none"
+                placeholder="例如：
+graph TD
+    A[开始] --> B{决策点};
+    B -- 是 --> C(处理);
+    B -- 否 --> D[结束];
+    C --> D;"
+            ></textarea>
+            
+            <!-- 方向控制按钮 (针对 flowchart/graph) - 移动到最底部 -->
+            <div class="mt-3 flex space-x-2 text-sm justify-end">
+                <span class="text-gray-700 font-medium mr-1 hidden sm:block">流程方向:</span>
+                <button onclick="setDirection('TD')" class="px-2 py-1 bg-gray-100 border border-gray-300 rounded-lg text-gray-800 hover:bg-primary-blue hover:text-white transition duration-150">TD (上到下)</button>
+                <button onclick="setDirection('LR')" class="px-2 py-1 bg-gray-100 border border-gray-300 rounded-lg text-gray-800 hover:bg-primary-blue hover:text-white transition duration-150">LR (左到右)</button>
+                <button onclick="setDirection('BT')" class="px-2 py-1 bg-gray-100 border border-gray-300 rounded-lg text-gray-800 hover:bg-primary-blue hover:text-white transition duration-150 hidden md:inline-block">BT (下到上)</button>
+                <button onclick="setDirection('RL')" class="px-2 py-1 bg-gray-100 border border-gray-300 rounded-lg text-gray-800 hover:bg-primary-blue hover:text-white transition duration-150 hidden md:inline-block">RL (右到左)</button>
+            </div>
+        </div>
+
+        <!-- -------------------- 输出/预览区域 (占据剩余空间) -------------------- -->
+        <div class="flex-grow">
+            <div id="preview-controls" class="flex justify-between items-center mb-3">
+                <div class="flex items-center space-x-3">
+                    <h2 class="text-xl font-semibold text-gray-800 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-primary-blue" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M9 17l3-3m0 0l3 3m-3-3v8m0-12a9 9 0 110 18 9 9 0 010-18zm0 18a1 1 0 100-2 1 1 0 000 2z" />
+                        </svg>
+                        图表预览
+                    </h2>
+                    <!-- 全屏按钮 -->
+                    <button id="fullscreen-btn" onclick="toggleFullscreen()" class="p-1.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition duration-150 shadow-sm" title="全屏放大/退出">
+                        <svg id="fullscreen-icon-open" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5" />
+                        </svg>
+                        <svg id="fullscreen-icon-close" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <!-- 主题和布局选择器容器 -->
+                <div class="flex space-x-4">
+                    <!-- 主题选择器 -->
+                    <div class="flex items-center space-x-2">
+                        <label for="theme-selector" class="text-sm font-medium text-gray-700 hidden sm:block">主题:</label>
+                        <select id="theme-selector" class="p-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-blue focus:border-primary-blue shadow-sm" onchange="handleThemeChange()">
+                            <option value="base">美观自定义</option>
+                            <option value="default">默认</option>
+                            <option value="dark">暗色</option>
+                            <option value="forest">森林</option>
+                            <option value="neutral">中性</option>
+                        </select>
+                    </div>
+                    
+                    <!-- 布局选择器 (Dagrer Ranker) -->
+                    <div class="flex items-center space-x-2">
+                        <label for="layout-selector" class="text-sm font-medium text-gray-700 hidden sm:block">排序算法:</label>
+                        <select id="layout-selector" class="p-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-blue focus:border-primary-blue shadow-sm" onchange="handleLayoutChange()">
+                            <option value="network-simplex">分层式 (Hierarchical)</option>
+                            <option value="tight-tree">紧凑式 (Compact)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div
+                id="diagram-container"
+                class="w-full h-80 md:h-[calc(100vh-360px)] bg-white border border-gray-300 rounded-xl shadow-lg p-4 flex justify-center items-center overflow-auto custom-scrollbar"
+            >
+                <!-- Mermaid 渲染的目标元素 -->
+                <div id="diagram-output" class="text-gray-500 text-center text-sm">
+                    请输入 Mermaid 语法以生成图表
+                </div>
+            </div>
+            <div id="error-message" class="mt-3 text-red-600 font-medium text-sm hidden p-2 bg-red-100 border border-red-300 rounded-lg">
+                图表渲染错误
+            </div>
+            
+            <!-- 下载按钮容器 -->
+            <div id="download-controls" class="mt-4 flex space-x-4 justify-center">
+                <button id="download-svg-btn" onclick="downloadSvg()" class="px-6 py-2 bg-primary-blue text-white font-semibold rounded-lg shadow-md hover:bg-blue-600 transition duration-150 disabled:opacity-50" disabled>
+                    下载 SVG
+                </button>
+                <button id="download-png-btn" onclick="downloadPng()" class="px-6 py-2 bg-green-500 text-white font-semibold rounded-lg shadow-md hover:bg-green-600 transition duration-150 disabled:opacity-50" disabled>
+                    下载 PNG (高分辨率)
+                </button>
+            </div>
+        </div>
+    </main>
+    
+    <!-- 用于 PNG 转换的隐藏 Canvas 元素 -->
+    <canvas id="hidden-canvas" style="display:none;"></canvas>
+    
+    <!-- Toast Notification -->
+    <div id="toast-notification" class="hidden">
+        <div class="bg-gray-800 text-white px-4 py-2 rounded-lg shadow-xl flex items-center space-x-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+            <span id="toast-message">操作成功!</span>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        const inputElement = document.getElementById('mermaid-input');
+        const outputElement = document.getElementById('diagram-output');
+        const errorElement = document.getElementById('error-message');
+        const diagramContainer = document.getElementById('diagram-container');
+        const themeSelector = document.getElementById('theme-selector');
+        const layoutSelector = document.getElementById('layout-selector');
+        const appHeader = document.getElementById('app-header');
+        const previewControls = document.getElementById('preview-controls');
+        
+        const downloadSvgBtn = document.getElementById('download-svg-btn');
+        const downloadPngBtn = document.getElementById('download-png-btn');
+        const hiddenCanvas = document.getElementById('hidden-canvas');
+        const toastNotification = document.getElementById('toast-notification');
+
+        let debounceTimer;
+
+        // 默认的美观自定义主题变量
+        const customThemeVariables = {
+            primaryColor: '#3B82F6', secondaryColor: '#60A5FA', tertiaryColor: '#D1D5DB',       
+            primaryTextColor: '#1F2937', lineColor: '#3B82F6', nodeBorder: '#3B82F6', mainBkg: '#FFFFFF',
+        };
+        
+        /**
+         * 显示 Toast 通知
+         * @param {string} message 消息内容
+         */
+        function showToast(message) {
+            document.getElementById('toast-message').textContent = message;
+            toastNotification.classList.remove('hidden');
+            setTimeout(() => {
+                toastNotification.classList.add('hidden');
+            }, 3000);
+        }
+
+        /**
+         * 初始化或重新配置 Mermaid
+         * @param {string} themeName 主题名称
+         * @param {string} rankerName Dagre/Flowchart 排序算法 (ranker)
+         */
+        function initializeMermaid(themeName, rankerName) {
+            const config = {
+                startOnLoad: false,
+                theme: themeName, 
+                securityLevel: 'loose',
+                flowchart: { 
+                    curve: 'basis',
+                    ranker: rankerName 
+                }
+            };
+
+            if (themeName === 'base') {
+                config.themeVariables = customThemeVariables;
+            }
+
+            mermaid.initialize(config);
+        }
+
+        /**
+         * 更新下载按钮的启用状态
+         */
+        function updateDownloadButtons(isEnabled) {
+            downloadSvgBtn.disabled = !isEnabled;
+            downloadPngBtn.disabled = !isEnabled;
+        }
+
+
+        /**
+         * 渲染 Mermaid 图表
+         */
+        async function renderDiagram(code) {
+            errorElement.classList.add('hidden');
+            outputElement.innerHTML = ''; 
+            updateDownloadButtons(false); 
+            
+            const trimmedCode = code.trim();
+
+            if (!trimmedCode) {
+                outputElement.innerHTML = '请输入 Mermaid 语法以生成图表';
+                outputElement.className = 'text-gray-500 text-center text-sm';
+                return;
+            }
+
+            if (!/^(graph|flowchart|sequenceDiagram|gantt|classDiagram|stateDiagram|erDiagram|journey|mindmap|timeline|quadrantChart)/.test(trimmedCode)) {
+                errorElement.textContent = '输入似乎不是有效的 Mermaid 语法。请以 graph, sequenceDiagram, classDiagram 等关键字开头。';
+                errorElement.classList.remove('hidden');
+                outputElement.innerHTML = '';
+                return;
+            }
+
+            try {
+                const { svg, bindFunctions } = await mermaid.render('mermaid-preview', trimmedCode);
+                
+                outputElement.innerHTML = svg;
+                outputElement.className = 'w-full h-full'; 
+                
+                if (bindFunctions) {
+                    bindFunctions(outputElement);
+                }
+                
+                diagramContainer.classList.remove('justify-center', 'items-center');
+                updateDownloadButtons(true); 
+
+            } catch (error) {
+                console.error("Mermaid 渲染失败:", error);
+                const errorMatch = error.message.match(/Parse error on line (\d+):\n/);
+                let errorMessage = `图表渲染错误：${error.message}`;
+                
+                if (errorMatch) {
+                    errorMessage = `语法错误（第 ${errorMatch[1]} 行）：请检查您的 Mermaid 语法。`;
+                }
+
+                errorElement.textContent = errorMessage;
+                errorElement.classList.remove('hidden');
+                outputElement.innerHTML = '';
+                diagramContainer.classList.add('justify-center', 'items-center');
+                updateDownloadButtons(false); 
+            }
+        }
+        
+        /**
+         * 切换全屏模式
+         */
+        window.toggleFullscreen = function() {
+            const isFullscreen = diagramContainer.classList.toggle('fullscreen');
+            
+            // 切换按钮图标
+            document.getElementById('fullscreen-icon-open').classList.toggle('hidden', isFullscreen);
+            document.getElementById('fullscreen-icon-close').classList.toggle('hidden', !isFullscreen);
+            
+            // 隐藏非全屏容器的元素
+            document.getElementById('input-panel').classList.toggle('hidden', isFullscreen);
+            document.getElementById('download-controls').classList.toggle('hidden', isFullscreen);
+            appHeader.classList.toggle('hidden', isFullscreen);
+            
+            // 在全屏模式下，隐藏主题和布局选择器，只保留标题和关闭按钮
+            themeSelector.closest('.flex.space-x-4').classList.toggle('hidden', isFullscreen);
+            
+            // 重新渲染以调整 SVG 大小适应新的容器尺寸
+            if (inputElement.value.trim()) {
+                renderDiagram(inputElement.value);
+            }
+        };
+
+
+        // -------------------- 新增功能实现 --------------------
+        
+        /**
+         * 设置流程图方向
+         * @param {string} direction TD, LR, BT, RL
+         */
+        window.setDirection = function(direction) {
+            const code = inputElement.value.trim();
+            const lines = code.split('\n');
+
+            if (lines.length > 0) {
+                const firstLine = lines[0];
+                
+                // 检查第一行是否是流程图或图表定义
+                const flowMatch = firstLine.match(/^(graph|flowchart)\s+(\w{2})/i);
+                
+                if (flowMatch) {
+                    // 替换现有的方向
+                    lines[0] = firstLine.replace(flowMatch[2], direction);
+                } else if (firstLine.toLowerCase().startsWith('graph') || firstLine.toLowerCase().startsWith('flowchart')) {
+                    // 如果只定义了 graph/flowchart，则添加方向
+                    lines[0] = firstLine.trim() + ' ' + direction;
+                } else {
+                    // 如果不是流程图，则不做任何操作，或者插入一个新的图表定义
+                    showToast("此操作仅适用于 'graph' 或 'flowchart'。");
+                    return;
+                }
+
+                inputElement.value = lines.join('\n');
+                renderDiagram(inputElement.value);
+            }
+        };
+
+        /**
+         * 复制代码到剪贴板
+         */
+        window.copyCode = function() {
+            try {
+                // 使用 document.execCommand('copy') 以兼容 iFrame 环境
+                inputElement.select();
+                document.execCommand('copy');
+                showToast("Mermaid 语法已复制!");
+            } catch (err) {
+                console.error('复制失败:', err);
+                showToast("复制失败，请手动选择并复制。");
+            }
+        };
+        
+        // -------------------- 下载功能实现 --------------------
+
+        window.downloadSvg = function() {
+            const svgElement = outputElement.querySelector('svg');
+            if (!svgElement) return;
+
+            const serializer = new XMLSerializer();
+            let svgString = serializer.serializeToString(svgElement);
+
+            const svgData = `<?xml version="1.0" standalone="no"?>\n<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">\n${svgString}`;
+
+            const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'mermaid-diagram.svg';
+            document.body.appendChild(a);
+            a.click();
+            
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        window.downloadPng = function() {
+            const svgElement = outputElement.querySelector('svg');
+            if (!svgElement) return;
+
+            const width = svgElement.viewBox.baseVal.width || svgElement.width.baseVal.value || 800;
+            const height = svgElement.viewBox.baseVal.height || svgElement.height.baseVal.value || 600;
+            const scale = 2; // 2倍高分辨率
+            
+            hiddenCanvas.width = width * scale;
+            hiddenCanvas.height = height * scale;
+
+            const ctx = hiddenCanvas.getContext('2d');
+            ctx.clearRect(0, 0, hiddenCanvas.width, hiddenCanvas.height);
+            
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, hiddenCanvas.width, hiddenCanvas.height);
+            
+            const serializer = new XMLSerializer();
+            let svgString = serializer.serializeToString(svgElement);
+            const svgDataUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgString)));
+
+            const img = new Image();
+            img.onload = function () {
+                ctx.drawImage(img, 0, 0, hiddenCanvas.width, hiddenCanvas.height);
+
+                const dataUrl = hiddenCanvas.toDataURL('image/png');
+
+                const a = document.createElement('a');
+                a.href = dataUrl;
+                a.download = 'mermaid-diagram-hires.png';
+                document.body.appendChild(a);
+                a.click();
+                
+                document.body.removeChild(a);
+            };
+            img.onerror = () => {
+                errorElement.textContent = '无法加载 SVG 图像数据到 Canvas。请尝试下载 SVG 格式。';
+                errorElement.classList.remove('hidden');
+            }
+            img.src = svgDataUrl;
+        }
+        
+        // -------------------- 交互逻辑 --------------------
+
+        function handleInput() {
+            clearTimeout(debounceTimer);
+            const code = inputElement.value;
+            debounceTimer = setTimeout(() => {
+                renderDiagram(code);
+            }, 500); 
+        }
+        
+        window.handleThemeChange = function() {
+            const newTheme = themeSelector.value;
+            initializeMermaid(newTheme, layoutSelector.value);
+            renderDiagram(inputElement.value);
+        };
+        
+        window.handleLayoutChange = function() {
+            const newLayout = layoutSelector.value;
+            initializeMermaid(themeSelector.value, newLayout);
+            renderDiagram(inputElement.value);
+        };
+
+        // 绑定输入事件
+        inputElement.addEventListener('input', handleInput);
+
+        // 默认加载示例代码和初始化
+        inputElement.value = `graph TD
+    A[定义目标] --> B{选择工具};
+    B -- MermaidChart --> C(快速绘图);
+    B -- 其他工具 --> D[耗费时间];
+    C --> E[分享];
+    D --> E;
+
+    subgraph 流程
+        A
+        B
+        C
+        D
+        E
+    end
+`;
+        
+        window.onload = () => {
+             initializeMermaid(themeSelector.value, layoutSelector.value);
+             renderDiagram(inputElement.value);
+        };
+
+    </script>
+</body>
+</html>
