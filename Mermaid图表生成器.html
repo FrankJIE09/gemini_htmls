@@ -101,17 +101,32 @@
                     </svg>
                     Mermaid 语法输入
                 </h2>
-                <!-- 复制按钮 -->
-                <button 
-                    onclick="copyCode()" 
-                    class="ml-4 px-3 py-1 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-300 transition duration-150 shadow-sm flex items-center"
-                    title="复制 Mermaid 语法"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h6a2 2 0 012 2v10a2 2 0 01-2 2h-6a2 2 0 01-2-2v-2m0-4h.01M8 12h.01" />
-                    </svg>
-                    复制代码
-                </button>
+                <!-- 操作按钮容器 -->
+                <div class="flex space-x-2">
+                    <!-- 文件上传按钮 -->
+                    <input type="file" id="file-upload" accept=".md,.txt,.mermaid" class="hidden" onchange="handleFileUpload(event)">
+                    <button 
+                        onclick="document.getElementById('file-upload').click()"
+                        class="px-3 py-1 bg-blue-100 text-primary-blue text-sm font-medium rounded-lg hover:bg-blue-200 transition duration-150 shadow-sm flex items-center"
+                        title="上传Markdown或文本文件"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                        </svg>
+                        加载文件
+                    </button>
+                    <!-- 复制按钮 -->
+                    <button 
+                        onclick="copyCode()" 
+                        class="px-3 py-1 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-300 transition duration-150 shadow-sm flex items-center"
+                        title="复制 Mermaid 语法"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h6a2 2 0 012 2v10a2 2 0 01-2 2h-6a2 2 0 01-2-2v-2m0-4h.01M8 12h.01" />
+                        </svg>
+                        复制代码
+                    </button>
+                </div>
             </div>
             
 
@@ -235,6 +250,8 @@ graph TD
         const toastNotification = document.getElementById('toast-notification');
 
         let debounceTimer;
+        // 存储当前文件名，用于下载。默认为通用名称。
+        let currentFileName = 'mermaid-diagram'; 
 
         // 默认的美观自定义主题变量
         const customThemeVariables = {
@@ -256,8 +273,6 @@ graph TD
 
         /**
          * 初始化或重新配置 Mermaid
-         * @param {string} themeName 主题名称
-         * @param {string} rankerName Dagre/Flowchart 排序算法 (ranker)
          */
         function initializeMermaid(themeName, rankerName) {
             const config = {
@@ -364,11 +379,73 @@ graph TD
         };
 
 
-        // -------------------- 新增功能实现 --------------------
+        // -------------------- 文件加载功能 --------------------
+
+        /**
+         * 从文件内容中提取 Mermaid 代码块。
+         */
+        function extractMermaidCode(content) {
+            // 匹配 ```mermaid ... ``` 或其他图表关键字的代码块
+            const regex = /```(mermaid|graph|flowchart|sequenceDiagram|gantt|classDiagram|stateDiagram|erDiagram|journey|mindmap|timeline|quadrantChart)\s*\n([\s\S]*?)\n```/gi;
+            let match;
+            let extractedCode = '';
+
+            // 尝试提取所有匹配项
+            while ((match = regex.exec(content)) !== null) {
+                extractedCode += match[2].trim() + '\n\n';
+            }
+
+            if (extractedCode) {
+                return extractedCode.trim();
+            }
+
+            // 如果没有找到代码块，检查文件是否以图表类型开头（纯 Mermaid 文件）
+            if (content.trim().match(/^(graph|flowchart|sequenceDiagram|gantt|classDiagram|stateDiagram|erDiagram|journey|mindmap|timeline|quadrantChart)/i)) {
+                return content.trim();
+            }
+            
+            // 如果都不是，则返回原始内容
+            return content.trim();
+        }
+
+        /**
+         * 处理文件上传事件。
+         */
+        window.handleFileUpload = function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const content = e.target.result;
+                
+                // 1. 提取文件名 (不含扩展名) 并更新全局变量
+                const nameParts = file.name.split('.');
+                nameParts.pop(); // 移除扩展名
+                currentFileName = nameParts.join('.');
+                
+                // 2. 提取 Mermaid 代码
+                const mermaidCode = extractMermaidCode(content);
+                
+                // 3. 更新输入框并渲染
+                inputElement.value = mermaidCode;
+                renderDiagram(mermaidCode);
+                showToast(`文件 "${file.name}" 加载成功!`);
+            };
+
+            reader.onerror = function() {
+                showToast('文件读取失败。', 'error');
+                currentFileName = 'mermaid-diagram';
+            };
+
+            reader.readAsText(file);
+            event.target.value = ''; // 清空 input 字段
+        };
+
+        // -------------------- 其他操作和下载功能 --------------------
         
         /**
          * 设置流程图方向
-         * @param {string} direction TD, LR, BT, RL
          */
         window.setDirection = function(direction) {
             const code = inputElement.value.trim();
@@ -376,18 +453,13 @@ graph TD
 
             if (lines.length > 0) {
                 const firstLine = lines[0];
-                
-                // 检查第一行是否是流程图或图表定义
                 const flowMatch = firstLine.match(/^(graph|flowchart)\s+(\w{2})/i);
                 
                 if (flowMatch) {
-                    // 替换现有的方向
                     lines[0] = firstLine.replace(flowMatch[2], direction);
                 } else if (firstLine.toLowerCase().startsWith('graph') || firstLine.toLowerCase().startsWith('flowchart')) {
-                    // 如果只定义了 graph/flowchart，则添加方向
                     lines[0] = firstLine.trim() + ' ' + direction;
                 } else {
-                    // 如果不是流程图，则不做任何操作，或者插入一个新的图表定义
                     showToast("此操作仅适用于 'graph' 或 'flowchart'。");
                     return;
                 }
@@ -402,7 +474,6 @@ graph TD
          */
         window.copyCode = function() {
             try {
-                // 使用 document.execCommand('copy') 以兼容 iFrame 环境
                 inputElement.select();
                 document.execCommand('copy');
                 showToast("Mermaid 语法已复制!");
@@ -412,15 +483,15 @@ graph TD
             }
         };
         
-        // -------------------- 下载功能实现 --------------------
-
+        /**
+         * 下载当前的 SVG 内容 (使用 currentFileName)
+         */
         window.downloadSvg = function() {
             const svgElement = outputElement.querySelector('svg');
             if (!svgElement) return;
 
             const serializer = new XMLSerializer();
             let svgString = serializer.serializeToString(svgElement);
-
             const svgData = `<?xml version="1.0" standalone="no"?>\n<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">\n${svgString}`;
 
             const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
@@ -428,7 +499,8 @@ graph TD
 
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'mermaid-diagram.svg';
+            // 使用 currentFileName
+            a.download = currentFileName + '.svg';
             document.body.appendChild(a);
             a.click();
             
@@ -436,6 +508,9 @@ graph TD
             URL.revokeObjectURL(url);
         }
 
+        /**
+         * 将图表转换为 高分辨率 PNG 并下载 (使用 currentFileName)
+         */
         window.downloadPng = function() {
             const svgElement = outputElement.querySelector('svg');
             if (!svgElement) return;
@@ -465,7 +540,8 @@ graph TD
 
                 const a = document.createElement('a');
                 a.href = dataUrl;
-                a.download = 'mermaid-diagram-hires.png';
+                 // 使用 currentFileName
+                a.download = currentFileName + '-hires.png';
                 document.body.appendChild(a);
                 a.click();
                 
