@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Cyberpunk Hand Particles Mobile - Gemini 3</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Orbitron', monospace;
+            user-select: none;
+            touch-action: none;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+        }
+
+        /* 赛博朋克背景网格与扫描线 */
+        #background-fx {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: 
+                linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
+                linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+        }
+        
+        /* 扫描线动画 */
+        #scanline {
+            width: 100%;
+            height: 100px;
+            z-index: 1;
+            background: linear-gradient(0deg, rgba(0,0,0,0) 0%, rgba(0, 255, 255, 0.1) 50%, rgba(0,0,0,0) 100%);
+            opacity: 0.1;
+            position: absolute;
+            bottom: 100%;
+            animation: scanline 10s linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes scanline {
+            0% { bottom: 100%; }
+            100% { bottom: -100px; }
+        }
+
+        /* 暗角效果 */
+        #vignette {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            box-shadow: 0 0 150px rgba(0,0,0,0.9) inset;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        /* HUD 界面 */
+        .hud-panel {
+            position: absolute;
+            color: #0ff;
+            text-shadow: 0 0 5px #0ff, 0 0 10px #0ff;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 10;
+            padding: 8px;
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            background: rgba(0, 10, 20, 0.6);
+            backdrop-filter: blur(2px);
+        }
+
+        #hud-tl { top: 10px; left: 10px; border-top-left-radius: 8px; }
+        #hud-tr { top: 10px; right: 10px; border-top-right-radius: 8px; text-align: right; }
+        #hud-bl { bottom: 10px; left: 10px; border-bottom-left-radius: 8px; }
+        #hud-br { bottom: 10px; right: 10px; border-bottom-right-radius: 8px; text-align: right; }
+
+        .label {
+            font-size: 9px;
+            color: rgba(0, 255, 255, 0.6);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .value {
+            font-size: 16px;
+            font-weight: bold;
+        }
+        .status-active { color: #f0f; text-shadow: 0 0 5px #f0f; }
+        .instruction { color: #ff0; font-size: 10px; margin-top: 3px; opacity: 0.8; }
+
+        #canvas-container {
+            width: 100%;
+            height: 100vh;
+            position: relative;
+        }
+
+        /* 视频元素（隐藏，仅用于 MediaPipe） */
+        #video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 1px;
+            height: 1px;
+            opacity: 0;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        /* 控制提示 */
+        #control-hint {
+            position: absolute;
+            bottom: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #0ff;
+            font-size: 11px;
+            text-align: center;
+            background: rgba(0, 10, 20, 0.8);
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            z-index: 20;
+            pointer-events: none;
+        }
+
+        @media (max-width: 768px) {
+            .hud-panel {
+                font-size: 10px;
+                padding: 6px;
+            }
+            .value {
+                font-size: 14px;
+            }
+            .label {
+                font-size: 8px;
+            }
+            .instruction {
+                font-size: 9px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="background-fx"></div>
+    <div id="scanline"></div>
+    <div id="vignette"></div>
+
+    <!-- 视频元素（用于 MediaPipe） -->
+    <video id="video" autoplay playsinline></video>
+
+    <!-- HUD Elements -->
+    <div id="hud-tl" class="hud-panel">
+        <div class="label">SYSTEM STATUS</div>
+        <div id="fps-counter" class="value">60 FPS</div>
+        <div class="label">PARTICLES</div>
+        <div class="value">12,000 UNIT</div>
+    </div>
+
+    <div id="hud-tr" class="hud-panel">
+        <div class="label">LEFT HAND (CMD)</div>
+        <div id="left-hand-status" class="value">IDLE</div>
+        <div class="instruction" id="left-instruction">KEYS: 1-5 / TOUCH</div>
+    </div>
+
+    <div id="hud-bl" class="hud-panel">
+        <div class="label">INTERACTION MODE</div>
+        <div id="interaction-mode" class="value">SCATTER</div>
+        <div class="instruction" id="mode-instruction">SPACE / TOUCH</div>
+    </div>
+
+    <div id="hud-br" class="hud-panel">
+        <div class="label">RIGHT HAND (PHYSICS)</div>
+        <div id="right-hand-status" class="value">INDEX FINGER</div>
+        <div class="instruction" id="right-instruction">MOUSE / TOUCH</div>
+    </div>
+
+    <div id="control-hint">
+        <div>摄像头模式: 自动检测</div>
+        <div>无摄像头: 使用键盘/鼠标/触摸</div>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <!-- MediaPipe Hands -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469404/hands.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1640029074/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3.1620248257/drawing_utils.js" crossorigin="anonymous"></script>
+    <!-- Three.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <script>
+        // --- 全局配置 ---
+        const CONFIG = {
+            particleCount: 12000,
+            particleSize: 2.4,
+            returnSpeed: 0.16,
+            scatterForce: 50,
+            rippleAmplitude: 30,
+            textFontSize: 75,  // 按需求改为 75px
+            colors: {
+                blue: new THREE.Color(0x00FFFF),
+                yellow: new THREE.Color(0xFFFF00),
+                pink: new THREE.Color(0xFF00FF),
+                green: new THREE.Color(0x00FF88),
+                orange: new THREE.Color(0xFF8800),
+                default: new THREE.Color(0x00FFFF)
+            }
+        };
+
+        // --- 状态管理 ---
+        const STATE = {
+            leftHandMode: 1,
+            rightHandOpen: false,
+            mouseX: 0,
+            mouseY: 0,
+            touchX: 0,
+            touchY: 0,
+            isTouching: false,
+            simulatedLeftHandPos: new THREE.Vector3(-200, 0, 0),
+            isBasketballMode: false,
+            // MediaPipe 状态
+            handsDetected: false,
+            leftHandLandmarks: null,
+            rightHandLandmarks: null,
+            cameraActive: false
+        };
+
+        // --- Three.js 核心变量 ---
+        let scene, camera, renderer, particles, geometry;
+        let currentPositions = [];
+        let particleColors = [];
+        let targetPositions = [];
+        let bounceOffsets = [];
+        
+        // 字体画布
+        const textCanvas = document.createElement('canvas');
+        const textCtx = textCanvas.getContext('2d');
+        textCanvas.width = 1024;
+        textCanvas.height = 512;
+
+        // MediaPipe Hands 初始化
+        let hands = null;
+        let cameraUtils = null;
+
+        // 初始化 MediaPipe
+        function initMediaPipe() {
+            hands = new Hands({
+                locateFile: (file) => {
+                    return `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469404/${file}`;
+                }
+            });
+
+            hands.setOptions({
+                maxNumHands: 2,
+                modelComplexity: 1,
+                minDetectionConfidence: 0.5,
+                minTrackingConfidence: 0.5
+            });
+
+            hands.onResults(onHandsResults);
+
+            const videoElement = document.getElementById('video');
+            cameraUtils = new Camera(videoElement, {
+                onFrame: async () => {
+                    await hands.send({ image: videoElement });
+                },
+                width: 640,
+                height: 480
+            });
+
+            // 尝试启动摄像头
+            cameraUtils.start().then(() => {
+                STATE.cameraActive = true;
+                document.getElementById('control-hint').innerHTML = 
+                    '<div>摄像头模式: 已激活</div><div>检测双手手势</div>';
+            }).catch((err) => {
+                console.log('摄像头不可用，使用键盘/鼠标/触摸模式:', err);
+                STATE.cameraActive = false;
+                document.getElementById('control-hint').innerHTML = 
+                    '<div>摄像头模式: 未激活</div><div>使用键盘/鼠标/触摸控制</div>';
+            });
+        }
+
+        // MediaPipe 检测结果处理
+        function onHandsResults(results) {
+            if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
+                STATE.handsDetected = false;
+                STATE.leftHandLandmarks = null;
+                STATE.rightHandLandmarks = null;
+                return;
+            }
+
+            STATE.handsDetected = true;
+
+            // 识别左右手（通过手腕位置判断）
+            let leftHand = null;
+            let rightHand = null;
+
+            for (let i = 0; i < results.multiHandLandmarks.length; i++) {
+                const landmarks = results.multiHandLandmarks[i];
+                const handedness = results.multiHandedness[i];
+                
+                if (handedness.label === 'Left') {
+                    leftHand = landmarks;
+                } else if (handedness.label === 'Right') {
+                    rightHand = landmarks;
+                }
+            }
+
+            STATE.leftHandLandmarks = leftHand;
+            STATE.rightHandLandmarks = rightHand;
+
+            // 处理左手（检测手指数量）
+            if (leftHand) {
+                const fingersUp = countFingersUp(leftHand);
+                if (fingersUp >= 1 && fingersUp <= 5) {
+                    STATE.leftHandMode = fingersUp;
+                    updateLeftHandState();
+                }
+                // 更新左手位置（使用手腕位置）
+                const wrist = leftHand[0];
+                const x = (wrist.x - 0.5) * window.innerWidth * 2;
+                const y = -(wrist.y - 0.5) * window.innerHeight * 2;
+                STATE.simulatedLeftHandPos.set(x, y, 0);
+            }
+
+            // 处理右手（追踪食指指尖）
+            if (rightHand) {
+                const indexTip = rightHand[8]; // 食指指尖
+                const x = (indexTip.x - 0.5) * window.innerWidth * 2;
+                const y = -(indexTip.y - 0.5) * window.innerHeight * 2;
+                STATE.mouseX = x;
+                STATE.mouseY = y;
+
+                // 检测右手是否张开（通过手指是否伸直）
+                const fingersUp = countFingersUp(rightHand);
+                STATE.rightHandOpen = fingersUp >= 4; // 4指或5指视为张开
+                updateRightHandState();
+            }
+        }
+
+        // 计算手指数量（向上伸直的手指）
+        function countFingersUp(landmarks) {
+            const fingerTips = [4, 8, 12, 16, 20]; // 拇指、食指、中指、无名指、小指
+            const fingerJoints = [3, 6, 10, 14, 18]; // 对应的关节
+            let count = 0;
+
+            // 拇指特殊处理（比较 x 坐标）
+            if (landmarks[fingerTips[0]].x > landmarks[fingerJoints[0]].x) {
+                count++;
+            }
+
+            // 其他四指（比较 y 坐标）
+            for (let i = 1; i < 5; i++) {
+                if (landmarks[fingerTips[i]].y < landmarks[fingerJoints[i]].y) {
+                    count++;
+                }
+            }
+
+            return count;
+        }
+
+        // 初始化 Three.js
+        function init() {
+            const container = document.getElementById('canvas-container');
+            
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x000000, 0.0005);
+
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 3000);
+            camera.position.z = 800;
+
+            renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            container.appendChild(renderer.domElement);
+
+            createParticles();
+            generateTextTarget("Hello", CONFIG.colors.blue);
+
+            // 事件监听
+            window.addEventListener('resize', onWindowResize, false);
+            document.addEventListener('mousemove', onMouseMove, false);
+            document.addEventListener('keydown', onKeyDown, false);
+            document.addEventListener('keyup', onKeyUp, false);
+            
+            // 触摸事件
+            document.addEventListener('touchstart', onTouchStart, false);
+            document.addEventListener('touchmove', onTouchMove, false);
+            document.addEventListener('touchend', onTouchEnd, false);
+
+            // 初始化 MediaPipe
+            initMediaPipe();
+
+            animate();
+        }
+
+        // 创建粒子
+        function createParticles() {
+            geometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(CONFIG.particleCount * 3);
+            const colors = new Float32Array(CONFIG.particleCount * 3);
+            const sizes = new Float32Array(CONFIG.particleCount);
+
+            for (let i = 0; i < CONFIG.particleCount; i++) {
+                positions[i * 3] = (Math.random() - 0.5) * 2000;
+                positions[i * 3 + 1] = (Math.random() - 0.5) * 1000;
+                positions[i * 3 + 2] = (Math.random() - 0.5) * 1000;
+
+                colors[i * 3] = CONFIG.colors.blue.r;
+                colors[i * 3 + 1] = CONFIG.colors.blue.g;
+                colors[i * 3 + 2] = CONFIG.colors.blue.b;
+
+                sizes[i] = CONFIG.particleSize;
+
+                currentPositions.push(new THREE.Vector3(positions[i*3], positions[i*3+1], positions[i*3+2]));
+                targetPositions.push(new THREE.Vector3(positions[i*3], positions[i*3+1], positions[i*3+2]));
+                bounceOffsets.push(0);
+            }
+
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+            geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+
+            const material = new THREE.ShaderMaterial({
+                uniforms: {
+                    color: { value: new THREE.Color(0xffffff) }
+                },
+                vertexShader: `
+                    attribute float size;
+                    attribute vec3 color;
+                    varying vec3 vColor;
+                    void main() {
+                        vColor = color;
+                        vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+                        gl_PointSize = size * (300.0 / -mvPosition.z);
+                        gl_Position = projectionMatrix * mvPosition;
+                    }
+                `,
+                fragmentShader: `
+                    varying vec3 vColor;
+                    void main() {
+                        float r = distance(gl_PointCoord, vec2(0.5, 0.5));
+                        if (r > 0.5) discard;
+                        float alpha = 1.0 - (r * 2.0);
+                        alpha = pow(alpha, 1.5); 
+                        gl_FragColor = vec4(vColor, alpha);
+                    }
+                `,
+                transparent: true,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+
+            particles = new THREE.Points(geometry, material);
+            scene.add(particles);
+        }
+
+        // 文字生成
+        function generateTextTarget(text, color) {
+            STATE.isBasketballMode = false;
+            
+            textCtx.clearRect(0, 0, textCanvas.width, textCanvas.height);
+            textCtx.font = `bold ${CONFIG.textFontSize}px "Microsoft YaHei", sans-serif`;
+            textCtx.fillStyle = '#FFFFFF';
+            textCtx.textAlign = 'center';
+            textCtx.textBaseline = 'middle';
+            textCtx.fillText(text, textCanvas.width / 2, textCanvas.height / 2);
+
+            const imageData = textCtx.getImageData(0, 0, textCanvas.width, textCanvas.height);
+            const data = imageData.data;
+            const validPixels = [];
+
+            for (let y = 0; y < textCanvas.height; y += 2) {
+                for (let x = 0; x < textCanvas.width; x += 2) {
+                    const index = (y * textCanvas.width + x) * 4;
+                    if (data[index] > 128) {
+                        validPixels.push({
+                            x: (x - textCanvas.width / 2) * 3,
+                            y: -(y - textCanvas.height / 2) * 3
+                        });
+                    }
+                }
+            }
+
+            updateTargets(validPixels, color);
+        }
+
+        // 星云模式
+        function generateNebulaTarget() {
+            STATE.isBasketballMode = false;
+            const nebulaTargets = [];
+            for (let i = 0; i < CONFIG.particleCount; i++) {
+                nebulaTargets.push({
+                    x: (Math.random() - 0.5) * window.innerWidth * 1.5,
+                    y: (Math.random() - 0.5) * window.innerHeight * 1.5,
+                    z: (Math.random() - 0.5) * 500
+                });
+            }
+            updateTargets(nebulaTargets, null, true); 
+        }
+
+        // 篮球模式
+        function generateBasketballTarget() {
+            STATE.isBasketballMode = true;
+            const radius = 120;
+            const targets = [];
+            const phi = Math.PI * (3 - Math.sqrt(5));
+            const offset = STATE.simulatedLeftHandPos;
+
+            for (let i = 0; i < CONFIG.particleCount; i++) {
+                const y = 1 - (i / (CONFIG.particleCount - 1)) * 2;
+                const radiusAtY = Math.sqrt(1 - y * y);
+                const theta = phi * i;
+
+                const x = Math.cos(theta) * radiusAtY;
+                const z = Math.sin(theta) * radiusAtY;
+                
+                targets.push({
+                    x: x * radius + offset.x,
+                    y: y * radius + offset.y,
+                    z: z * radius + offset.z
+                });
+
+                bounceOffsets[i] = Math.random() * Math.PI; 
+            }
+            
+            updateTargets(targets, CONFIG.colors.orange, false, true);
+        }
+
+        // 更新目标位置
+        function updateTargets(validPoints, color, isNebula = false, isBasketball = false) {
+            const colorAttr = geometry.attributes.color;
+            
+            for (let i = 0; i < CONFIG.particleCount; i++) {
+                let target;
+                if (validPoints.length > 0) {
+                    const p = validPoints[i % validPoints.length];
+                    target = isNebula ? p : { x: p.x, y: p.y, z: p.z || 0 };
+                } else {
+                    target = { x: 0, y: 0, z: 0 };
+                }
+                
+                targetPositions[i].set(target.x, target.y, target.z || 0);
+
+                if (color) {
+                    let c = color;
+                    if (isBasketball) {
+                        const p = targetPositions[i];
+                        const localY = p.y - STATE.simulatedLeftHandPos.y;
+                        const localX = p.x - STATE.simulatedLeftHandPos.x;
+                        if (Math.abs(localY) < 5 || Math.abs(localX) < 5) {
+                            c = new THREE.Color(0x111111);
+                        } else {
+                            c = CONFIG.colors.orange;
+                        }
+                    }
+                    colorAttr.setXYZ(i, c.r, c.g, c.b);
+                }
+            }
+            colorAttr.needsUpdate = true;
+        }
+
+        // 交互处理
+        function onMouseMove(event) {
+            if (STATE.cameraActive && STATE.handsDetected) return; // 摄像头模式优先
+            
+            const x = (event.clientX / window.innerWidth) * 2 - 1;
+            const y = -(event.clientY / window.innerHeight) * 2 + 1;
+            
+            const vector = new THREE.Vector3(x, y, 0.5);
+            vector.unproject(camera);
+            const dir = vector.sub(camera.position).normalize();
+            const distance = -camera.position.z / dir.z;
+            const pos = camera.position.clone().add(dir.multiplyScalar(distance));
+            
+            STATE.mouseX = pos.x;
+            STATE.mouseY = pos.y;
+        }
+
+        // 触摸处理
+        function onTouchStart(event) {
+            event.preventDefault();
+            if (STATE.cameraActive && STATE.handsDetected) return;
+            
+            const touch = event.touches[0];
+            STATE.isTouching = true;
+            updateTouchPosition(touch);
+        }
+
+        function onTouchMove(event) {
+            event.preventDefault();
+            if (STATE.cameraActive && STATE.handsDetected) return;
+            
+            const touch = event.touches[0];
+            updateTouchPosition(touch);
+        }
+
+        function onTouchEnd(event) {
+            event.preventDefault();
+            STATE.isTouching = false;
+            STATE.rightHandOpen = false;
+            updateRightHandState();
+        }
+
+        function updateTouchPosition(touch) {
+            const x = (touch.clientX / window.innerWidth) * 2 - 1;
+            const y = -(touch.clientY / window.innerHeight) * 2 + 1;
+            
+            const vector = new THREE.Vector3(x, y, 0.5);
+            vector.unproject(camera);
+            const dir = vector.sub(camera.position).normalize();
+            const distance = -camera.position.z / dir.z;
+            const pos = camera.position.clone().add(dir.multiplyScalar(distance));
+            
+            STATE.mouseX = pos.x;
+            STATE.mouseY = pos.y;
+            STATE.touchX = touch.clientX;
+            STATE.touchY = touch.clientY;
+        }
+
+        function onKeyDown(event) {
+            if (STATE.cameraActive && STATE.handsDetected) return; // 摄像头模式优先
+            
+            const key = event.key;
+            
+            if (['1', '2', '3', '4', '5'].includes(key)) {
+                STATE.leftHandMode = parseInt(key);
+                updateLeftHandState();
+            }
+
+            if (event.code === 'Space') {
+                event.preventDefault();
+                if (!STATE.rightHandOpen) {
+                    STATE.rightHandOpen = true;
+                    updateRightHandState();
+                }
+            }
+        }
+
+        function onKeyUp(event) {
+            if (event.code === 'Space') {
+                STATE.rightHandOpen = false;
+                updateRightHandState();
+            }
+        }
+
+        function updateLeftHandState() {
+            const mode = STATE.leftHandMode;
+            const hud = document.getElementById('left-hand-status');
+
+            if (checkCombo()) return;
+
+            switch(mode) {
+                case 1:
+                    generateTextTarget("Hello", CONFIG.colors.blue);
+                    hud.innerText = "1 FINGER (HELLO)";
+                    hud.style.color = '#0ff';
+                    break;
+                case 2:
+                    generateTextTarget("Gemini3", CONFIG.colors.yellow);
+                    hud.innerText = "2 FINGERS (MODEL)";
+                    hud.style.color = '#ff0';
+                    break;
+                case 3:
+                    generateTextTarget("非常好用", CONFIG.colors.pink);
+                    hud.innerText = "3 FINGERS (PRAISE)";
+                    hud.style.color = '#f0f';
+                    break;
+                case 4:
+                    generateTextTarget("再见", CONFIG.colors.green);
+                    hud.innerText = "4 FINGERS (BYE)";
+                    hud.style.color = '#0f8';
+                    break;
+                case 5:
+                    generateTextTarget("[  READY  ]", CONFIG.colors.default);
+                    hud.innerText = "5 FINGERS (CATCH)";
+                    hud.style.color = '#fff';
+                    break;
+            }
+        }
+
+        function updateRightHandState() {
+            const hud = document.getElementById('right-hand-status');
+            const hudMode = document.getElementById('interaction-mode');
+            
+            if (checkCombo()) return;
+
+            if (STATE.rightHandOpen) {
+                generateNebulaTarget(); 
+                hud.innerText = "HAND OPEN";
+                hudMode.innerText = "NEBULA / RIPPLE";
+                hudMode.className = "value status-active";
+            } else {
+                updateLeftHandState(); 
+                hud.innerText = "INDEX FINGER";
+                hudMode.innerText = "SCATTER (PHYSICS)";
+                hudMode.className = "value";
+            }
+        }
+
+        function checkCombo() {
+            if (STATE.leftHandMode === 5 && STATE.rightHandOpen) {
+                generateBasketballTarget();
+                document.getElementById('interaction-mode').innerText = "ULTIMATE: BASKETBALL";
+                document.getElementById('interaction-mode').style.color = "#ff8800";
+                return true;
+            }
+            return false;
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // 动画循环
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const positions = geometry.attributes.position.array;
+            const time = Date.now() * 0.001;
+            const mousePos = new THREE.Vector3(STATE.mouseX, STATE.mouseY, 0);
+
+            for (let i = 0; i < CONFIG.particleCount; i++) {
+                let current = currentPositions[i];
+                let target = targetPositions[i];
+
+                // 篮球模式特殊处理
+                if (STATE.isBasketballMode) {
+                    const speed = 2.0;
+                    const x = target.x - STATE.simulatedLeftHandPos.x;
+                    const z = target.z - STATE.simulatedLeftHandPos.z;
+                    const rotatedX = x * Math.cos(speed * 0.01) - z * Math.sin(speed * 0.01);
+                    const rotatedZ = x * Math.sin(speed * 0.01) + z * Math.cos(speed * 0.01);
+                    
+                    target.x = rotatedX + STATE.simulatedLeftHandPos.x;
+                    target.z = rotatedZ + STATE.simulatedLeftHandPos.z;
+                    
+                    // 弹跳效果
+                    const bounce = Math.sin(time * 5 + bounceOffsets[i]) * 5;
+                    target.y += bounce * 0.05; 
+                }
+
+                // 基础运动
+                current.x += (target.x - current.x) * CONFIG.returnSpeed;
+                current.y += (target.y - current.y) * CONFIG.returnSpeed;
+                current.z += (target.z - current.z) * CONFIG.returnSpeed;
+
+                // 右手物理交互
+                const dist = current.distanceTo(mousePos);
+                
+                if (STATE.rightHandOpen) {
+                    // 涟漪效果
+                    if (dist < 300) {
+                        current.z += Math.sin(dist * 0.1 - time * 10) * CONFIG.rippleAmplitude * (1 - dist/300);
+                    }
+                } else {
+                    // 散开效果（仅平面）
+                    if (dist < 150) {
+                        const force = (150 - dist) / 150;
+                        const angle = Math.atan2(current.y - mousePos.y, current.x - mousePos.x);
+                        const moveX = Math.cos(angle) * CONFIG.scatterForce * force;
+                        const moveY = Math.sin(angle) * CONFIG.scatterForce * force;
+                        
+                        current.x += moveX;
+                        current.y += moveY;
+                    }
+                }
+
+                positions[i * 3] = current.x;
+                positions[i * 3 + 1] = current.y;
+                positions[i * 3 + 2] = current.z;
+            }
+
+            geometry.attributes.position.needsUpdate = true;
+
+            // 更新 FPS
+            if (Math.random() > 0.95) {
+                document.getElementById('fps-counter').innerText = Math.floor(58 + Math.random() * 4) + " FPS";
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        // 启动
+        init();
+
+    </script>
+</body>
+</html>
