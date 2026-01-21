@@ -136,13 +136,53 @@
             line-height: 1.35;
         }
 
-        /* 隐藏视频，仅用于相机输入 */
+        /* 相机预览小窗（方案A：右下角） */
         #video {
+            position: fixed;
+            right: 14px;
+            bottom: 14px;
+            width: min(36vw, 220px);
+            height: auto;
+            aspect-ratio: 4 / 3;
+            opacity: 0.85;
+            border-radius: 12px;
+            border: 1px solid rgba(0, 255, 255, 0.35);
+            box-shadow: 0 0 18px rgba(0, 255, 255, 0.15);
+            z-index: 25;
+            pointer-events: none; /* 避免遮挡触摸交互 */
+        }
+
+        /* MediaPipe 手势识别展示（右上角） */
+        #mp-panel {
             position: absolute;
-            width: 1px;
-            height: 1px;
-            opacity: 0;
+            top: 94px; /* 避开右上 HUD（#hud-tr） */
+            right: 20px;
+            z-index: 12;
+            width: min(42vw, 260px);
+            padding: 10px;
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            background: rgba(0, 10, 20, 0.6);
+            backdrop-filter: blur(2px);
+            border-radius: 10px;
+            color: #0ff;
+            text-shadow: 0 0 5px #0ff, 0 0 10px #0ff;
             pointer-events: none;
+        }
+        #mp-canvas {
+            width: 100%;
+            height: auto;
+            aspect-ratio: 4 / 3;
+            display: block;
+            border-radius: 8px;
+            border: 1px solid rgba(0, 255, 255, 0.18);
+            background: rgba(0, 0, 0, 0.25);
+        }
+        #mp-text {
+            margin-top: 8px;
+            font-size: 11px;
+            line-height: 1.35;
+            opacity: 0.9;
+            white-space: pre-line;
         }
     </style>
 </head>
@@ -172,6 +212,13 @@
         <div class="label">LEFT HAND (CMD)</div>
         <div id="left-hand-status" class="value">IDLE</div>
         <div class="instruction">KEYS: 1, 2, 3, 4, 5</div>
+    </div>
+
+    <!-- 右上角：MediaPipe 手势识别展示 -->
+    <div id="mp-panel">
+        <div class="label">MEDIAPIPE HANDS</div>
+        <canvas id="mp-canvas" width="320" height="240"></canvas>
+        <div id="mp-text">未启用相机</div>
     </div>
 
     <div id="hud-bl" class="hud-panel">
@@ -244,10 +291,113 @@
         // --- 相机/手势（MediaPipe） ---
         let hands = null;
         let mpCamera = null;
+        const MP = {
+            canvas: null,
+            ctx: null,
+            textEl: null
+        };
+
+        const HAND_CONNECTIONS = [
+            [0, 1], [1, 2], [2, 3], [3, 4],
+            [0, 5], [5, 6], [6, 7], [7, 8],
+            [5, 9], [9, 10], [10, 11], [11, 12],
+            [9, 13], [13, 14], [14, 15], [15, 16],
+            [13, 17], [17, 18], [18, 19], [19, 20],
+            [0, 17]
+        ];
 
         function setCameraStatus(text) {
             const el = document.getElementById('camera-status');
             if (el) el.textContent = text;
+        }
+
+        function setMpText(text) {
+            if (!MP.textEl) MP.textEl = document.getElementById('mp-text');
+            if (MP.textEl) MP.textEl.textContent = text;
+        }
+
+        function ensureMpCanvas() {
+            if (!MP.canvas) MP.canvas = document.getElementById('mp-canvas');
+            if (!MP.ctx && MP.canvas) MP.ctx = MP.canvas.getContext('2d');
+        }
+
+        // 计算伸直手指数（简单规则：拇指比较 x，其余比较 y）
+        function countFingersUp(landmarks, handednessLabel) {
+            if (!landmarks || landmarks.length < 21) return 0;
+            const tips = [4, 8, 12, 16, 20];
+            const joints = [3, 6, 10, 14, 18];
+            let count = 0;
+
+            // 拇指：左右手方向相反
+            const thumbTipX = landmarks[tips[0]].x;
+            const thumbJointX = landmarks[joints[0]].x;
+            if (handednessLabel === 'Left') {
+                if (thumbTipX < thumbJointX) count++;
+            } else {
+                if (thumbTipX > thumbJointX) count++;
+            }
+
+            // 其他四指：tip.y 更小表示更“向上”（未镜像时通常成立）
+            for (let i = 1; i < 5; i++) {
+                if (landmarks[tips[i]].y < landmarks[joints[i]].y) count++;
+            }
+            return count;
+        }
+
+        function drawHandsOnMpCanvas(results) {
+            ensureMpCanvas();
+            if (!MP.ctx || !MP.canvas) return;
+
+            const ctx = MP.ctx;
+            ctx.clearRect(0, 0, MP.canvas.width, MP.canvas.height);
+
+            if (!results || !results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
+                // 轻微网格背景，避免空白
+                ctx.save();
+                ctx.globalAlpha = 0.25;
+                ctx.strokeStyle = 'rgba(0,255,255,0.25)';
+                for (let x = 0; x <= MP.canvas.width; x += 32) {
+                    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, MP.canvas.height); ctx.stroke();
+                }
+                for (let y = 0; y <= MP.canvas.height; y += 24) {
+                    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(MP.canvas.width, y); ctx.stroke();
+                }
+                ctx.restore();
+                return;
+            }
+
+            for (let i = 0; i < results.multiHandLandmarks.length; i++) {
+                const lm = results.multiHandLandmarks[i];
+                const handed = results.multiHandedness && results.multiHandedness[i] ? results.multiHandedness[i].label : 'Unknown';
+                const color = handed === 'Left' ? 'rgba(0,255,255,0.9)' : 'rgba(255,0,255,0.9)';
+
+                // 画连接线
+                ctx.save();
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 2;
+                ctx.globalAlpha = 0.55;
+                for (const [a, b] of HAND_CONNECTIONS) {
+                    const pa = lm[a], pb = lm[b];
+                    ctx.beginPath();
+                    ctx.moveTo(pa.x * MP.canvas.width, pa.y * MP.canvas.height);
+                    ctx.lineTo(pb.x * MP.canvas.width, pb.y * MP.canvas.height);
+                    ctx.stroke();
+                }
+                ctx.restore();
+
+                // 画关键点
+                ctx.save();
+                ctx.fillStyle = color;
+                for (let j = 0; j < lm.length; j++) {
+                    const p = lm[j];
+                    const x = p.x * MP.canvas.width;
+                    const y = p.y * MP.canvas.height;
+                    ctx.beginPath();
+                    ctx.arc(x, y, (j === 8 ? 4 : 2.5), 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.restore();
+            }
         }
 
         function isSecureContextForCamera() {
@@ -295,21 +445,53 @@
 
                 STATE.cameraActive = true;
                 setCameraStatus('相机已启用：正在检测双手（若无画面/无提示，检查微信权限设置）。');
+                setMpText('相机已启用：等待手进入画面…');
             } catch (err) {
                 console.log(err);
                 STATE.cameraActive = false;
                 setCameraStatus('相机启用失败/被拒绝：继续使用键盘/鼠标/触摸。');
+                setMpText('相机启用失败/被拒绝');
             }
         }
 
         function onHandsResults(results) {
-            // 这里先只做“是否检测到手”的状态提示，避免大改你现有交互逻辑。
-            // 后续如果你想把“左手数指/右手食指指尖”完全接入，我可以继续把结果映射到 STATE.leftHandMode / STATE.mouseX/Y 等。
             const hasHands = !!(results && results.multiHandLandmarks && results.multiHandLandmarks.length);
             STATE.handsDetected = hasHands;
             if (STATE.cameraActive) {
                 setCameraStatus(hasHands ? '相机已启用：已检测到手（手势控制可继续接入）。' : '相机已启用：未检测到手（把手放到镜头前）。');
             }
+
+            // 右上角展示：画关键点 + 显示左右手伸指数
+            drawHandsOnMpCanvas(results);
+
+            if (!STATE.cameraActive) {
+                setMpText('未启用相机');
+                return;
+            }
+
+            if (!hasHands) {
+                setMpText('未检测到手\n提示：把手放到镜头前，保持光线充足');
+                return;
+            }
+
+            let leftCount = null;
+            let rightCount = null;
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length) {
+                for (let i = 0; i < results.multiHandLandmarks.length; i++) {
+                    const handed = results.multiHandedness && results.multiHandedness[i] ? results.multiHandedness[i].label : 'Unknown';
+                    const count = countFingersUp(results.multiHandLandmarks[i], handed);
+                    if (handed === 'Left') leftCount = count;
+                    if (handed === 'Right') rightCount = count;
+                }
+            }
+
+            const lines = [];
+            lines.push(`检测到手: ${results.multiHandLandmarks.length} / 2`);
+            lines.push(`Left: ${leftCount === null ? '-' : leftCount} fingers`);
+            lines.push(`Right: ${rightCount === null ? '-' : rightCount} fingers`);
+            lines.push(`STATE.leftHandMode: ${STATE.leftHandMode}`);
+            lines.push(`STATE.rightHandOpen: ${STATE.rightHandOpen ? 'OPEN' : 'SCATTER'}`);
+            setMpText(lines.join('\n'));
         }
 
         // 初始化
@@ -347,9 +529,14 @@
             const btn = document.getElementById('camera-btn');
             if (btn) btn.addEventListener('click', startCameraGestureMode);
 
+            // 初始化右上角面板
+            ensureMpCanvas();
+            setMpText('未启用相机');
+
             // 轻提示：非 https 时告诉用户原因
             if (!isSecureContextForCamera()) {
                 setCameraStatus('提示：当前非 HTTPS，手机/微信通常不会弹相机授权。请用 GitHub Pages(HTTPS) 打开。');
+                setMpText('提示：需要 HTTPS 才能启用相机');
             }
 
             // 动画循环
