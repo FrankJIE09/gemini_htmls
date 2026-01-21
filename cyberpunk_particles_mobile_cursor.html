@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Cyberpunk Hand Particles - Gemini 3</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
     <style>
@@ -12,6 +12,7 @@
             background-color: #000;
             font-family: 'Orbitron', monospace;
             user-select: none;
+            touch-action: none;
         }
 
         /* 赛博朋克背景网格与扫描线 */
@@ -95,6 +96,54 @@
             width: 100%;
             height: 100vh;
         }
+
+        /* 摄像头权限/状态面板 */
+        #camera-panel {
+            position: absolute;
+            left: 50%;
+            top: 16px;
+            transform: translateX(-50%);
+            z-index: 30;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            padding: 10px 12px;
+            border: 1px solid rgba(0, 255, 255, 0.35);
+            background: rgba(0, 10, 20, 0.75);
+            backdrop-filter: blur(3px);
+            border-radius: 10px;
+            color: #0ff;
+            text-shadow: 0 0 5px #0ff, 0 0 10px #0ff;
+            font-size: 12px;
+            max-width: min(92vw, 720px);
+        }
+        #camera-btn {
+            appearance: none;
+            border: 1px solid rgba(0, 255, 255, 0.45);
+            background: rgba(0, 255, 255, 0.08);
+            color: #0ff;
+            padding: 8px 10px;
+            border-radius: 10px;
+            font-family: 'Orbitron', monospace;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        #camera-btn:active {
+            transform: translateY(1px);
+        }
+        #camera-status {
+            opacity: 0.9;
+            line-height: 1.35;
+        }
+
+        /* 隐藏视频，仅用于相机输入 */
+        #video {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            opacity: 0;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
@@ -102,6 +151,14 @@
     <div id="background-fx"></div>
     <div id="scanline"></div>
     <div id="vignette"></div>
+
+    <!-- 相机面板：移动端/微信里必须“点击按钮”才会弹出相机授权 -->
+    <div id="camera-panel">
+        <button id="camera-btn" type="button">启用相机手势</button>
+        <div id="camera-status">未启用相机（当前使用键盘/鼠标/触摸）。</div>
+    </div>
+
+    <video id="video" autoplay playsinline muted></video>
 
     <!-- HUD Elements -->
     <div id="hud-tl" class="hud-panel">
@@ -130,6 +187,10 @@
     </div>
 
     <div id="canvas-container"></div>
+
+    <!-- MediaPipe Hands（需要 HTTPS 才能在手机正常拉起相机权限） -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4/hands.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3/camera_utils.js" crossorigin="anonymous"></script>
 
     <!-- Three.js CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -160,7 +221,10 @@
             mouseX: 0,
             mouseY: 0,
             simulatedLeftHandPos: new THREE.Vector3(-200, 0, 0), // 左手盛接位置
-            isBasketballMode: false
+            isBasketballMode: false,
+            // 相机/手势
+            cameraActive: false,
+            handsDetected: false
         };
 
         // --- Three.js 核心变量 ---
@@ -176,6 +240,77 @@
         const textCtx = textCanvas.getContext('2d');
         textCanvas.width = 1024;
         textCanvas.height = 512;
+
+        // --- 相机/手势（MediaPipe） ---
+        let hands = null;
+        let mpCamera = null;
+
+        function setCameraStatus(text) {
+            const el = document.getElementById('camera-status');
+            if (el) el.textContent = text;
+        }
+
+        function isSecureContextForCamera() {
+            // GitHub Pages/https 才能在大多数手机浏览器 & 微信里弹出相机授权
+            return window.isSecureContext || location.hostname === 'localhost';
+        }
+
+        async function startCameraGestureMode() {
+            if (!isSecureContextForCamera()) {
+                setCameraStatus('无法启用：需要 HTTPS 才能请求相机权限（请用 GitHub Pages 打开）。');
+                return;
+            }
+
+            const video = document.getElementById('video');
+            if (!video) return;
+
+            // 注意：这里必须由“用户点击”触发，手机才会弹相机授权
+            try {
+                // 先手动请求一次权限，确保弹窗出现
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+                video.srcObject = stream;
+                await video.play();
+
+                // 初始化 MediaPipe Hands
+                hands = new Hands({
+                    locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4/${file}`
+                });
+                hands.setOptions({
+                    maxNumHands: 2,
+                    modelComplexity: 1,
+                    minDetectionConfidence: 0.6,
+                    minTrackingConfidence: 0.6
+                });
+                hands.onResults(onHandsResults);
+
+                mpCamera = new Camera(video, {
+                    onFrame: async () => {
+                        if (!hands) return;
+                        await hands.send({ image: video });
+                    },
+                    width: 640,
+                    height: 480
+                });
+                await mpCamera.start();
+
+                STATE.cameraActive = true;
+                setCameraStatus('相机已启用：正在检测双手（若无画面/无提示，检查微信权限设置）。');
+            } catch (err) {
+                console.log(err);
+                STATE.cameraActive = false;
+                setCameraStatus('相机启用失败/被拒绝：继续使用键盘/鼠标/触摸。');
+            }
+        }
+
+        function onHandsResults(results) {
+            // 这里先只做“是否检测到手”的状态提示，避免大改你现有交互逻辑。
+            // 后续如果你想把“左手数指/右手食指指尖”完全接入，我可以继续把结果映射到 STATE.leftHandMode / STATE.mouseX/Y 等。
+            const hasHands = !!(results && results.multiHandLandmarks && results.multiHandLandmarks.length);
+            STATE.handsDetected = hasHands;
+            if (STATE.cameraActive) {
+                setCameraStatus(hasHands ? '相机已启用：已检测到手（手势控制可继续接入）。' : '相机已启用：未检测到手（把手放到镜头前）。');
+            }
+        }
 
         // 初始化
         function init() {
@@ -207,6 +342,15 @@
             document.addEventListener('mousemove', onMouseMove, false);
             document.addEventListener('keydown', onKeyDown, false);
             document.addEventListener('keyup', onKeyUp, false);
+
+            // 相机按钮：必须点击才能弹授权
+            const btn = document.getElementById('camera-btn');
+            if (btn) btn.addEventListener('click', startCameraGestureMode);
+
+            // 轻提示：非 https 时告诉用户原因
+            if (!isSecureContextForCamera()) {
+                setCameraStatus('提示：当前非 HTTPS，手机/微信通常不会弹相机授权。请用 GitHub Pages(HTTPS) 打开。');
+            }
 
             // 动画循环
             animate();
