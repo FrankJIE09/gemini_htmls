@@ -458,7 +458,7 @@
             const hasHands = !!(results && results.multiHandLandmarks && results.multiHandLandmarks.length);
             STATE.handsDetected = hasHands;
             if (STATE.cameraActive) {
-                setCameraStatus(hasHands ? '相机已启用：已检测到手（手势控制可继续接入）。' : '相机已启用：未检测到手（把手放到镜头前）。');
+                setCameraStatus(hasHands ? '相机已启用：已检测到手（手势控制已接入）。' : '相机已启用：未检测到手（把手放到镜头前）。');
             }
 
             // 右上角展示：画关键点 + 显示左右手伸指数
@@ -476,19 +476,67 @@
 
             let leftCount = null;
             let rightCount = null;
+            let leftLandmarks = null;
+            let rightLandmarks = null;
+
             if (results.multiHandLandmarks && results.multiHandLandmarks.length) {
                 for (let i = 0; i < results.multiHandLandmarks.length; i++) {
                     const handed = results.multiHandedness && results.multiHandedness[i] ? results.multiHandedness[i].label : 'Unknown';
-                    const count = countFingersUp(results.multiHandLandmarks[i], handed);
-                    if (handed === 'Left') leftCount = count;
-                    if (handed === 'Right') rightCount = count;
+                    const landmarks = results.multiHandLandmarks[i];
+                    const count = countFingersUp(landmarks, handed);
+                    
+                    if (handed === 'Left') {
+                        leftCount = count;
+                        leftLandmarks = landmarks;
+                    }
+                    if (handed === 'Right') {
+                        rightCount = count;
+                        rightLandmarks = landmarks;
+                    }
+                }
+            }
+
+            // 映射手势到粒子控制状态
+            if (STATE.cameraActive && hasHands) {
+                // 左手：根据手指数更新模式 (1-5)
+                if (leftCount !== null && leftCount >= 1 && leftCount <= 5) {
+                    if (STATE.leftHandMode !== leftCount) {
+                        STATE.leftHandMode = leftCount;
+                        updateLeftHandState();
+                    }
+                    // 更新左手位置（使用手腕位置，landmark[0]）
+                    if (leftLandmarks && leftLandmarks[0]) {
+                        const wrist = leftLandmarks[0];
+                        // MediaPipe 坐标是归一化的 (0-1)，转换为 Three.js 坐标
+                        // 假设视频是 640x480，映射到屏幕坐标再转换
+                        const x = (wrist.x - 0.5) * window.innerWidth * 2;
+                        const y = -(wrist.y - 0.5) * window.innerHeight * 2;
+                        STATE.simulatedLeftHandPos.set(x, y, 0);
+                    }
+                }
+
+                // 右手：根据手指数判断是否张开（>=4指视为张开）
+                if (rightCount !== null) {
+                    const isOpen = rightCount >= 4;
+                    if (STATE.rightHandOpen !== isOpen) {
+                        STATE.rightHandOpen = isOpen;
+                        updateRightHandState();
+                    }
+                    // 更新右手交互点（使用食指指尖，landmark[8]）
+                    if (rightLandmarks && rightLandmarks[8]) {
+                        const indexTip = rightLandmarks[8];
+                        const x = (indexTip.x - 0.5) * window.innerWidth * 2;
+                        const y = -(indexTip.y - 0.5) * window.innerHeight * 2;
+                        STATE.mouseX = x;
+                        STATE.mouseY = y;
+                    }
                 }
             }
 
             const lines = [];
             lines.push(`检测到手: ${results.multiHandLandmarks.length} / 2`);
-            lines.push(`Left: ${leftCount === null ? '-' : leftCount} fingers`);
-            lines.push(`Right: ${rightCount === null ? '-' : rightCount} fingers`);
+            lines.push(`Left: ${leftCount === null ? '-' : leftCount} fingers → Mode ${STATE.leftHandMode}`);
+            lines.push(`Right: ${rightCount === null ? '-' : rightCount} fingers → ${STATE.rightHandOpen ? 'OPEN' : 'SCATTER'}`);
             lines.push(`STATE.leftHandMode: ${STATE.leftHandMode}`);
             lines.push(`STATE.rightHandOpen: ${STATE.rightHandOpen ? 'OPEN' : 'SCATTER'}`);
             setMpText(lines.join('\n'));
