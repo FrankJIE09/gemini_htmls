@@ -2,6 +2,8 @@
 
 一个包含多个实用计算器的 HTML 工具集合。
 
+**在线访问：** https://frankjie09.github.io/gemini_htmls/
+
 ## 项目简介
 
 本项目包含多个独立的 HTML 计算器工具，可以直接在浏览器中打开使用，无需安装任何依赖。
@@ -44,7 +46,9 @@
 
 ### 在线访问（GitHub Pages）
 
-在 GitHub 仓库中开启 Pages 后，可通过 Pages 提供的链接在线访问。建议使用仓库根目录的 `index.html` 作为入口页。
+**入口地址：** https://frankjie09.github.io/gemini_htmls/
+
+在 GitHub 仓库中开启 Pages 后，可通过上述链接在线访问，建议在微信等环境直接分享该链接。
 
 ## 技术栈
 
