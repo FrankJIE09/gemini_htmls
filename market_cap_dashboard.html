@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中港两地上市企业分析</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; }
+        .chart-container { width: 100%; height: 300px; }
+        .chart-detail { width: 100%; height: 450px; }
+    </style>
+</head>
+<body class="min-h-screen bg-gray-50 text-slate-900 p-4 md:p-8">
+
+    <div class="max-w-7xl mx-auto">
+        <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6">
+            <div class="flex items-center gap-4">
+                <div class="p-3 bg-indigo-600 rounded-2xl shadow-lg shadow-indigo-200">
+                    <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0h.5a2.5 2.5 0 002.5-2.5V3.935M12 12a2 2 0 104 0 2 2 0 00-4 0z"/></svg>
+                </div>
+                <div>
+                    <h1 class="text-3xl font-black tracking-tight text-slate-800">中港两地上市企业分析</h1>
+                    <p class="text-slate-500 font-medium">双重市场溢价与市值变动回顾（总市值 · 人民币）</p>
+                </div>
+            </div>
+            <label class="flex items-center gap-2 px-6 py-3 bg-white border-2 border-slate-200 hover:border-indigo-600 rounded-2xl cursor-pointer transition-all shadow-sm">
+                <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                <span class="font-bold text-slate-700">导入 CSV 数据</span>
+                <input type="file" id="csvInput" accept=".csv" class="hidden">
+            </label>
+        </header>
+
+        <div id="emptyState" class="flex flex-col items-center justify-center py-24 bg-white rounded-3xl border-2 border-dashed border-slate-200">
+            <svg class="w-16 h-16 text-slate-200 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/></svg>
+            <p class="text-slate-400 font-medium">请先导入通过 data_fetcher.py 抓取的市值历史数据（market_cap_history.csv）</p>
+        </div>
+
+        <div id="dashboard" class="hidden space-y-8">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="lg:col-span-2 bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
+                    <h2 class="text-xl font-bold flex items-center gap-2 mb-6">全样本最新市值对比</h2>
+                    <p class="text-sm text-slate-400 mb-4">各企业最近交易日的各市场汇总市值（亿元，人民币）</p>
+                    <div id="barChart" class="chart-container"></div>
+                </div>
+                <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
+                    <h3 class="text-lg font-bold mb-4">市值排名榜</h3>
+                    <div id="rankList" class="space-y-4"></div>
+                </div>
+            </div>
+
+            <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-6">
+                    <div>
+                        <h2 class="text-2xl font-black text-slate-800" id="detailTitle">选择企业 - 双市场透视</h2>
+                        <div class="flex gap-2 mt-2">
+                            <span class="flex items-center gap-1.5 px-2 py-0.5 bg-slate-50 rounded-lg"><span class="w-2 h-2 rounded-full bg-red-500"></span><span class="text-xs font-bold text-slate-500">A 市场</span></span>
+                            <span class="flex items-center gap-1.5 px-2 py-0.5 bg-slate-50 rounded-lg"><span class="w-2 h-2 rounded-full bg-blue-500"></span><span class="text-xs font-bold text-slate-500">HK 市场</span></span>
+                            <span class="flex items-center gap-1.5 px-2 py-0.5 bg-slate-50 rounded-lg"><span class="w-2 h-2 rounded-full bg-emerald-500"></span><span class="text-xs font-bold text-slate-500">US 市场</span></span>
+                        </div>
+                    </div>
+                    <div id="stockTabs" class="flex flex-wrap gap-2 p-1.5 bg-slate-100 rounded-2xl"></div>
+                </div>
+                <div class="flex gap-4 mb-6">
+                    <button type="button" id="btnMarketCap" class="flex-1 py-4 rounded-2xl border-2 border-indigo-600 bg-indigo-50/50 text-indigo-600 font-bold">市值对比</button>
+                    <button type="button" id="btnPrice" class="flex-1 py-4 rounded-2xl border-2 border-transparent bg-slate-50 text-slate-400 font-bold hover:bg-slate-100">股价走势</button>
+                </div>
+                <div id="lineChart" class="chart-detail"></div>
+                <div class="mt-8 p-4 bg-indigo-50 rounded-2xl flex gap-3 items-start">
+                    <svg class="w-5 h-5 text-indigo-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <p class="text-sm text-indigo-700 leading-relaxed">
+                        <strong>分析建议：</strong> 通过对比 A 股与港股的市值曲线，可观察“AH 溢价”。通常 A 股估值相对较高。若两条曲线趋势分化，可能预示特定市场的流动性或情绪变化。
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <footer class="mt-12 text-center text-slate-400 text-xs">
+            <p>中港企业双重上市分析看板 · 基于 yfinance 历史数据（总市值已统一为人民币）</p>
+        </footer>
+    </div>
+
+    <script>
+        const COLORS = { A: '#ef4444', HK: '#3b82f6', US: '#10b981' };
+        let rawData = [];
+        let selectedStock = '';
+        let viewType = 'MarketCap';
+        let barChartInst, lineChartInst;
+
+        document.getElementById('csvInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                complete: function(res) {
+                    const rows = (res.data || []).filter(r => r.Date && r.Name && !isNaN(parseFloat(r.MarketCap)));
+                    rawData = rows.map(r => ({
+                        date: r.Date,
+                        name: r.Name,
+                        market: r.Market,
+                        ticker: r.Ticker,
+                        marketCap: parseFloat(r.MarketCap),
+                        price: parseFloat(r.Price) || 0,
+                        currency: (r.Currency || '').trim()
+                    }));
+                    if (rawData.length === 0) {
+                        alert('CSV 需包含列：Date, Name, Market, Ticker, MarketCap, Price, Currency');
+                        return;
+                    }
+                    const names = [...new Set(rawData.map(d => d.name))];
+                    selectedStock = names[0];
+                    document.getElementById('emptyState').classList.add('hidden');
+                    document.getElementById('dashboard').classList.remove('hidden');
+                    renderStockTabs(names);
+                    renderBarChart();
+                    renderRankList();
+                    renderLineChart();
+                }
+            });
+        });
+
+        function getGlobalSummary() {
+            if (rawData.length === 0) return [];
+            const names = [...new Set(rawData.map(d => d.name))];
+            return names.map(name => {
+                const stockData = rawData.filter(d => d.name === name);
+                const latestDate = stockData.reduce((max, d) => d.date > max ? d.date : max, stockData[0].date);
+                const latestEntries = stockData.filter(d => d.date === latestDate);
+                return {
+                    name,
+                    totalCap: latestEntries.reduce((s, d) => s + d.marketCap, 0),
+                    markets: latestEntries.map(d => d.market).join(' + '),
+                    date: latestDate
+                };
+            }).sort((a, b) => b.totalCap - a.totalCap);
+        }
+
+        function getDetailChartData() {
+            if (!selectedStock || rawData.length === 0) return [];
+            const stockData = rawData.filter(d => d.name === selectedStock);
+            const dateMap = {};
+            stockData.forEach(item => {
+                if (!dateMap[item.date]) dateMap[item.date] = { date: item.date };
+                const val = viewType === 'MarketCap' ? item.marketCap : item.price;
+                dateMap[item.date][item.market] = val;
+            });
+            return Object.values(dateMap).sort((a, b) => new Date(a.date) - new Date(b.date));
+        }
+
+        function renderStockTabs(names) {
+            const el = document.getElementById('stockTabs');
+            el.innerHTML = names.map(name =>
+                `<button type="button" class="stock-tab px-4 py-2 rounded-xl text-xs font-bold transition-all ${selectedStock === name ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}" data-name="${name}">${name}</button>`
+            ).join('');
+            el.querySelectorAll('.stock-tab').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    selectedStock = this.getAttribute('data-name');
+                    renderStockTabs(names);
+                    document.getElementById('detailTitle').textContent = selectedStock + ' - 双市场透视';
+                    renderLineChart();
+                });
+            });
+        }
+
+        function renderBarChart() {
+            const summary = getGlobalSummary();
+            const el = document.getElementById('barChart');
+            if (!barChartInst) barChartInst = echarts.init(el);
+            barChartInst.setOption({
+                grid: { left: 90, right: 24, top: 16, bottom: 24 },
+                xAxis: { type: 'value', show: false, splitLine: { show: false } },
+                yAxis: { type: 'category', data: summary.map(s => s.name), axisLine: false, tickLine: false, axisLabel: { fontWeight: 600 } },
+                series: [{
+                    type: 'bar',
+                    data: summary.map((s, i) => ({ value: s.totalCap, itemStyle: { color: i === 0 ? '#4f46e5' : '#cbd5e1' } })),
+                    barWidth: '60%',
+                    barGap: '30%'
+                }],
+                tooltip: { trigger: 'axis', formatter: function(params) {
+                    const d = summary[params[0].dataIndex];
+                    return `${d.name}<br/>总市值: ${Math.round(d.totalCap).toLocaleString()} 亿元（人民币）<br/>${d.markets}`;
+                }}
+            });
+        }
+
+        function renderRankList() {
+            const summary = getGlobalSummary().slice(0, 5);
+            document.getElementById('rankList').innerHTML = summary.map((s, i) =>
+                `<div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold ${i === 0 ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-400'}">${i + 1}</span>
+                        <div>
+                            <p class="font-bold text-slate-700">${s.name}</p>
+                            <p class="text-[10px] text-slate-400 uppercase">${s.markets}</p>
+                        </div>
+                    </div>
+                    <p class="font-black text-indigo-600">${Math.round(s.totalCap).toLocaleString()}</p>
+                </div>`
+            ).join('');
+        }
+
+        function renderLineChart() {
+            const detailData = getDetailChartData();
+            document.getElementById('detailTitle').textContent = selectedStock + ' - 双市场透视';
+            const el = document.getElementById('lineChart');
+            if (!lineChartInst) lineChartInst = echarts.init(el);
+            const markets = ['A', 'HK', 'US'];
+            lineChartInst.setOption({
+                color: [COLORS.A, COLORS.HK, COLORS.US],
+                grid: { left: 56, right: 24, top: 24, bottom: 48 },
+                tooltip: { trigger: 'axis' },
+                legend: { data: markets.map(m => m + ' 市场'), bottom: 0 },
+                xAxis: { type: 'category', data: detailData.map(d => d.date), axisLine: false, tickLine: false },
+                yAxis: { type: 'value', name: viewType === 'MarketCap' ? '亿元（人民币）' : '价格（人民币）', axisLine: false, splitLine: { lineStyle: { color: '#f1f5f9' } } },
+                series: markets.map(m => ({
+                    name: m + ' 市场',
+                    type: 'line',
+                    data: detailData.map(d => d[m]),
+                    smooth: true,
+                    symbol: 'none',
+                    connectNulls: true,
+                    color: COLORS[m],
+                    lineStyle: { width: 3, color: COLORS[m] },
+                    itemStyle: { color: COLORS[m] }
+                }))
+            });
+        }
+
+        document.getElementById('btnMarketCap').addEventListener('click', function() {
+            viewType = 'MarketCap';
+            document.getElementById('btnMarketCap').className = 'flex-1 py-4 rounded-2xl border-2 border-indigo-600 bg-indigo-50/50 text-indigo-600 font-bold';
+            document.getElementById('btnPrice').className = 'flex-1 py-4 rounded-2xl border-2 border-transparent bg-slate-50 text-slate-400 font-bold hover:bg-slate-100';
+            renderLineChart();
+        });
+        document.getElementById('btnPrice').addEventListener('click', function() {
+            viewType = 'Price';
+            document.getElementById('btnPrice').className = 'flex-1 py-4 rounded-2xl border-2 border-indigo-600 bg-indigo-50/50 text-indigo-600 font-bold';
+            document.getElementById('btnMarketCap').className = 'flex-1 py-4 rounded-2xl border-2 border-transparent bg-slate-50 text-slate-400 font-bold hover:bg-slate-100';
+            renderLineChart();
+        });
+
+        window.addEventListener('resize', function() {
+            barChartInst && barChartInst.resize();
+            lineChartInst && lineChartInst.resize();
+        });
+    </script>
+</body>
+</html>

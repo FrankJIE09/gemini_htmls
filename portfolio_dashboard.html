@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>持仓分析大师 | 资产管理可视化</title>
+    <!-- 引入外部库 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #020617;
+            --card-bg: rgba(15, 23, 42, 0.7);
+            --accent-primary: #38bdf8;
+            --accent-secondary: #818cf8;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(circle at 20% 20%, rgba(56, 189, 248, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 80% 80%, rgba(129, 140, 248, 0.05) 0%, transparent 40%);
+            color: #f8fafc;
+            min-height: 100vh;
+        }
+
+        .glass-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .drop-zone {
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .drop-zone:hover, .drop-zone.active {
+            border-color: var(--accent-primary);
+            background: rgba(56, 189, 248, 0.05);
+        }
+
+        /* 隐藏滚动条 */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
+        
+        .chart-container { height: 450px; width: 100%; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in { animation: fadeIn 0.6s ease-out forwards; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="max-w-7xl mx-auto">
+        <!-- 顶部导航 -->
+        <header class="flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
+            <div>
+                <h1 class="text-3xl font-bold gradient-text tracking-tight">INVESTOR INSIGHT</h1>
+                <p class="text-slate-400 text-sm mt-1">上传您的 13F 历史数据 CSV 文件进行深度分析</p>
+            </div>
+            
+            <!-- 上传区域 -->
+            <div id="dropZone" class="drop-zone w-full md:w-96 p-4 rounded-xl flex items-center justify-center cursor-pointer">
+                <input type="file" id="fileInput" accept=".csv" class="hidden">
+                <div class="text-center" id="uploadStatus">
+                    <p class="text-sm font-medium">点击或拖拽 CSV 文件至此</p>
+                    <p class="text-xs text-slate-500 mt-1">支持标准的 13F 历史数据格式</p>
+                </div>
+            </div>
+        </header>
+
+        <!-- 初始占位提示 -->
+        <div id="welcomeScreen" class="flex flex-col items-center justify-center py-20 text-center">
+            <div class="w-20 h-20 mb-6 rounded-full bg-slate-800 flex items-center justify-center">
+                <svg class="w-10 h-10 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+            </div>
+            <h2 class="text-2xl font-semibold mb-2">准备好洞察您的数据了吗？</h2>
+            <p class="text-slate-400 max-w-md">上传文件后，我们将为您自动分析资产组合的增长、行业分配及核心持仓变化。</p>
+        </div>
+
+        <!-- 数据分析内容面板 (初始隐藏) -->
+        <main id="dashboard" class="hidden">
+            <!-- 核心数据卡片 -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                <div class="glass-card p-6">
+                    <p class="text-slate-400 text-xs uppercase tracking-widest mb-2">最新组合市值</p>
+                    <h3 class="text-3xl font-bold" id="statTotalValue">-</h3>
+                </div>
+                <div class="glass-card p-6">
+                    <p class="text-slate-400 text-xs uppercase tracking-widest mb-2">持有标的数量</p>
+                    <h3 class="text-3xl font-bold" id="statCount">-</h3>
+                </div>
+                <div class="glass-card p-6">
+                    <p class="text-slate-400 text-xs uppercase tracking-widest mb-2">最新报告日期</p>
+                    <h3 class="text-3xl font-bold text-sky-400" id="statDate">-</h3>
+                </div>
+                <div class="glass-card p-6">
+                    <p class="text-slate-400 text-xs uppercase tracking-widest mb-2">数据跨度</p>
+                    <h3 class="text-3xl font-bold" id="statSpan">-</h3>
+                </div>
+            </div>
+
+            <!-- 图表第一排 -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+                <div class="lg:col-span-2 glass-card p-8">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-xl font-semibold">组合市值演变趋势</h3>
+                        <div class="text-xs text-slate-500">单位: 万亿美元</div>
+                    </div>
+                    <div id="trendChart" class="chart-container"></div>
+                </div>
+                <div class="glass-card p-8">
+                    <h3 class="text-xl font-semibold mb-6">当前资产配置分布</h3>
+                    <div id="allocationChart" class="chart-container"></div>
+                </div>
+            </div>
+
+            <!-- 详细持仓列表 -->
+            <div class="glass-card overflow-hidden">
+                <div class="p-8 border-b border-white/5 flex justify-between items-center bg-white/5">
+                    <h3 class="text-xl font-semibold">最新重仓股详情 (Top 15)</h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="text-slate-500 text-xs uppercase border-b border-white/10 bg-slate-900/50">
+                                <th class="px-8 py-4">公司名称 (Issuer)</th>
+                                <th class="px-8 py-4">市值 ($ Billions)</th>
+                                <th class="px-8 py-4">持有股数</th>
+                                <th class="px-8 py-4 text-right">权重占比</th>
+                            </tr>
+                        </thead>
+                        <tbody id="holdingsTable" class="divide-y divide-white/5">
+                            <!-- JS 注入 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // 初始化图表变量
+        let trendChart, allocationChart;
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+
+        // 事件监听
+        dropZone.onclick = () => fileInput.click();
+        fileInput.onchange = (e) => handleFile(e.target.files[0]);
+        
+        dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('active'); };
+        dropZone.ondragleave = () => dropZone.classList.remove('active');
+        dropZone.ondrop = (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('active');
+            handleFile(e.dataTransfer.files[0]);
+        };
+
+        function handleFile(file) {
+            if (!file) return;
+            if (!file.name.endsWith('.csv')) {
+                alert('请上传有效的 CSV 文件');
+                return;
+            }
+
+            document.getElementById('uploadStatus').innerHTML = `<p class="text-sky-400 font-medium">正在解析: ${file.name}</p>`;
+
+            Papa.parse(file, {
+                header: true,
+                dynamicTyping: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    processData(results.data);
+                },
+                error: function(err) {
+                    alert('CSV 解析错误: ' + err.message);
+                }
+            });
+        }
+
+        function processData(data) {
+            // 1. 数据清洗与预处理
+            const groupedByDate = {};
+            
+            // 自动检测数据缩放 (有些 13F 以千美元计)
+            // 逻辑：如果 2024 年前的市值普遍非常小，则认为是以千位单位
+            const checkDate = new Date('2024-01-01');
+
+            data.forEach(row => {
+                const date = row.report_date;
+                if (!date) return;
+                
+                if (!groupedByDate[date]) groupedByDate[date] = { total: 0, items: [] };
+                
+                // 转换值为数值
+                let val = parseFloat(row.value) || 0;
+                
+                // 缩放修正逻辑 (针对巴菲特 CSV 特点)
+                const d = new Date(date);
+                if (d < checkDate && val < 10000000) { 
+                    val *= 1000; 
+                }
+
+                groupedByDate[date].total += val;
+                groupedByDate[date].items.push({
+                    name: row.nameOfIssuer,
+                    value: val,
+                    shares: row.shrsOrPrnAmt
+                });
+            });
+
+            const sortedDates = Object.keys(groupedByDate).sort((a, b) => new Date(a) - new Date(b));
+            if (sortedDates.length === 0) {
+                alert('数据格式不正确，无法找到 report_date 或 value 列');
+                return;
+            }
+
+            // 2. 显示看板
+            document.getElementById('welcomeScreen').classList.add('hidden');
+            document.getElementById('dashboard').classList.remove('hidden');
+            document.getElementById('dashboard').classList.add('animate-fade-in');
+
+            // 3. 更新统计卡片
+            const latestDate = sortedDates[sortedDates.length - 1];
+            const latestData = groupedByDate[latestDate];
+            const totalVal = latestData.total;
+
+            document.getElementById('statTotalValue').innerText = `$${(totalVal / 1e12).toFixed(2)}T`;
+            document.getElementById('statCount').innerText = latestData.items.length;
+            document.getElementById('statDate').innerText = latestDate;
+            document.getElementById('statSpan').innerText = `${Math.round((new Date(latestDate) - new Date(sortedDates[0])) / (1000*60*60*24*365))} 年`;
+
+            // 4. 渲染趋势图
+            renderTrendChart(sortedDates, groupedByDate);
+
+            // 5. 渲染分配图
+            renderAllocationChart(latestData.items);
+
+            // 6. 渲染表格
+            renderTable(latestData.items, totalVal);
+        }
+
+        function renderTrendChart(dates, dataMap) {
+            if (trendChart) trendChart.dispose();
+            trendChart = echarts.init(document.getElementById('trendChart'), 'dark');
+            
+            const option = {
+                backgroundColor: 'transparent',
+                tooltip: {
+                    trigger: 'axis',
+                    backgroundColor: '#1e293b',
+                    borderColor: '#334155',
+                    textStyle: { color: '#fff' },
+                    formatter: function(params) {
+                        const val = (params[0].value / 1e12).toFixed(3);
+                        return `<div class="p-2 font-sans">
+                            <div class="text-slate-400 text-xs mb-1">${params[0].name}</div>
+                            <div class="font-bold text-sky-400">$${val} Trillion</div>
+                        </div>`;
+                    }
+                },
+                grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+                xAxis: {
+                    type: 'category',
+                    data: dates,
+                    axisLine: { lineStyle: { color: '#334155' } },
+                    axisLabel: { color: '#94a3b8' }
+                },
+                yAxis: {
+                    type: 'value',
+                    splitLine: { lineStyle: { color: 'rgba(255,255,255,0.05)' } },
+                    axisLabel: { 
+                        color: '#94a3b8',
+                        formatter: (v) => `$${(v/1e12).toFixed(1)}T`
+                    }
+                },
+                series: [{
+                    data: dates.map(d => dataMap[d].total),
+                    type: 'line',
+                    smooth: true,
+                    symbolSize: 8,
+                    itemStyle: { color: '#38bdf8' },
+                    lineStyle: { width: 4, color: '#38bdf8' },
+                    areaStyle: {
+                        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                            { offset: 0, color: 'rgba(56, 189, 248, 0.3)' },
+                            { offset: 1, color: 'rgba(56, 189, 248, 0)' }
+                        ])
+                    }
+                }]
+            };
+            trendChart.setOption(option);
+        }
+
+        function renderAllocationChart(items) {
+            if (allocationChart) allocationChart.dispose();
+            allocationChart = echarts.init(document.getElementById('allocationChart'), 'dark');
+            
+            // 取前 7 个，其余归为其他
+            const sortedItems = [...items].sort((a, b) => b.value - a.value);
+            const topItems = sortedItems.slice(0, 7).map(i => ({ name: i.name, value: i.value }));
+            const othersValue = sortedItems.slice(7).reduce((acc, curr) => acc + curr.value, 0);
+            if (othersValue > 0) topItems.push({ name: '其他持仓', value: othersValue });
+
+            const option = {
+                backgroundColor: 'transparent',
+                tooltip: { trigger: 'item' },
+                legend: { 
+                    orient: 'horizontal', 
+                    bottom: '0', 
+                    textStyle: { color: '#94a3b8', fontSize: 10 },
+                    itemWidth: 10
+                },
+                series: [{
+                    name: '资产占比',
+                    type: 'pie',
+                    radius: ['50%', '80%'],
+                    center: ['50%', '42%'],
+                    avoidLabelOverlap: false,
+                    itemStyle: { borderRadius: 10, borderColor: '#020617', borderWidth: 2 },
+                    label: { show: false },
+                    emphasis: {
+                        label: { show: true, fontSize: 14, fontWeight: 'bold', color: '#fff' }
+                    },
+                    data: topItems
+                }]
+            };
+            allocationChart.setOption(option);
+        }
+
+        function renderTable(items, totalVal) {
+            const container = document.getElementById('holdingsTable');
+            container.innerHTML = '';
+            
+            const sorted = [...items].sort((a, b) => b.value - a.value).slice(0, 15);
+            
+            sorted.forEach(item => {
+                const weight = ((item.value / totalVal) * 100).toFixed(2);
+                const row = `
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="px-8 py-5 font-semibold text-slate-200">${item.name}</td>
+                        <td class="px-8 py-5 text-slate-400 font-mono">$${(item.value / 1e9).toFixed(2)}B</td>
+                        <td class="px-8 py-5 text-slate-500 text-sm">${item.shares ? item.shares.toLocaleString() : '-'}</td>
+                        <td class="px-8 py-5 text-right">
+                            <div class="flex items-center justify-end gap-3">
+                                <div class="w-24 h-2 bg-slate-800 rounded-full overflow-hidden hidden md:block">
+                                    <div class="h-full bg-sky-500" style="width: ${weight}%"></div>
+                                </div>
+                                <span class="inline-block px-3 py-1 rounded-full bg-sky-500/10 text-sky-400 text-xs font-bold w-16">
+                                    ${weight}%
+                                </span>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                container.innerHTML += row;
+            });
+        }
+
+        window.onresize = () => {
+            if (trendChart) trendChart.resize();
+            if (allocationChart) allocationChart.resize();
+        };
+    </script>
+</body>
+</html>
