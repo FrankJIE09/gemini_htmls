@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>复利森林 - The Forest of Compound Interest</title>
+    <style>
+        :root {
+            --bg-color-top: #0a1128; 
+            --bg-color-bottom: #162e26; 
+            --panel-bg: rgba(15, 23, 42, 0.8);
+            --accent-gold: #fbbf24;
+            --text-color: #f8fafc;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--bg-color-top);
+            color: var(--text-color);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        /* 悬浮控制面板 */
+        #ui-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 280px;
+            padding: 24px;
+            background: var(--panel-bg);
+            backdrop-filter: blur(16px);
+            border-radius: 20px;
+            border: 1px solid rgba(251, 191, 36, 0.2);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+            z-index: 100;
+        }
+
+        /* 森林总额看板 */
+        #total-assets-board {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 20px 40px;
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(12px);
+            border-radius: 20px;
+            border: 1px solid rgba(251, 191, 36, 0.4);
+            text-align: right;
+            z-index: 100;
+            min-width: 300px;
+        }
+
+        #total-assets-label {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            opacity: 0.8;
+            margin-bottom: 5px;
+            color: #fff;
+        }
+
+        #total-assets-value {
+            font-size: 2.8rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-family: 'Courier New', Courier, monospace;
+            filter: drop-shadow(0 0 15px rgba(251, 191, 36, 0.5));
+        }
+
+        h1 {
+            font-size: 1.3rem;
+            margin: 0 0 20px 0;
+            background: linear-gradient(90deg, #fbbf24, #f59e0b, #d97706);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-align: center;
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        .control-group label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .control-group input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+            accent-color: var(--accent-gold);
+            height: 4px;
+        }
+
+        /* 底部时间轴 */
+        #timeline-container {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 70%;
+            max-width: 900px;
+            background: var(--panel-bg);
+            backdrop-filter: blur(20px);
+            padding: 20px 40px;
+            border-radius: 60px;
+            border: 1px solid rgba(251, 191, 36, 0.2);
+            z-index: 100;
+        }
+
+        #timeline-header {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 8px;
+        }
+
+        #current-year-display {
+            font-size: 2rem;
+            font-weight: 900;
+            color: var(--accent-gold);
+            min-width: 100px;
+            text-align: center;
+        }
+
+        #tooltip {
+            position: absolute;
+            pointer-events: none;
+            background: rgba(10, 17, 40, 0.95);
+            border: 1px solid rgba(251, 191, 36, 0.5);
+            padding: 15px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            display: none;
+            z-index: 200;
+            backdrop-filter: blur(8px);
+        }
+
+        .tooltip-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 30px;
+            margin: 4px 0;
+        }
+
+        .value { color: var(--accent-gold); font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div id="ui-panel">
+        <h1>复利森林</h1>
+        
+        <div class="control-group">
+            <label>初始本金 (Principal) <span id="val-principal">10,000</span></label>
+            <input type="range" id="input-principal" min="1000" max="100000" step="1000" value="10000">
+        </div>
+
+        <div class="control-group">
+            <label>每月追加 (Monthly) <span id="val-monthly">500</span></label>
+            <input type="range" id="input-monthly" min="0" max="10000" step="100" value="500">
+        </div>
+
+        <div class="control-group">
+            <label>年化收益 (Yield) <span id="val-yield">8%</span></label>
+            <input type="range" id="input-yield" min="0" max="40" step="1" value="8">
+        </div>
+
+        <div style="font-size: 0.75rem; opacity: 0.6; line-height: 1.5; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px;">
+            提示：调整滑块可实时改变投资树的生长状态。
+        </div>
+    </div>
+
+    <div id="total-assets-board">
+        <div id="total-assets-label">资产总现值 / TOTAL VALUE</div>
+        <div id="total-assets-value">¥0</div>
+    </div>
+
+    <div id="timeline-container">
+        <div id="timeline-header">
+            <span style="opacity: 0.7;">时光流转 第</span>
+            <span id="current-year-display">0</span>
+            <span style="opacity: 0.7;">年</span>
+        </div>
+        <input type="range" id="input-timeline" min="0" max="50" step="0.1" value="0" style="width:100%">
+    </div>
+
+    <div id="tooltip"></div>
+    <canvas id="forestCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('forestCanvas');
+        const ctx = canvas.getContext('2d');
+        const tooltip = document.getElementById('tooltip');
+        const totalAssetsValueEl = document.getElementById('total-assets-value');
+
+        // Global State
+        const state = {
+            trees: [],
+            currentYear: 0,
+            hoveredTree: null,
+            time: 0, 
+            params: {
+                principal: 10000,
+                monthly: 500,
+                yield: 0.08
+            }
+        };
+
+        const fmt = (val) => new Intl.NumberFormat('zh-CN', { style: 'currency', currency: 'CNY', maximumFractionDigits: 0 }).format(val);
+
+        class Tree {
+            constructor(x, y, p, m, r, startYear) {
+                this.x = x;
+                this.y = y;
+                this.p = p; 
+                this.m = m; 
+                this.r = r; 
+                this.startYear = startYear;
+                this.baseTrunkColor = '#4a3728'; 
+                this.veinColor = '#ffbf00';      
+            }
+
+            updateParams(p, m, r) {
+                this.p = p;
+                this.m = m;
+                this.r = r;
+            }
+
+            calculateFinancials(globalYear) {
+                const t = Math.max(0, globalYear - this.startYear);
+                const r = this.r;
+                
+                let total;
+                if (r === 0) {
+                    total = this.p + (this.m * 12 * t);
+                } else {
+                    const pPart = this.p * Math.pow(1 + r, t);
+                    const mPart = (this.m * 12 * (Math.pow(1 + r, t) - 1) / r);
+                    total = pPart + mPart;
+                }
+                
+                const cost = this.p + (this.m * 12 * t);
+                const profit = total - cost;
+                const growthFactor = total / Math.max(1, this.p); 
+                return { total, profit, t, growthFactor };
+            }
+
+            draw(ctx, globalYear) {
+                const { total, t, growthFactor } = this.calculateFinancials(globalYear);
+                if (t < 0) return;
+
+                const scale = Math.min(2.0, 0.4 + Math.log10(growthFactor + 1));
+                const depth = Math.min(10, Math.floor(4 + this.r * 25)); 
+                const initialLen = (Math.sqrt(this.p) / 4 + t * 2.5) * scale;
+                const thickness = (Math.sqrt(this.p) / 5) * scale;
+                
+                // Breathing glow
+                if (this.r > 0.1 || growthFactor > 3) {
+                    const breathing = Math.sin(state.time * 0.02) * 0.5 + 0.5;
+                    const glowRadius = initialLen * 1.5;
+                    const gradient = ctx.createRadialGradient(this.x, this.y - initialLen, 0, this.x, this.y - initialLen, glowRadius);
+                    let glowColor = this.r > 0.15 ? '251, 191, 36' : '16, 185, 129'; 
+                    gradient.addColorStop(0, `rgba(${glowColor}, ${0.12 * breathing})`);
+                    gradient.addColorStop(1, `rgba(${glowColor}, 0)`);
+                    ctx.save();
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(this.x - glowRadius, this.y - glowRadius * 2, glowRadius * 2, glowRadius * 2.5);
+                    ctx.restore();
+                }
+
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                this.branch(ctx, initialLen, thickness, depth, t, growthFactor);
+                ctx.restore();
+            }
+
+            branch(ctx, len, thick, depth, time, growthFactor) {
+                if (depth <= 0 || len < 3) {
+                    this.drawLeaf(ctx, time, growthFactor);
+                    return;
+                }
+
+                const trunkGrad = ctx.createLinearGradient(0, 0, 0, -len);
+                trunkGrad.addColorStop(0, this.baseTrunkColor); 
+                const brightness = Math.min(1, (time / 30) + (growthFactor / 10));
+                const midColor = this.lerpColor(this.baseTrunkColor, this.veinColor, brightness * 0.7);
+                trunkGrad.addColorStop(1, midColor);
+
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.lineTo(0, -len);
+                ctx.strokeStyle = trunkGrad;
+                ctx.lineWidth = Math.max(0.5, thick);
+                ctx.lineCap = 'round';
+                
+                if (this.r > 0.12) {
+                    ctx.shadowBlur = 5 * brightness;
+                    ctx.shadowColor = this.veinColor;
+                }
+                
+                ctx.stroke();
+                ctx.translate(0, -len);
+
+                const angle = 0.2 + this.r * 1.8; 
+                const nextLen = len * (0.65 + this.r * 0.5);
+                const nextThick = thick * 0.65;
+
+                ctx.save();
+                ctx.rotate(-angle + (Math.sin(state.time * 0.01 + depth) * 0.02)); 
+                this.branch(ctx, nextLen, nextThick, depth - 1, time, growthFactor);
+                ctx.restore();
+
+                ctx.save();
+                ctx.rotate(angle + (Math.cos(state.time * 0.01 + depth) * 0.02));
+                this.branch(ctx, nextLen, nextThick, depth - 1, time, growthFactor);
+                ctx.restore();
+            }
+
+            drawLeaf(ctx, time, growthFactor) {
+                const leafCount = Math.floor(time * 3);
+                let hue, saturation = 70, lightness = 60;
+
+                if (growthFactor > 8 || this.r > 0.18) {
+                    hue = 45 + Math.random() * 10; 
+                    lightness = 50 + Math.random() * 20;
+                } else if (growthFactor > 2.5) {
+                    hue = 140 + Math.random() * 20; 
+                } else {
+                    hue = 80 + Math.random() * 40; 
+                    saturation = 40;
+                }
+
+                for (let i = 0; i < leafCount; i++) {
+                    const radius = (Math.random() - 0.5) * 45 * (1 + growthFactor * 0.04);
+                    const angle = Math.random() * Math.PI * 2;
+                    const x = Math.cos(angle) * radius;
+                    const y = Math.sin(angle) * radius;
+                    const size = Math.random() * 2.5 + 1;
+                    ctx.beginPath();
+                    ctx.arc(x, y, size, 0, Math.PI * 2);
+                    const op = 0.3 + Math.random() * 0.5;
+                    ctx.fillStyle = `hsla(${hue}, ${saturation}%, ${lightness}%, ${op})`;
+                    ctx.fill();
+                }
+            }
+
+            lerpColor(a, b, amount) {
+                const ah = parseInt(a.replace(/#/g, ''), 16),
+                      ar = ah >> 16, ag = ah >> 8 & 0xff, ab = ah & 0xff,
+                      bh = parseInt(b.replace(/#/g, ''), 16),
+                      br = bh >> 16, bg = bh >> 8 & 0xff, bb = bh & 0xff,
+                      rr = ar + amount * (br - ar),
+                      rg = ag + amount * (bg - ag),
+                      rb = ab + amount * (bb - ab);
+                return '#' + ((1 << 24) + (Math.round(rr) << 16) + (Math.round(rg) << 8) + Math.round(rb)).toString(16).slice(1);
+            }
+
+            isMouseOver(mx, my, globalYear) {
+                const dist = Math.hypot(this.x - mx, this.y - my);
+                return dist < 60;
+            }
+        }
+
+        function init() {
+            resize();
+            window.addEventListener('resize', resize);
+
+            // Start with one single controlled tree
+            state.trees = [new Tree(window.innerWidth * 0.5, window.innerHeight - 80, state.params.principal, state.params.monthly, state.params.yield, 0)];
+
+            const bindRange = (id, target, factor = 1) => {
+                const el = document.getElementById(id);
+                const display = document.getElementById('val-' + id.split('-')[1]);
+                el.addEventListener('input', (e) => {
+                    let val = parseFloat(e.target.value);
+                    state.params[target] = val * factor;
+                    if (display) display.innerText = (factor === 0.01) ? (val + '%') : val.toLocaleString();
+                    
+                    // Update the tree parameters
+                    state.trees.forEach(tree => {
+                        tree.updateParams(state.params.principal, state.params.monthly, state.params.yield);
+                    });
+                });
+            };
+
+            bindRange('input-principal', 'principal');
+            bindRange('input-monthly', 'monthly');
+            bindRange('input-yield', 'yield', 0.01);
+
+            const timeline = document.getElementById('input-timeline');
+            const yearDisplay = document.getElementById('current-year-display');
+            timeline.addEventListener('input', (e) => {
+                state.currentYear = parseFloat(e.target.value);
+                yearDisplay.innerText = state.currentYear.toFixed(1);
+            });
+
+            // Hover detection remains for data inspection
+            canvas.addEventListener('mousemove', (e) => {
+                let found = null;
+                for (let i = state.trees.length - 1; i >= 0; i--) {
+                    if (state.trees[i].isMouseOver(e.clientX, e.clientY, state.currentYear)) {
+                        found = state.trees[i];
+                        break;
+                    }
+                }
+                state.hoveredTree = found;
+                updateTooltip(e.clientX, e.clientY);
+            });
+
+            animate();
+        }
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            if (state.trees.length > 0) {
+                state.trees[0].x = canvas.width / 2;
+                state.trees[0].y = canvas.height - 80;
+            }
+        }
+
+        function updateTooltip(x, y) {
+            if (state.hoveredTree) {
+                const data = state.hoveredTree.calculateFinancials(state.currentYear);
+                tooltip.style.display = 'block';
+                tooltip.style.left = (x + 25) + 'px';
+                tooltip.style.top = (y - 40) + 'px';
+                tooltip.innerHTML = `
+                    <div style="font-weight:bold; margin-bottom:8px; color:#fbbf24; border-bottom:1px solid rgba(251,191,36,0.3); padding-bottom:4px;">
+                        资产详情 (持仓 ${data.t.toFixed(1)} 年)
+                    </div>
+                    <div class="tooltip-row"><span>设定本金:</span> <span class="value">${fmt(state.hoveredTree.p)}</span></div>
+                    <div class="tooltip-row"><span>设定年化:</span> <span class="value">${(state.hoveredTree.r * 100).toFixed(1)}%</span></div>
+                    <div class="tooltip-row"><span>利息贡献:</span> <span class="value" style="color:#10b981">+${fmt(data.profit)}</span></div>
+                    <div class="tooltip-row" style="margin-top:8px; font-size:1.1rem; border-top:1px solid rgba(255,255,255,0.1); padding-top:4px;">
+                        <span>当前净值:</span> <span class="value">${fmt(data.total)}</span>
+                    </div>
+                `;
+            } else {
+                tooltip.style.display = 'none';
+            }
+        }
+
+        function animate() {
+            state.time++;
+            
+            const totalValue = state.trees.reduce((sum, tree) => sum + tree.calculateFinancials(state.currentYear).total, 0);
+            totalAssetsValueEl.innerText = fmt(totalValue);
+            
+            const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            grad.addColorStop(0, '#0a1128'); 
+            grad.addColorStop(1, '#162e26'); 
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = 'rgba(251, 191, 36, 0.08)';
+            for (let i = 0; i < 30; i++) {
+                const x = ((Math.sin(i + state.time * 0.002) * 0.5 + 0.5) * canvas.width);
+                const y = ((Math.cos(i * 1.3 + state.time * 0.001) * 0.5 + 0.5) * canvas.height);
+                ctx.beginPath();
+                ctx.arc(x, y, 1.2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            state.trees.forEach(tree => {
+                tree.draw(ctx, state.currentYear);
+            });
+
+            requestAnimationFrame(animate);
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
