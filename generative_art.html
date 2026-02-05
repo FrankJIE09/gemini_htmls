@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>生成艺术全集 - 数学与美</title>
+    <style>
+        :root {
+            --bg-color: #050505;
+            --panel-bg: rgba(20, 20, 20, 0.8);
+            --accent-color: #00f2ff;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            color: white;
+        }
+
+        canvas {
+            display: block;
+            touch-action: none;
+        }
+
+        #ui-overlay {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            display: flex;
+            gap: 10px;
+            background: var(--panel-bg);
+            padding: 8px;
+            border-radius: 50px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .mode-btn {
+            background: transparent;
+            border: none;
+            color: rgba(255, 255, 255, 0.6);
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .mode-btn:hover {
+            color: white;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .mode-btn.active {
+            background: white;
+            color: black;
+        }
+
+        #info-panel {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: var(--panel-bg);
+            padding: 15px;
+            border-radius: 12px;
+            font-size: 12px;
+            max-width: 250px;
+            pointer-events: none;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            opacity: 0.8;
+        }
+
+        .controls-hint {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 12px;
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui-overlay">
+        <button class="mode-btn active" onclick="switchMode('fluid')">1. 灵动流体</button>
+        <button class="mode-btn" onclick="switchMode('fractal')">2. 秩序之美</button>
+        <button class="mode-btn" onclick="switchMode('chaos')">3. 混沌动力学</button>
+    </div>
+
+    <div id="info-panel">
+        <strong id="mode-title">灵动流体 (Flow Field)</strong><br>
+        <span id="mode-desc">基于柏林噪声的矢量场。每个粒子随噪声波动留下丝滑轨迹。</span>
+    </div>
+
+    <div class="controls-hint">
+        移动鼠标交互 | 点击屏幕刷新参数 | 按下 'S' 保存画面
+    </div>
+
+    <canvas id="canvas"></canvas>
+
+    <script>
+        /**
+         * 基础配置与通用工具
+         */
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let width, height, animationId;
+        let currentMode = 'fluid';
+        let mouse = { x: 0, y: 0 };
+        const PHI = (1 + Math.sqrt(5)) / 2; // 黄金分割比
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            initMode(currentMode);
+        }
+
+        window.addEventListener('resize', resize);
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+        });
+
+        window.addEventListener('click', () => initMode(currentMode));
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key.toLowerCase() === 's') {
+                const link = document.createElement('a');
+                link.download = `art_${currentMode}_${Date.now()}.png`;
+                link.href = canvas.toDataURL();
+                link.click();
+            }
+        });
+
+        /**
+         * 模式切换逻辑
+         */
+        function switchMode(mode) {
+            currentMode = mode;
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.innerText.includes(mode === 'fluid' ? '1' : mode === 'fractal' ? '2' : '3'));
+            });
+
+            const titles = {
+                fluid: ["灵动流体 (Flow Field)", "基于柏林噪声的矢量场。每个粒子随噪声波动留下丝滑轨迹。"],
+                fractal: ["秩序之美 (Fractal Mandala)", "递归几何。点击屏幕改变对称轴与递归深度。"],
+                chaos: ["混沌动力学 (Clifford Attractor)", "数百万个点在混沌公式下迭代，捕捉数学的无限精细。"]
+            };
+
+            document.getElementById('mode-title').innerText = titles[mode][0];
+            document.getElementById('mode-desc').innerText = titles[mode][1];
+
+            initMode(mode);
+        }
+
+        /**
+         * 1. 灵动流体 - 柏林噪声流场
+         */
+        class Perlin {
+            constructor() {
+                this.p = new Uint8Array(512);
+                this.reset();
+            }
+            reset() {
+                const permutation = Array.from({length: 256}, (_, i) => i).sort(() => Math.random() - 0.5);
+                for (let i = 0; i < 512; i++) this.p[i] = permutation[i % 256];
+            }
+            fade(t) { return t * t * t * (t * (t * 6 - 15) + 10); }
+            lerp(t, a, b) { return a + t * (b - a); }
+            grad(hash, x, y) {
+                const h = hash & 15;
+                const u = h < 8 ? x : y;
+                const v = h < 4 ? y : h === 12 || h === 14 ? x : 0;
+                return ((h & 1) === 0 ? u : -u) + ((h & 2) === 0 ? v : -v);
+            }
+            noise(x, y) {
+                const X = Math.floor(x) & 255;
+                const Y = Math.floor(y) & 255;
+                x -= Math.floor(x);
+                y -= Math.floor(y);
+                const u = this.fade(x);
+                const v = this.fade(y);
+                const A = this.p[X] + Y, AA = this.p[A], AB = this.p[A + 1];
+                const B = this.p[X + 1] + Y, BA = this.p[B], BB = this.p[B + 1];
+                return this.lerp(v, this.lerp(u, this.grad(this.p[AA], x, y), this.grad(this.p[BA], x - 1, y)),
+                                    this.lerp(u, this.grad(this.p[AB], x, y - 1), this.grad(this.p[BB], x - 1, y - 1)));
+            }
+        }
+
+        const perlin = new Perlin();
+        let particles = [];
+        const particleCount = 2500;
+
+        function initFluid() {
+            ctx.fillStyle = '#050505';
+            ctx.fillRect(0, 0, width, height);
+            perlin.reset();
+            particles = [];
+            for (let i = 0; i < particleCount; i++) {
+                particles.push({
+                    x: Math.random() * width,
+                    y: Math.random() * height,
+                    lx: 0, ly: 0,
+                    vx: 0, vy: 0,
+                    age: Math.random() * 100,
+                    color: Math.random() > 0.5 ? '#00f2ff' : '#7000ff'
+                });
+            }
+        }
+
+        function drawFluid() {
+            // 线条不消失，通过极低透明度黑色层控制拖尾
+            ctx.fillStyle = 'rgba(5, 5, 5, 0.05)';
+            ctx.fillRect(0, 0, width, height);
+
+            const freq = 0.002 + (mouse.x / width) * 0.005;
+            const amp = 2 + (mouse.y / height) * 5;
+
+            particles.forEach(p => {
+                p.lx = p.x;
+                p.ly = p.y;
+                const angle = perlin.noise(p.x * freq, p.y * freq) * Math.PI * 8;
+                p.vx = Math.cos(angle) * amp;
+                p.vy = Math.sin(angle) * amp;
+                p.x += p.vx;
+                p.y += p.vy;
+                p.age++;
+
+                if (p.x < 0 || p.x > width || p.y < 0 || p.y > height || p.age > 200) {
+                    p.x = Math.random() * width;
+                    p.y = Math.random() * height;
+                    p.lx = p.x;
+                    p.ly = p.y;
+                    p.age = 0;
+                }
+
+                ctx.beginPath();
+                ctx.moveTo(p.lx, p.ly);
+                ctx.lineTo(p.x, p.y);
+                ctx.strokeStyle = p.color + '22'; // 极细半透明
+                ctx.lineWidth = 0.8;
+                ctx.stroke();
+            });
+            animationId = requestAnimationFrame(drawFluid);
+        }
+
+        /**
+         * 2. 秩序之美 - 曼陀罗分形
+         */
+        let mandalaParams = {};
+        const morandiColors = ['#948a80', '#c2b8b0', '#7a848a', '#9bb0a5', '#d9dadb'];
+
+        function initFractal() {
+            ctx.clearRect(0, 0, width, height);
+            mandalaParams = {
+                branches: 4 + Math.floor(Math.random() * 8),
+                depth: 5 + Math.floor(Math.random() * 3),
+                angleOffset: (Math.random() - 0.5) * 0.5,
+                scale: 0.6 + Math.random() * 0.1,
+                color: morandiColors[Math.floor(Math.random() * morandiColors.length)]
+            };
+            drawFractalOnce();
+        }
+
+        function drawFractalOnce() {
+            ctx.fillStyle = '#f5f5f5'; // 莫兰迪风格常用浅灰背景
+            ctx.fillRect(0, 0, width, height);
+            
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const initialSize = Math.min(width, height) * 0.25;
+
+            ctx.save();
+            ctx.translate(centerX, centerY);
+            
+            for (let i = 0; i < mandalaParams.branches; i++) {
+                ctx.rotate((Math.PI * 2) / mandalaParams.branches);
+                recursiveDraw(0, 0, initialSize, mandalaParams.depth);
+            }
+            ctx.restore();
+        }
+
+        function recursiveDraw(x, y, size, depth) {
+            if (depth <= 0) return;
+
+            ctx.beginPath();
+            ctx.strokeStyle = mandalaParams.color;
+            ctx.globalAlpha = depth / mandalaParams.depth;
+            ctx.lineWidth = depth * 0.5;
+            
+            // 黄金分割应用在圆弧半径或间距上
+            const r = size / PHI;
+            ctx.arc(x, y, size, 0, Math.PI * 1.5);
+            ctx.stroke();
+
+            ctx.save();
+            ctx.translate(size, 0);
+            ctx.rotate(mandalaParams.angleOffset + (mouse.x / width));
+            recursiveDraw(0, 0, size * mandalaParams.scale, depth - 1);
+            ctx.restore();
+
+            ctx.save();
+            ctx.translate(-size, 0);
+            ctx.rotate(-mandalaParams.angleOffset - (mouse.y / height));
+            recursiveDraw(0, 0, size * mandalaParams.scale, depth - 1);
+            ctx.restore();
+        }
+
+        /**
+         * 3. 混沌动力学 - Clifford 吸引子
+         */
+        let attractorParams = { a: 0, b: 0, c: 0, d: 0 };
+        let points = { x: 0.1, y: 0.1 };
+
+        function initChaos() {
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, width, height);
+            // 随机生成吸引子参数
+            attractorParams = {
+                a: (Math.random() - 0.5) * 4,
+                b: (Math.random() - 0.5) * 4,
+                c: (Math.random() - 0.5) * 4,
+                d: (Math.random() - 0.5) * 4
+            };
+            points = { x: 0.1, y: 0.1 };
+        }
+
+        function drawChaos() {
+            // 混合模式：颜色叠加产生辉光感
+            ctx.globalCompositeOperation = 'lighter';
+            
+            // 缓慢漂移参数
+            const time = Date.now() * 0.0001;
+            const da = attractorParams.a + Math.sin(time) * 0.01;
+            const db = attractorParams.b + Math.cos(time * 0.8) * 0.01;
+            const dc = attractorParams.c + Math.sin(time * 1.2) * 0.01;
+            const dd = attractorParams.d + Math.cos(time * 0.5) * 0.01;
+
+            const batchSize = 10000; // 每帧计算1万个点
+            ctx.fillStyle = 'rgba(0, 242, 255, 0.05)';
+
+            for (let i = 0; i < batchSize; i++) {
+                const nx = Math.sin(da * points.y) + dc * Math.cos(da * points.x);
+                const ny = Math.sin(db * points.x) + dd * Math.cos(db * points.y);
+                
+                points.x = nx;
+                points.y = ny;
+
+                const screenX = width / 2 + points.x * (width * 0.15);
+                const screenY = height / 2 + points.y * (height * 0.15);
+
+                ctx.fillRect(screenX, screenY, 0.5, 0.5);
+            }
+
+            // 轻微模糊背景产生余晖
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.01)';
+            ctx.fillRect(0, 0, width, height);
+
+            animationId = requestAnimationFrame(drawChaos);
+        }
+
+        /**
+         * 渲染循环控制器
+         */
+        function initMode(mode) {
+            if (animationId) cancelAnimationFrame(animationId);
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.globalAlpha = 1.0;
+            
+            if (mode === 'fluid') {
+                initFluid();
+                drawFluid();
+            } else if (mode === 'fractal') {
+                initFractal();
+                // 递归分形如果是静态的，则不需要 animationId
+                // 但这里为了响应鼠标，我们还是开启循环
+                const loop = () => {
+                    drawFractalOnce();
+                    animationId = requestAnimationFrame(loop);
+                };
+                loop();
+            } else if (mode === 'chaos') {
+                initChaos();
+                drawChaos();
+            }
+        }
+
+        // 启动
+        resize();
+        switchMode('fluid');
+
+    </script>
+</body>
+</html>
