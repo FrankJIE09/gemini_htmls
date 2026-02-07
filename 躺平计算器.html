@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>银河财富轨道引擎 - 纳斯达克远航控制台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-orange: #ff6d00;
+            --neon-orange-glow: rgba(255, 109, 0, 0.6);
+            --dark-bg: #0a0b0d;
+            --console-gray: #1a1c1e;
+            --grid-color: rgba(255, 109, 0, 0.05);
+        }
+
+        body {
+            background-color: var(--dark-bg);
+            color: #e0e0e0;
+            font-family: 'JetBrains Mono', monospace;
+            overflow-x: hidden;
+            background-image: 
+                linear-gradient(var(--grid-color) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+            background-size: 30px 30px;
+        }
+
+        .orbitron { font-family: 'Orbitron', sans-serif; }
+
+        .glass-panel {
+            background: rgba(26, 28, 30, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 109, 0, 0.2);
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .neon-text {
+            color: var(--neon-orange);
+            text-shadow: 0 0 8px var(--neon-orange-glow);
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: #333;
+            height: 4px;
+            border-radius: 2px;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 18px;
+            width: 18px;
+            border-radius: 50%;
+            background: var(--neon-orange);
+            cursor: pointer;
+            box-shadow: 0 0 10px var(--neon-orange);
+        }
+
+        .btn-deduce {
+            background: transparent;
+            border: 1px solid var(--neon-orange);
+            color: var(--neon-orange);
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-deduce:hover {
+            background: var(--neon-orange);
+            color: black;
+            box-shadow: 0 0 25px var(--neon-orange);
+        }
+
+        .scanline {
+            width: 100%;
+            height: 2px;
+            background: rgba(255, 109, 0, 0.1);
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            animation: scan 4s linear infinite;
+        }
+
+        @keyframes scan {
+            0% { top: 0; }
+            100% { top: 100%; }
+        }
+
+        .data-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #888;
+        }
+
+        .trajectory-path {
+            stroke-dasharray: 2000;
+            stroke-dashoffset: 2000;
+            animation: draw 2s ease-out forwards;
+        }
+
+        @keyframes draw {
+            to { stroke-dashoffset: 0; }
+        }
+
+        .glow-point {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { r: 3; opacity: 0.5; }
+            50% { r: 6; opacity: 1; }
+            100% { r: 3; opacity: 0.5; }
+        }
+
+        .badge {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8 min-h-screen flex items-center justify-center">
+
+    <div class="max-w-6xl w-full relative">
+        <div class="scanline"></div>
+
+        <header class="mb-8 text-center md:text-left">
+            <h1 class="orbitron text-3xl md:text-5xl font-bold neon-text tracking-tighter uppercase">Galactic Wealth Engine</h1>
+            <p class="data-label mt-2">Deep-Space Survival Analysis // Lifecycle Simulation Protocol</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <!-- Left Controls -->
+            <div class="lg:col-span-4 space-y-4">
+                <!-- Accumulation Phase -->
+                <div class="glass-panel p-5 rounded-sm border-l-4 border-l-[#ff6d00]">
+                    <h2 class="orbitron text-[10px] mb-4 flex items-center tracking-widest text-[#ff6d00]">
+                        PHASE I: ACCUMULATION (积累期)
+                    </h2>
+
+                    <div class="mb-4">
+                        <div class="flex justify-between mb-1">
+                            <label class="data-label">初始本金</label>
+                            <span id="p-val-display" class="neon-text">100k</span>
+                        </div>
+                        <input type="range" id="input-p" min="0" max="1000000" step="5000" value="100000">
+                    </div>
+
+                    <div class="mb-4">
+                        <div class="flex justify-between mb-1">
+                            <label class="data-label">每月定投</label>
+                            <span id="m-val-display" class="neon-text">5k</span>
+                        </div>
+                        <input type="range" id="input-m" min="0" max="50000" step="500" value="5000">
+                    </div>
+
+                    <div class="mb-4">
+                        <div class="flex justify-between mb-1">
+                            <label class="data-label">投资年限</label>
+                            <span id="n-val-display" class="neon-text">5 YR</span>
+                        </div>
+                        <input type="range" id="input-n" min="1" max="50" step="1" value="5">
+                    </div>
+                </div>
+
+                <!-- Withdrawal Phase -->
+                <div class="glass-panel p-5 rounded-sm border-l-4 border-l-blue-400">
+                    <h2 class="orbitron text-[10px] mb-4 flex items-center tracking-widest text-blue-400">
+                        PHASE II: WITHDRAWAL (提取期)
+                    </h2>
+
+                    <div class="mb-4">
+                        <div class="flex justify-between mb-1">
+                            <label class="data-label">每月提取金额</label>
+                            <span id="w-val-display" class="text-blue-400">10k</span>
+                        </div>
+                        <input type="range" id="input-w" min="0" max="100000" step="1000" value="10000">
+                    </div>
+
+                    <div class="mb-4">
+                        <div class="flex justify-between mb-1">
+                            <label class="data-label">提取持续年限</label>
+                            <span id="nw-val-display" class="text-blue-400">15 YR</span>
+                        </div>
+                        <input type="range" id="input-nw" min="0" max="50" step="1" value="15">
+                    </div>
+                </div>
+
+                <!-- Global Yield -->
+                <div class="glass-panel p-5 rounded-sm border-l-4 border-l-green-500">
+                    <div class="flex justify-between mb-1">
+                        <label class="data-label">预期年化收益 (恒定)</label>
+                        <span id="r-val-display" class="text-green-500 font-bold">10%</span>
+                    </div>
+                    <input type="range" id="input-r" min="0" max="30" step="0.5" value="10">
+                    
+                    <button id="btn-deduce" class="btn-deduce w-full py-3 mt-6 orbitron font-bold text-sm tracking-[4px]">
+                        EXECUTE SIMULATION
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right Display -->
+            <div class="lg:col-span-8 space-y-4">
+                
+                <!-- Detailed Metrics Summary -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="glass-panel p-4 rounded-sm">
+                        <label class="data-label block mb-1">资产寿命 (Survival Time)</label>
+                        <div id="survival-time-display" class="text-2xl orbitron text-white">Infinite</div>
+                        <div id="survival-status" class="badge bg-green-900 text-green-400 mt-2 inline-block">永续增长</div>
+                    </div>
+                    <div class="glass-panel p-4 rounded-sm">
+                        <label class="data-label block mb-1">提取期收支比</label>
+                        <div id="sustainability-display" class="text-2xl orbitron text-white">0.00x</div>
+                        <div id="sustainability-status" class="badge bg-blue-900 text-blue-400 mt-2 inline-block">利息覆盖</div>
+                    </div>
+                    <div class="glass-panel p-4 rounded-sm">
+                        <label class="data-label block mb-1">全周期总回报率</label>
+                        <div id="roi-display" class="text-2xl orbitron text-[#ff6d00]">0.0%</div>
+                        <div class="text-[10px] text-gray-500 mt-2 uppercase">Total Yield Ratio</div>
+                    </div>
+                </div>
+
+                <!-- Result Display -->
+                <div class="glass-panel p-8 rounded-sm relative overflow-hidden">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+                        <div>
+                            <label class="data-label block mb-1">最终账户余额 (Final Balance)</label>
+                            <div id="total-display" class="orbitron text-4xl md:text-6xl font-bold neon-text">￥0</div>
+                        </div>
+                        <div class="text-right">
+                            <label class="data-label block mb-1 text-blue-400">累计已提取总额</label>
+                            <div id="withdrawn-total-display" class="orbitron text-2xl text-blue-400">￥0</div>
+                        </div>
+                    </div>
+
+                    <div class="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div>
+                            <label class="data-label mb-1 block">积累结束本金</label>
+                            <div id="acc-end-display" class="text-lg font-bold text-gray-300">￥0</div>
+                        </div>
+                        <div>
+                            <label class="data-label mb-1 block">总投入成本</label>
+                            <div id="cost-display" class="text-lg font-bold text-gray-300">￥0</div>
+                        </div>
+                        <div>
+                            <label class="data-label mb-1 block">提取期总收益</label>
+                            <div id="with-profit-display" class="text-lg font-bold text-green-500">￥0</div>
+                        </div>
+                        <div>
+                            <label class="data-label mb-1 block">预计资产余额</label>
+                            <div id="profit-display" class="text-lg font-bold text-[#ff6d00]">￥0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Curve Visualizer -->
+                <div class="glass-panel p-6 rounded-sm h-80 relative flex flex-col">
+                    <h3 class="data-label mb-4 flex justify-between">
+                        <span>资产轨迹动态监测 (Trajectory Monitoring)</span>
+                        <span id="chart-status" class="text-[10px] text-[#ff6d00] animate-pulse">Scanning Path...</span>
+                    </h3>
+                    
+                    <div class="flex-1 w-full relative" id="chart-wrapper">
+                        <svg id="trajectory-chart" class="w-full h-full overflow-visible">
+                            <defs>
+                                <linearGradient id="area-gradient" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stop-color="var(--neon-orange)" stop-opacity="0.3" />
+                                    <stop offset="100%" stop-color="var(--neon-orange)" stop-opacity="0" />
+                                </linearGradient>
+                            </defs>
+                            <g id="grid-lines-h" stroke="rgba(255,255,255,0.05)" stroke-width="1"></g>
+                            <path id="curve-area" fill="url(#area-gradient)" d=""></path>
+                            <line id="phase-divider" x1="0" y1="0" x2="0" y2="100%" stroke="rgba(255,255,255,0.2)" stroke-dasharray="4" />
+                            <path id="curve-path" fill="none" stroke="var(--neon-orange)" stroke-width="3" stroke-linecap="round" d="" class="trajectory-path"></path>
+                            <circle id="end-point" cx="0" cy="0" r="5" fill="var(--neon-orange)" class="glow-point"></circle>
+                        </svg>
+                    </div>
+
+                    <div class="flex justify-between mt-4 text-[10px] text-gray-500 orbitron tracking-widest">
+                        <span>LAUNCH</span>
+                        <span class="text-[#ff6d00]">ACCUMULATION</span>
+                        <span class="text-blue-400">WITHDRAWAL</span>
+                        <span id="total-years-label">TOTAL: 20 YR</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <footer class="mt-8 text-[10px] text-gray-600 uppercase tracking-[4px] text-center border-t border-gray-900 pt-4">
+            Authorized Personnel Only // Financial Trajectory Terminal v6.0
+        </footer>
+    </div>
+
+    <script>
+        const inputs = {
+            p: document.getElementById('input-p'),
+            m: document.getElementById('input-m'),
+            n: document.getElementById('input-n'),
+            w: document.getElementById('input-w'),
+            nw: document.getElementById('input-nw'),
+            r: document.getElementById('input-r')
+        };
+
+        const displays = {
+            p: document.getElementById('p-val-display'),
+            m: document.getElementById('m-val-display'),
+            n: document.getElementById('n-val-display'),
+            w: document.getElementById('w-val-display'),
+            nw: document.getElementById('nw-val-display'),
+            r: document.getElementById('r-val-display'),
+            total: document.getElementById('total-display'),
+            withdrawn: document.getElementById('withdrawn-total-display'),
+            accEnd: document.getElementById('acc-end-display'),
+            cost: document.getElementById('cost-display'),
+            withProfit: document.getElementById('with-profit-display'),
+            profit: document.getElementById('profit-display'),
+            totalYears: document.getElementById('total-years-label'),
+            survivalTime: document.getElementById('survival-time-display'),
+            survivalStatus: document.getElementById('survival-status'),
+            sustainability: document.getElementById('sustainability-display'),
+            sustStatus: document.getElementById('sustainability-status'),
+            roi: document.getElementById('roi-display'),
+            path: document.getElementById('curve-path'),
+            area: document.getElementById('curve-area'),
+            point: document.getElementById('end-point'),
+            svg: document.getElementById('trajectory-chart'),
+            gridH: document.getElementById('grid-lines-h'),
+            divider: document.getElementById('phase-divider')
+        };
+
+        const btnDeduce = document.getElementById('btn-deduce');
+
+        function formatCurrency(num) {
+            if (num <= 0) return '￥0';
+            if (num >= 100000000) return '￥' + (num / 100000000).toFixed(2) + ' 亿';
+            if (num >= 10000) return '￥' + (num / 10000).toFixed(1) + ' 万';
+            return '￥' + num.toLocaleString('en-US', { maximumFractionDigits: 0 });
+        }
+
+        function calculateTrajectory() {
+            const P = parseFloat(inputs.p.value);
+            const M = parseFloat(inputs.m.value);
+            const r = parseFloat(inputs.r.value) / 100;
+            const nAcc = parseFloat(inputs.n.value);
+            const W = parseFloat(inputs.w.value);
+            const nWith = parseFloat(inputs.nw.value);
+
+            const i = r / 12;
+            let currentBalance = P;
+            let timeline = [];
+            let accEndBalance = 0;
+            let totalCost = P + (M * nAcc * 12);
+            
+            // Phase 1: Accumulation
+            const totalMonthsAcc = nAcc * 12;
+            for (let m = 0; m <= totalMonthsAcc; m++) {
+                if (m > 0) currentBalance = currentBalance * (1 + i) + M;
+                timeline.push({ month: m, balance: currentBalance, phase: 1 });
+            }
+            accEndBalance = currentBalance;
+
+            // Phase 2: Withdrawal & Bankruptcy Calculation
+            const totalMonthsWith = nWith * 12;
+            let actualWithdrawn = 0;
+            let zeroMonth = -1;
+
+            for (let m = 1; m <= totalMonthsWith; m++) {
+                currentBalance = currentBalance * (1 + i) - W;
+                if (currentBalance < 0) {
+                    if (zeroMonth === -1) zeroMonth = totalMonthsAcc + m;
+                    currentBalance = 0;
+                }
+                timeline.push({ month: totalMonthsAcc + m, balance: currentBalance, phase: 2 });
+            }
+
+            // Calculate exact withdrawn amount
+            let tempBal = accEndBalance;
+            for(let m=1; m <= totalMonthsWith; m++){
+                let interest = tempBal * i;
+                tempBal += interest;
+                if(tempBal >= W) {
+                    tempBal -= W;
+                    actualWithdrawn += W;
+                } else {
+                    actualWithdrawn += tempBal;
+                    tempBal = 0;
+                    break;
+                }
+            }
+
+            // Sustainability Analysis
+            const monthlyYieldAtStartOfWith = accEndBalance * i;
+            const sustRatio = W > 0 ? monthlyYieldAtStartOfWith / W : 100;
+
+            // Long term survival (if sustained indefinitely)
+            let survivalMonths = "Infinite";
+            if (sustRatio < 1) {
+                // Approximate survival if not already zero within simulation
+                if (zeroMonth === -1) {
+                    // Log formula for debt: n = -log(1 - (B*i)/W) / log(1+i)
+                    if (i > 0) {
+                        let n = -Math.log(1 - (accEndBalance * i) / W) / Math.log(1 + i);
+                        survivalMonths = Math.floor(n);
+                    } else {
+                        survivalMonths = Math.floor(accEndBalance / W);
+                    }
+                } else {
+                    survivalMonths = zeroMonth - totalMonthsAcc;
+                }
+            }
+
+            return { 
+                timeline, 
+                finalBalance: currentBalance, 
+                accEndBalance, 
+                actualWithdrawn,
+                totalCost,
+                sustRatio,
+                survivalMonths,
+                nAcc, 
+                nWith,
+                roi: ((currentBalance + actualWithdrawn) / totalCost - 1) * 100,
+                maxBalance: Math.max(...timeline.map(d => d.balance))
+            };
+        }
+
+        function drawCurve(data) {
+            const width = displays.svg.clientWidth;
+            const height = displays.svg.clientHeight;
+            const timeline = data.timeline;
+            const maxVal = data.maxBalance || 1;
+            const totalMonths = timeline[timeline.length - 1].month;
+
+            const points = timeline.map(d => ({
+                x: (d.month / totalMonths) * width,
+                y: height - (d.balance / maxVal) * height
+            }));
+
+            let d = `M ${points[0].x} ${points[0].y}`;
+            for (let j = 1; j < points.length; j++) {
+                d += ` L ${points[j].x} ${points[j].y}`;
+            }
+            displays.path.setAttribute('d', d);
+
+            let areaD = d + ` L ${points[points.length-1].x} ${height} L 0 ${height} Z`;
+            displays.area.setAttribute('d', areaD);
+
+            const dividerX = ( (data.nAcc * 12) / totalMonths ) * width;
+            displays.divider.setAttribute('x1', dividerX);
+            displays.divider.setAttribute('x2', dividerX);
+            displays.divider.setAttribute('y1', 0);
+            displays.divider.setAttribute('y2', height);
+
+            const last = points[points.length - 1];
+            displays.point.setAttribute('cx', last.x);
+            displays.point.setAttribute('cy', last.y);
+
+            displays.gridH.innerHTML = '';
+            for(let i=1; i<5; i++) {
+                const y = (height / 5) * i;
+                const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                line.setAttribute("x1", 0); line.setAttribute("y1", y);
+                line.setAttribute("x2", width); line.setAttribute("y2", y);
+                displays.gridH.appendChild(line);
+            }
+        }
+
+        function updateUI() {
+            const data = calculateTrajectory();
+
+            // Input Displays
+            displays.p.textContent = formatCurrency(parseFloat(inputs.p.value));
+            displays.m.textContent = formatCurrency(parseFloat(inputs.m.value));
+            displays.n.textContent = inputs.n.value + ' YR';
+            displays.w.textContent = formatCurrency(parseFloat(inputs.w.value));
+            displays.nw.textContent = inputs.nw.value + ' YR';
+            displays.r.textContent = inputs.r.value + '%';
+            displays.totalYears.textContent = `TOTAL: ${data.nAcc + data.nWith} YR`;
+
+            // Survival Metrics
+            if (data.survivalMonths === "Infinite") {
+                displays.survivalTime.textContent = "永续";
+                displays.survivalStatus.textContent = "账户无限续航";
+                displays.survivalStatus.className = "badge bg-green-900 text-green-400 mt-2 inline-block";
+            } else {
+                const years = Math.floor(data.survivalMonths / 12);
+                const months = data.survivalMonths % 12;
+                displays.survivalTime.textContent = `${years}年${months}月`;
+                displays.survivalStatus.textContent = "本金正在消耗";
+                displays.survivalStatus.className = "badge bg-red-900 text-red-400 mt-2 inline-block";
+            }
+
+            // Sustainability
+            displays.sustainability.textContent = data.sustRatio.toFixed(2) + 'x';
+            if (data.sustRatio >= 1) {
+                displays.sustStatus.textContent = "资产自循环";
+                displays.sustStatus.className = "badge bg-blue-900 text-blue-400 mt-2 inline-block";
+            } else {
+                displays.sustStatus.textContent = "入不敷出";
+                displays.sustStatus.className = "badge bg-orange-900 text-orange-400 mt-2 inline-block";
+            }
+
+            // Results
+            displays.roi.textContent = data.roi.toFixed(1) + '%';
+            displays.total.textContent = formatCurrency(data.finalBalance);
+            displays.withdrawn.textContent = formatCurrency(data.actualWithdrawn);
+            displays.accEnd.textContent = formatCurrency(data.accEndBalance);
+            displays.cost.textContent = formatCurrency(data.totalCost);
+            displays.withProfit.textContent = formatCurrency(data.actualWithdrawn - (data.totalCost - data.accEndBalance)); // Simplified logic
+            displays.profit.textContent = formatCurrency(data.finalBalance);
+
+            drawCurve(data);
+        }
+
+        btnDeduce.addEventListener('click', () => {
+            updateUI();
+            displays.path.style.animation = 'none';
+            displays.path.offsetHeight; 
+            displays.path.style.animation = 'draw 2s ease-out forwards';
+        });
+
+        Object.values(inputs).forEach(input => {
+            if (input) input.addEventListener('input', updateUI);
+        });
+
+        window.addEventListener('resize', updateUI);
+        window.onload = updateUI;
+    </script>
+</body>
+</html>
