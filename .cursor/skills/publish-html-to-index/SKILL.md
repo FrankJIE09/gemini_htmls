@@ -7,6 +7,8 @@ description: Renames a given HTML file with mv to a user-specified name, adds a 
 
 当用户传入一个 HTML 文件并要求「重新命名」或「发布到 index」时，按以下流程执行。
 
+**重要**：写入 index 是指**在 index.html 的 `<ul>` 中新增一个列表项**（一条链接），**不是**把源 HTML 的内容复制/覆盖到 index.html。index.html 保持为入口列表页，只在其 `<ul>` 里追加 `<li><a href="...">显示名</a></li>`。
+
 ## 触发条件
 
 - 用户明确指定了一个 HTML 文件路径（或当前仓库内的 HTML 文件名）
@@ -23,12 +25,12 @@ description: Renames a given HTML file with mv to a user-specified name, adds a 
 
 若用户未给出新文件名，主动询问「新文件名要叫什么？」。
 
-### 2. mv 重命名 + 写入 index 列表
+### 2. mv 重命名 + 在 index 的列表 (ul) 中追加一项
 
 1. 用 **mv** 把源文件直接重命名为新文件名：`mv 源文件 新文件名`  
    路径相对于仓库根，正斜杠。新文件名若含子目录则先建目录再 mv。
 
-2. **写入 index.html 的列表**：编辑 `index.html`，在其中的 `<ul>...</ul>` 内（约第 37–51 行），在 `</ul>` 前**新增一行**：
+2. **在 index.html 的 `<ul>` 中追加一条链接**（不要用源 HTML 内容覆盖 index.html）：编辑 `index.html`，在 `<ul>...</ul>` 内（约第 37–51 行），在 `</ul>` 前**新增一行**：
    ```html
    <li><a href="./新文件名">显示名</a></li>
    ```
@@ -63,4 +65,4 @@ description: Renames a given HTML file with mv to a user-specified name, adds a 
 
 - 所有文件路径以**项目根目录**为基准，不要使用 Windows 反斜杠。
 - 在 PowerShell 中可用 `Move-Item` 替代 mv，或使用 `git mv` 以便 Git 正确识别重命名。
-- index.html 的列表在 `<ul>` 与 `</ul>` 之间（约第 37–51 行），只在该列表中追加一行，不要覆盖整个 index.html。
+- **禁止**将源 HTML 文件内容复制或覆盖到 index.html。index 的更新**仅限**在 `<ul>` 与 `</ul>` 之间（约第 37–51 行）追加一个 `<li><a>...</a></li>` 条目。
