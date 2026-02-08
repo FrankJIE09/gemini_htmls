@@ -1,9 +1,14 @@
+import os
 import yfinance as yf
 import pandas_datareader.data as web
 import pandas as pd
 from datetime import datetime
 
-def download_financial_data(start_date="2018-01-01", end_date="2025-12-31"):
+# 使用本地代理（yfinance、pandas_datareader 会读取该环境变量）
+os.environ["HTTP_PROXY"] = "http://127.0.0.1:7890"
+os.environ["HTTPS_PROXY"] = "http://127.0.0.1:7890"
+
+def download_financial_data(start_date="2000-01-01", end_date="2025-12-31"):
     """
     从 Yahoo Finance 下载纳斯达克 100 指数 (NDX) 日线数据
     从 FRED 下载联邦基金有效利率 (FEDFUNDS)，按日对齐（前向填充月度数据）
