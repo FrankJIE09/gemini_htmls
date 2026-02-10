@@ -3,62 +3,344 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>gemini_htmls - 工具入口</title>
+  <title>gemini_htmls — 终端入口</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <style>
-    :root { color-scheme: light dark; }
+    :root {
+      --bg: #0a0b0d;
+      --panel: rgba(18, 20, 24, 0.92);
+      --border: rgba(0, 255, 255, 0.25);
+      --neon-cyan: #00fff7;
+      --neon-magenta: #ff00aa;
+      --neon-orange: #ff6d00;
+      --neon-green: #00ff88;
+      --text: #e0e0e0;
+      --text-dim: #888;
+      --grid: rgba(0, 255, 255, 0.04);
+    }
+    * { box-sizing: border-box; }
     body {
       margin: 0;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+      min-height: 100vh;
+      font-family: 'JetBrains Mono', monospace;
+      background: var(--bg);
+      color: var(--text);
       line-height: 1.6;
+      padding: 24px 20px 48px;
+      background-image:
+        linear-gradient(var(--grid) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+      background-size: 24px 24px;
+    }
+    .wrap { max-width: 960px; margin: 0 auto; }
+    header {
+      margin-bottom: 28px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    h1 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: clamp(1.2rem, 3.5vw, 1.6rem);
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      color: var(--neon-cyan);
+      text-shadow: 0 0 20px rgba(0, 255, 247, 0.4);
+      margin: 0 0 6px;
+    }
+    .sub {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      color: var(--text-dim);
+    }
+
+    /* 类型选择按钮 */
+    .type-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+    .type-btn {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      padding: 10px 18px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      cursor: pointer;
+      border-radius: 2px;
+      transition: color 0.2s, border-color 0.2s, box-shadow 0.2s;
+    }
+    .type-btn:hover {
+      color: var(--neon-cyan);
+      border-color: rgba(0, 255, 247, 0.5);
+      box-shadow: 0 0 16px rgba(0, 255, 247, 0.15);
+    }
+    .type-btn.active {
+      color: var(--neon-magenta);
+      border-color: var(--neon-magenta);
+      box-shadow: 0 0 20px rgba(255, 0, 170, 0.35);
+    }
+
+    /* 球球舞台：中心为迸发原点，球体最终落在圆周上 */
+    .balls-arena {
+      position: relative;
+      min-height: 400px;
       padding: 24px;
-      max-width: 900px;
     }
-    h1 { margin: 0 0 8px; font-size: 22px; }
-    p { margin: 0 0 16px; opacity: 0.85; }
-    ul { padding-left: 18px; }
-    li { margin: 10px 0; }
-    a { text-decoration: none; }
-    a:hover { text-decoration: underline; }
+    .balls-center {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--neon-cyan);
+      box-shadow: 0 0 24px var(--neon-cyan), 0 0 48px rgba(0, 255, 247, 0.3);
+      opacity: 0;
+      pointer-events: none;
+    }
+    .balls-center.visible { opacity: 0.8; }
+    .balls-grid {
+      position: relative;
+      width: 100%;
+      min-height: 380px;
+    }
+
+    /* 单个球球：从中心迸发到圆周 */
+    .ball-wrap {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 90px;
+      height: 90px;
+      margin-left: -45px;
+      margin-top: -45px;
+      opacity: 0;
+      transform: translate(0, 0) scale(0);
+      pointer-events: none;
+    }
+    .ball-wrap.burst {
+      pointer-events: auto;
+      animation: ball-burst 0.7s cubic-bezier(0.34, 1.4, 0.64, 1) forwards;
+    }
+    .ball-wrap.exit {
+      pointer-events: none;
+      animation: ball-exit 0.28s ease-in forwards;
+    }
+    .ball-wrap:hover .ball {
+      transform: scale(1.08);
+      box-shadow: 0 0 28px rgba(0, 255, 247, 0.6), 0 0 50px rgba(0, 255, 247, 0.2);
+    }
+    @keyframes ball-burst {
+      0% {
+        opacity: 0;
+        transform: translate(0, 0) scale(0);
+      }
+      100% {
+        opacity: 1;
+        transform: translate(var(--bx, 0), var(--by, 0)) scale(1);
+      }
+    }
+    @keyframes ball-exit {
+      0% {
+        opacity: 1;
+        transform: translate(var(--bx, 0), var(--by, 0)) scale(1);
+      }
+      100% {
+        opacity: 0;
+        transform: translate(0, 0) scale(0);
+      }
+    }
+    .ball {
+      display: block;
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, rgba(0, 255, 247, 0.25), rgba(10, 11, 13, 0.95));
+      border: 1px solid rgba(0, 255, 247, 0.5);
+      box-shadow: inset 0 0 20px rgba(0, 255, 247, 0.15), 0 0 20px rgba(0, 255, 247, 0.25);
+      text-decoration: none;
+      color: var(--text);
+      font-size: 0.7rem;
+      text-align: center;
+      line-height: 1.3;
+      padding: 0;
+      transition: transform 0.2s, box-shadow 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 4px;
+      padding-top: 18px;
+    }
+    .ball span {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.6rem;
+      letter-spacing: 0.05em;
+      max-width: 82px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--neon-cyan);
+      text-shadow: 0 0 8px rgba(0, 255, 247, 0.5);
+    }
+    .ball:hover span { color: #fff; }
+
     .hint {
-      margin-top: 18px;
-      padding: 12px 14px;
-      border: 1px solid rgba(127,127,127,0.35);
-      border-radius: 10px;
-      opacity: 0.9;
-      font-size: 14px;
+      margin-top: 28px;
+      padding: 14px 18px;
+      background: var(--panel);
+      border: 1px solid rgba(255, 109, 0, 0.25);
+      border-radius: 2px;
+      font-size: 0.8rem;
+      color: var(--text-dim);
     }
-    code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+    .hint strong { color: var(--neon-orange); }
+    code { font-family: 'JetBrains Mono', monospace; color: var(--neon-green); font-size: 0.85em; }
   </style>
 </head>
 <body>
-  <h1>gemini_htmls 工具入口</h1>
-  <p>在 GitHub Pages 上打开更稳定；微信里建议直接分享本页链接。</p>
+  <div class="wrap">
+    <header>
+      <h1>gemini_htmls</h1>
+      <p class="sub">终端入口 · 选择类型后球球迸发</p>
+    </header>
 
-  <ul>
-    <li><a href="./shanghai_salary_calculator.html">上海年薪计算器</a></li>
-    <li><a href="./shanghai_pension_calculator.html">上海社保/养老金计算器</a></li>
-    <li><a href="./mortgage_calculator.html">房贷计算器</a></li>
-    <li><a href="./car_loan_calculator.html">车贷计算器</a></li>
-    <li><a href="./Mermaid%E5%9B%BE%E8%A1%A8%E7%94%9F%E6%88%90%E5%99%A8.html">Mermaid 图表生成器</a></li>
-    <li><a href="./nasdaq_rates_analyzer.html">纳斯达克 vs 利率数据分析仪</a></li>
-    <li><a href="./market_cap_dashboard.html">中港两地上市企业市值看板</a></li>
-    <li><a href="./cyberpunk_particles.html">赛博朋克粒子效果（Three.js）</a></li>
-    <li><a href="./cyberpunk_particles_mobile_cursor.html">赛博朋克粒子效果（移动端/摄像头版 - Cursor）</a></li>
-    <li><a href="./cyberpunk_particles_mobile_gemini.html">赛博朋克粒子效果（移动端/摄像头版 - Gemini）</a></li>
-    <li><a href="./%E8%BA%BA%E5%B9%B3%E8%AE%A1%E7%AE%97%E5%99%A8.html">躺平计算器</a></li>
-    <li><a href="./%E8%BA%BA%E5%B9%B3%E8%AE%A1%E7%AE%97%E5%99%A8_%E7%BA%B3%E6%8C%87.html">躺平计算器（纳指回测）</a></li>
-    <li><a href="./%E9%93%B6%E6%B2%B3%E8%B4%A2%E5%AF%8C%E8%BD%A8%E9%81%93%E5%BC%95%E6%93%8E-%E7%BA%B3%E6%96%AF%E8%BE%BE%E5%85%8B%E8%BF%9C%E8%88%AA%E6%8E%A7%E5%88%B6%E5%8F%B0.html">银河财富轨道引擎-纳斯达克远航控制台</a></li>
-    <li><a href="./portfolio_dashboard.html">组合看板 (Portfolio Dashboard)</a></li>
-    <li><a href="./generative_art.html">生成艺术 (Generative Art)</a></li>
-    <li><a href="./compound_interest_forest.html">复利森林 (Compound Interest)</a></li>
-    <li><a href="./fluid_boids.html">流体群聚 (Fluid Boids)</a></li>
-  </ul>
+    <div class="type-tabs" id="type-tabs">
+      <button type="button" class="type-btn active" data-type="calc">计算器</button>
+      <button type="button" class="type-btn" data-type="dashboard">看板 · 数据</button>
+      <button type="button" class="type-btn" data-type="charts">图表 · 工具</button>
+      <button type="button" class="type-btn" data-type="visual">视觉 · 艺术</button>
+    </div>
 
-  <div class="hint">
-    <div><strong>提示</strong></div>
-    <div>如果你看到粒子效果空白，通常是网络无法加载外链脚本（<code>three.js</code> CDN）。建议在可访问外网的网络环境打开，或把依赖改成本地文件。</div>
+    <div class="balls-arena">
+      <div class="balls-center" id="balls-center"></div>
+      <div class="balls-grid" id="balls-grid"></div>
+    </div>
+
+    <div class="hint">
+      <strong>提示</strong> — 若粒子效果空白，多为外链脚本（<code>three.js</code> CDN）无法加载，建议在可访问外网的环境打开或改用本地依赖。
+    </div>
   </div>
+
+  <script>
+    const CATEGORIES = {
+      calc: {
+        label: '计算器',
+        items: [
+          { title: '上海年薪计算器', href: './shanghai_salary_calculator.html' },
+          { title: '上海社保/养老金', href: './shanghai_pension_calculator.html' },
+          { title: '房贷计算器', href: './mortgage_calculator.html' },
+          { title: '车贷计算器', href: './car_loan_calculator.html' },
+          { title: '躺平计算器', href: './%E8%BA%BA%E5%B9%B3%E8%AE%A1%E7%AE%97%E5%99%A8.html' },
+          { title: '躺平·纳指回测', href: './%E8%BA%BA%E5%B9%B3%E8%AE%A1%E7%AE%97%E5%99%A8_%E7%BA%B3%E6%8C%87.html' },
+          { title: '银河财富轨道引擎', href: './%E9%93%B6%E6%B2%B3%E8%B4%A2%E5%AF%8C%E8%BD%A8%E9%81%93%E5%BC%95%E6%93%8E-%E7%BA%B3%E6%96%AF%E8%BE%BE%E5%85%8B%E8%BF%9C%E8%88%AA%E6%8E%A7%E5%88%B6%E5%8F%B0.html' }
+        ]
+      },
+      dashboard: {
+        label: '看板·数据',
+        items: [
+          { title: '纳斯达克 vs 利率', href: './nasdaq_rates_analyzer.html' },
+          { title: '中港市值看板', href: './market_cap_dashboard.html' },
+          { title: '组合看板', href: './portfolio_dashboard.html' }
+        ]
+      },
+      charts: {
+        label: '图表·工具',
+        items: [
+          { title: 'Mermaid 图表生成器', href: './Mermaid%E5%9B%BE%E8%A1%A8%E7%94%9F%E6%88%90%E5%99%A8.html' }
+        ]
+      },
+      visual: {
+        label: '视觉·艺术',
+        items: [
+          { title: '赛博朋克粒子', href: './cyberpunk_particles.html' },
+          { title: '粒子·移动端 Cursor', href: './cyberpunk_particles_mobile_cursor.html' },
+          { title: '粒子·移动端 Gemini', href: './cyberpunk_particles_mobile_gemini.html' },
+          { title: '生成艺术', href: './generative_art.html' },
+          { title: '复利森林', href: './compound_interest_forest.html' },
+          { title: '流体群聚', href: './fluid_boids.html' }
+        ]
+      }
+    };
+
+    const BURST_RADIUS = 140;
+    const STAGGER_MS = 55;
+
+    let currentType = 'calc';
+    const gridEl = document.getElementById('balls-grid');
+    const centerEl = document.getElementById('balls-center');
+
+    function getBurstOffset(index, total) {
+      const angle = (index / Math.max(total, 1)) * Math.PI * 2 - Math.PI / 2;
+      return {
+        x: Math.cos(angle) * BURST_RADIUS,
+        y: Math.sin(angle) * BURST_RADIUS
+      };
+    }
+
+    function renderBalls(typeKey, isBurst) {
+      const cat = CATEGORIES[typeKey];
+      if (!cat || !cat.items.length) return;
+      const items = cat.items;
+      const fragment = document.createDocumentFragment();
+      centerEl.classList.remove('visible');
+      if (isBurst) centerEl.classList.add('visible');
+      items.forEach((item, i) => {
+        const { x, y } = getBurstOffset(i, items.length);
+        const wrap = document.createElement('div');
+        wrap.className = 'ball-wrap' + (isBurst ? ' burst' : '');
+        wrap.style.setProperty('--bx', x + 'px');
+        wrap.style.setProperty('--by', y + 'px');
+        wrap.style.animationDelay = isBurst ? (i * STAGGER_MS) + 'ms' : '';
+        const a = document.createElement('a');
+        a.href = item.href;
+        a.className = 'ball';
+        a.innerHTML = '<span>' + item.title + '</span>';
+        wrap.appendChild(a);
+        fragment.appendChild(wrap);
+      });
+      gridEl.innerHTML = '';
+      gridEl.appendChild(fragment);
+      if (isBurst) setTimeout(() => centerEl.classList.remove('visible'), 500);
+    }
+
+    function switchType(typeKey) {
+      if (typeKey === currentType) return;
+      const btns = document.querySelectorAll('.type-btn');
+      btns.forEach(b => b.classList.toggle('active', b.dataset.type === typeKey));
+      const wraps = gridEl.querySelectorAll('.ball-wrap');
+      if (wraps.length) {
+        const cat = CATEGORIES[typeKey];
+        const n = cat ? cat.items.length : 0;
+        wraps.forEach((w, i) => {
+          const { x, y } = getBurstOffset(i, wraps.length);
+          w.style.setProperty('--bx', x + 'px');
+          w.style.setProperty('--by', y + 'px');
+        });
+        wraps.forEach(w => w.classList.add('exit'));
+        centerEl.classList.add('visible');
+        setTimeout(() => {
+          currentType = typeKey;
+          renderBalls(typeKey, true);
+        }, 280);
+      } else {
+        currentType = typeKey;
+        renderBalls(typeKey, true);
+      }
+    }
+
+    document.getElementById('type-tabs').addEventListener('click', e => {
+      const btn = e.target.closest('.type-btn');
+      if (btn) switchType(btn.dataset.type);
+    });
+
+    renderBalls('calc', true);
+  </script>
 </body>
 </html>
-
-

@@ -45,6 +45,11 @@
             color: #4c1d95; /* violet-700 */
             font-weight: 500;
         }
+        /* 公司相关列：默认隐藏，点击按钮后显示 */
+        .monthly-detail-table th.col-company,
+        .monthly-detail-table td.col-company { display: none; }
+        .monthly-detail-table.show-company-cols th.col-company,
+        .monthly-detail-table.show-company-cols td.col-company { display: table-cell; }
     </style>
 </head>
 <body class="p-4 md:p-8">
@@ -52,7 +57,7 @@
     <div class="max-w-7xl mx-auto bg-white p-6 rounded-xl result-card">
         <h1 class="text-3xl font-bold mb-6 text-center text-gray-800 border-b pb-3">
             <svg class="inline w-6 h-6 mr-2 text-blue-500" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M10 2a8 8 0 100 16 8 8 0 000-16zM5 9a1 1 0 000 2h10a1 1 0 100-2H5z"></path></svg>
-            上海年薪收入计算器 (累计预扣法 - 雇主视角)
+            上海年薪收入计算器 (累计预扣法)
         </h1>
 
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -187,8 +192,13 @@
 
             <!-- 详细每月扣除表格 (Expanded) -->
             <h3 class="text-xl font-semibold mb-3 mt-8 text-gray-800">月度工资到手明细与公司成本 (个人/公司详细)</h3>
+            <p class="mb-2">
+                <button type="button" id="toggleCompanyColsBtn" onclick="toggleCompanyCols()" class="text-sm px-3 py-1.5 rounded border border-gray-300 bg-gray-100 hover:bg-gray-200 text-gray-700 transition">
+                    显示公司相关列
+                </button>
+            </p>
             <div class="overflow-x-auto rounded-lg border border-gray-200 result-card">
-                <table class="min-w-full divide-y divide-gray-200 text-xs">
+                <table id="monthlyDetailTable" class="monthly-detail-table min-w-full divide-y divide-gray-200 text-xs">
                     <thead>
                         <tr class="table-header">
                             <th class="py-3 px-2 text-left uppercase tracking-wider">月份</th>
@@ -201,14 +211,15 @@
                             <th class="py-3 px-2 text-right uppercase tracking-wider rotated-header">专项附加</th>
                             <th class="py-3 px-2 text-right uppercase tracking-wider">个税扣除</th>
                             <!-- 公司缴纳部分 -->
-                            <th class="py-3 px-2 text-right uppercase tracking-wider rotated-header employer-col">养老(司)</th>
-                            <th class="py-3 px-2 text-right uppercase tracking-wider rotated-header employer-col">医疗(司)</th>
-                            <th class="py-3 px-2 text-right uppercase tracking-wider rotated-header employer-col">失业(司)</th>
-                            <th class="py-3 px-2 text-right uppercase tracking-wider rotated-header employer-col">工伤(司)</th>
-                            <th class="py-3 px-2 text-right uppercase tracking-wider rotated-header text-purple-800 employer-col">公积金(司)</th>
+                            <th class="col-company py-3 px-2 text-right uppercase tracking-wider rotated-header employer-col">养老(司)</th>
+                            <th class="col-company py-3 px-2 text-right uppercase tracking-wider rotated-header employer-col">医疗(司)</th>
+                            <th class="col-company py-3 px-2 text-right uppercase tracking-wider rotated-header employer-col">失业(司)</th>
+                            <th class="col-company py-3 px-2 text-right uppercase tracking-wider rotated-header employer-col">工伤(司)</th>
+                            <th class="col-company py-3 px-2 text-right uppercase tracking-wider rotated-header text-purple-800 employer-col">公积金(司)</th>
                             <!-- 汇总数据 -->
-                            <th class="py-3 px-2 text-right uppercase tracking-wider">公司月总成本</th>
+                            <th class="col-company py-3 px-2 text-right uppercase tracking-wider">公司月总成本</th>
                             <th class="py-3 px-2 text-right uppercase tracking-wider">税后到手工资</th>
+                            <th class="py-3 px-2 text-right uppercase tracking-wider">税后+公积金(双边)</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-100 text-gray-700" id="monthlyResultsTableBody">
@@ -225,14 +236,15 @@
                             <td id="totalSpecialDeduction" class="px-2 py-3 text-right text-sm font-semibold text-red-600">0.00</td>
                             <td id="totalIIT" class="px-2 py-3 text-right text-sm font-semibold text-red-600">0.00</td>
                             <!-- 公司缴纳总计 -->
-                            <td id="totalPensionC" class="px-2 py-3 text-right text-sm font-semibold employer-col">0.00</td>
-                            <td id="totalMedicalC" class="px-2 py-3 text-right text-sm font-semibold employer-col">0.00</td>
-                            <td id="totalUnemploymentC" class="px-2 py-3 text-right text-sm font-semibold employer-col">0.00</td>
-                            <td id="totalWorkInjuryC" class="px-2 py-3 text-right text-sm font-semibold employer-col">0.00</td>
-                            <td id="totalHousingFundC" class="px-2 py-3 text-right text-sm font-semibold text-purple-700 employer-col">0.00</td>
+                            <td id="totalPensionC" class="col-company px-2 py-3 text-right text-sm font-semibold employer-col">0.00</td>
+                            <td id="totalMedicalC" class="col-company px-2 py-3 text-right text-sm font-semibold employer-col">0.00</td>
+                            <td id="totalUnemploymentC" class="col-company px-2 py-3 text-right text-sm font-semibold employer-col">0.00</td>
+                            <td id="totalWorkInjuryC" class="col-company px-2 py-3 text-right text-sm font-semibold employer-col">0.00</td>
+                            <td id="totalHousingFundC" class="col-company px-2 py-3 text-right text-sm font-semibold text-purple-700 employer-col">0.00</td>
                             <!-- 汇总数据 -->
-                            <td id="totalEmployerCostAnnual" class="px-2 py-3 text-right text-sm font-bold text-pink-700">0.00</td>
+                            <td id="totalEmployerCostAnnual" class="col-company px-2 py-3 text-right text-sm font-bold text-pink-700">0.00</td>
                             <td id="totalNetSalary" class="px-2 py-3 text-right text-sm font-semibold text-green-700">0.00</td>
+                            <td id="totalNetPlusHF" class="px-2 py-3 text-right text-sm font-semibold text-teal-700">0.00</td>
                         </tr>
                     </tfoot>
                 </table>
@@ -266,7 +278,7 @@
                 <ul class="list-disc list-inside space-y-0.5">
                     <li>**费率说明：** 社保费率采用了上海市常见的费率（个人养老 8%，医保 2%，失业 0.5%；单位养老 16%，医保 8%，失业 0.5%，工伤 0.26%）。实际费率可能因行业和地区而异。</li>
                     <li>**年度总净收入 + 公积金双边总计：** 衡量个人所有现金流入和长期储蓄（公积金）的总金额。</li>
-                    <li>**社保公积金基数：** 采用上海市预估上下限（社保上下限约 7,310 - 36,535；公积金上下限约 2,790 - 36,535）。</li>
+                    <li>**社保公积金基数：** 采用上海市 2025 年 7 月起标准（社保 7,460 - 37,302；公积金 2,690 - 37,302）。</li>
                     <li>**个税计算：** 严格采用**累计预扣法**，因此个税扣除金额会随着月份的累积而变化，尤其是在年初。</li>
                     <li>**年终奖税：** 采用**单独计税**的优惠方式计算。</li>
                 </ul>
@@ -275,7 +287,7 @@
     </div>
 
     <script>
-        // 定义五险一金费率和基数上下限 (2024年上海预估数据)
+        // 定义五险一金费率和基数上下限 (2025年7月起上海标准)
         const RATES = {
             // Individual (Employee - E) 个人
             PENSION_E: 0.08,      // 养老 (个人)
@@ -290,10 +302,10 @@
         };
 
         const LIMITS = {
-            SS_LOWER: 7310, // 社保下限 (养老/医疗/失业/工伤)
-            SS_UPPER: 36535, // 社保上限
-            HF_LOWER: 2790, // 公积金下限
-            HF_UPPER: 36535, // 公积金上限
+            SS_LOWER: 7460,  // 社保下限 (养老/医疗/失业/工伤) 2025.7起
+            SS_UPPER: 37302, // 社保上限 2025.7起
+            HF_LOWER: 2690,  // 公积金下限 2025.7起
+            HF_UPPER: 37302, // 公积金上限 2025.7起
         };
 
         const TAX_DEDUCTION_ANNUAL_BASIC = 60000; // 每年基本减除费用 (60000 / 12 = 5000元/月)
@@ -603,14 +615,15 @@
                         <td class="px-2 py-2 text-right text-sm font-semibold text-red-700">${formatRMB(item.iit)}</td>
                         
                         <!-- 雇主缴纳明细 -->
-                        <td class="px-2 py-2 text-right text-sm employer-col">${formatRMB(item.pension_c)}</td>
-                        <td class="px-2 py-2 text-right text-sm employer-col">${formatRMB(item.medical_c)}</td>
-                        <td class="px-2 py-2 text-right text-sm employer-col">${formatRMB(item.unemployment_c)}</td>
-                        <td class="px-2 py-2 text-right text-sm employer-col">${formatRMB(item.workInjury_c)}</td>
-                        <td class="px-2 py-2 text-right text-sm font-medium text-purple-700 employer-col">${formatRMB(item.housingFund_c)}</td>
+                        <td class="col-company px-2 py-2 text-right text-sm employer-col">${formatRMB(item.pension_c)}</td>
+                        <td class="col-company px-2 py-2 text-right text-sm employer-col">${formatRMB(item.medical_c)}</td>
+                        <td class="col-company px-2 py-2 text-right text-sm employer-col">${formatRMB(item.unemployment_c)}</td>
+                        <td class="col-company px-2 py-2 text-right text-sm employer-col">${formatRMB(item.workInjury_c)}</td>
+                        <td class="col-company px-2 py-2 text-right text-sm font-medium text-purple-700 employer-col">${formatRMB(item.housingFund_c)}</td>
 
-                        <td class="px-2 py-2 text-right text-sm font-bold text-pink-700">${formatRMB(item.monthlyEmployerCost)}</td>
+                        <td class="col-company px-2 py-2 text-right text-sm font-bold text-pink-700">${formatRMB(item.monthlyEmployerCost)}</td>
                         <td class="px-2 py-2 text-right text-sm font-bold text-green-700">${formatRMB(item.net)}</td>
+                        <td class="px-2 py-2 text-right text-sm font-bold text-teal-700">${formatRMB(item.net + item.housingFund_e + item.housingFund_c)} <span class="text-gray-500 font-normal">(${formatRMB(item.housingFund_e + item.housingFund_c)})</span></td>
                     `;
                 });
                 
@@ -623,6 +636,7 @@
                 document.getElementById('totalSpecialDeduction').textContent = formatRMB(totalSpecialDeduction_month);
                 document.getElementById('totalIIT').textContent = formatRMB(totalAnnualIIT);
                 document.getElementById('totalNetSalary').textContent = formatRMB(totalAnnualNetSalary);
+                document.getElementById('totalNetPlusHF').innerHTML = `${formatRMB(totalAnnualNetSalary + totalHousingFundE_month + totalHousingFundC_month)} <span class="text-gray-500 font-normal">(${formatRMB(totalHousingFundE_month + totalHousingFundC_month)})</span>`;
 
                 // 雇主汇总更新
                 document.getElementById('totalPensionC').textContent = formatRMB(totalPensionC_month);
@@ -646,6 +660,14 @@
                 document.getElementById('results').innerHTML = '<p class="text-red-500 text-center">计算发生错误，请检查输入是否为有效数字。</p>';
                 document.getElementById('results').classList.remove('hidden');
             }
+        }
+
+        function toggleCompanyCols() {
+            const table = document.getElementById('monthlyDetailTable');
+            const btn = document.getElementById('toggleCompanyColsBtn');
+            if (!table || !btn) return;
+            const show = table.classList.toggle('show-company-cols');
+            btn.textContent = show ? '隐藏公司相关列' : '显示公司相关列';
         }
 
         // 初始化计算，加载默认值
