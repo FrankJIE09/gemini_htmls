@@ -6696,7 +6696,13 @@ Date,Nasdaq_Close,Fed_Rate
                         <span id="drop-hint" class="text-[9px] text-blue-500 animate-pulse hidden">READY TO DROP</span>
                     </div>
                     <div id="drop-zone" class="relative group mb-4">
-                        <textarea id="csv-input" class="w-full h-24 bg-black border border-gray-800 text-[10px] p-2 text-blue-300 focus:outline-none focus:border-blue-500 no-scrollbar transition-all" placeholder="粘贴 CSV 数据或直接拖入文件...&#10;格式: Date,Nasdaq_Close,Fed_Rate"></textarea>
+                        <textarea id="csv-input" class="w-full h-24 bg-black border border-gray-800 text-[10px] p-2 text-blue-300 focus:outline-none focus:border-blue-500 no-scrollbar transition-all" placeholder="粘贴 CSV 数据或直接拖入文件...&#10;格式: Date,Nasdaq_Close 或 Date,Nasdaq_Close,Fed_Rate"></textarea>
+                    </div>
+                    <div class="mb-2">
+                        <label class="data-label block mb-1">美联储利率 CSV（可选，与纳指对比）</label>
+                        <div id="drop-zone-fed" class="relative group">
+                            <textarea id="fed-csv-input" class="w-full h-16 bg-black border border-gray-700 text-[10px] p-2 text-amber-200/90 focus:outline-none focus:border-amber-500 no-scrollbar transition-all" placeholder="粘贴或拖入 Fed 利率 CSV，格式: Date,Fed_Rate 或 DATE,Fed_Rate"></textarea>
+                        </div>
                     </div>
 
                     <!-- CSV Range Sliders -->
@@ -6852,6 +6858,7 @@ Date,Nasdaq_Close,Fed_Rate
                         <span id="chart-title">财富航迹动态监测 (Trajectory Monitoring)</span>
                         <div class="flex gap-4">
                             <span id="nasdaq-legend" class="text-[10px] text-blue-400">● NASDAQ INDEX</span>
+                            <span id="fed-legend" class="text-[10px] text-amber-400">● FED RATE</span>
                         </div>
                     </h3>
                     
@@ -6866,6 +6873,10 @@ Date,Nasdaq_Close,Fed_Rate
                             <div id="tooltip-nasdaq-row" class="flex justify-between mb-1">
                                 <span class="text-gray-500 text-[8px]">NASDAQ IDX:</span>
                                 <span id="tooltip-nasdaq" class="text-blue-400 font-bold ml-4">0.00</span>
+                            </div>
+                            <div id="tooltip-fed-row" class="flex justify-between mb-1 hidden">
+                                <span class="text-gray-500 text-[8px]">FED RATE %:</span>
+                                <span id="tooltip-fed" class="text-amber-400 font-bold ml-4">--</span>
                             </div>
                             <div id="tooltip-withdrawn-row" class="flex justify-between">
                                 <span class="text-gray-500 text-[8px]">WITHDRAWN:</span>
@@ -6889,6 +6900,7 @@ Date,Nasdaq_Close,Fed_Rate
                             <line id="with-start-divider" x1="0" y1="0" x2="0" y2="100%" stroke="rgba(96,165,250,0.3)" stroke-dasharray="4" />
                             
                             <path id="nasdaq-path" fill="none" stroke="var(--neon-blue)" stroke-width="1.5" stroke-dasharray="4" d="" opacity="0.6"></path>
+                            <path id="fed-rate-path" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="3 2" d="" opacity="0.9"></path>
                             <path id="curve-path" fill="none" stroke="var(--neon-orange)" stroke-width="2.5" stroke-linecap="round" d="" class="trajectory-path"></path>
                             
                             <line id="scanner-line" x1="0" y1="0" x2="0" y2="100%" stroke="rgba(255,255,255,0.3)" stroke-width="1" class="hidden"></line>
@@ -6918,6 +6930,7 @@ Date,Nasdaq_Close,Fed_Rate
             wStart: document.getElementById('input-w-start'),
             wEnd: document.getElementById('input-w-end'),
             csv: document.getElementById('csv-input'),
+            fedCsv: document.getElementById('fed-csv-input'),
             csvStart: document.getElementById('input-csv-start'),
             csvEnd: document.getElementById('input-csv-end')
         };
@@ -6940,6 +6953,7 @@ Date,Nasdaq_Close,Fed_Rate
             survivalTime: document.getElementById('survival-time-display'),
             path: document.getElementById('curve-path'),
             nasdaqPath: document.getElementById('nasdaq-path'),
+            fedRatePath: document.getElementById('fed-rate-path'),
             area: document.getElementById('curve-area'),
             point: document.getElementById('end-point'),
             svg: document.getElementById('trajectory-chart'),
@@ -6962,6 +6976,8 @@ Date,Nasdaq_Close,Fed_Rate
             val: document.getElementById('tooltip-val'),
             nasdaq: document.getElementById('tooltip-nasdaq'),
             nasdaqRow: document.getElementById('tooltip-nasdaq-row'),
+            fedRate: document.getElementById('tooltip-fed'),
+            fedRow: document.getElementById('tooltip-fed-row'),
             withdrawn: document.getElementById('tooltip-withdrawn')
         };
 
@@ -6998,7 +7014,12 @@ Date,Nasdaq_Close,Fed_Rate
         // CSV parsing & grouping by month
         function handleCsvDataChange() {
             if (!csvInput) return;
-            const data = parseCSV(csvInput.value);
+            let data = parseCSV(csvInput.value);
+            const fedCsvText = inputs.fedCsv && inputs.fedCsv.value ? inputs.fedCsv.value.trim() : '';
+            if (fedCsvText) {
+                const fedMap = parseFedCsv(fedCsvText);
+                if (fedMap) data = mergeFedRate(data, fedMap);
+            }
             if (data && data.length > 1) {
                 rawCsvData = data;
                 displays.csvRangePanel.style.opacity = '1';
@@ -7054,9 +7075,38 @@ Date,Nasdaq_Close,Fed_Rate
             for (let i = 1; i < lines.length; i++) {
                 const cols = lines[i].split(',');
                 if (cols.length < 2) continue;
-                data.push({ date: cols[0].trim(), close: parseFloat(cols[1]), rate: parseFloat(cols[2] || 0) });
+                const dateStr = cols[0].trim();
+                const close = parseFloat(cols[1]);
+                const rate = cols.length >= 3 ? parseFloat(cols[2]) : NaN;
+                data.push({ date: dateStr, close: close, rate: isNaN(rate) ? null : rate });
             }
             return data.length > 0 ? data : null;
+        }
+
+        /** 解析美联储利率 CSV，返回 Map: YYYY-MM -> rate */
+        function parseFedCsv(csvText) {
+            const lines = csvText.trim().split('\n');
+            if (lines.length < 2) return null;
+            const map = new Map();
+            for (let i = 1; i < lines.length; i++) {
+                const cols = lines[i].split(',');
+                if (cols.length < 2) continue;
+                const dateStr = cols[0].trim();
+                const key = dateStr.length >= 7 ? dateStr.substring(0, 7) : dateStr;
+                const rate = parseFloat(cols[1]);
+                if (!isNaN(rate)) map.set(key, rate);
+            }
+            return map.size > 0 ? map : null;
+        }
+
+        /** 用 Fed CSV 的利率按月份合并到主数据（主数据无 rate 或希望用外部利率时使用） */
+        function mergeFedRate(mainData, fedMap) {
+            if (!mainData || !fedMap) return mainData;
+            mainData.forEach(row => {
+                const monthKey = row.date.substring(0, 7);
+                if (fedMap.has(monthKey)) row.rate = fedMap.get(monthKey);
+            });
+            return mainData;
         }
 
         function calculateTrajectory() {
@@ -7113,7 +7163,7 @@ Date,Nasdaq_Close,Fed_Rate
                     currentBalance *= ratio;
                 }
                 if (monthCounter === accE && !accEndBalance) accEndBalance = currentBalance;
-                timeline.push({ month: monthCounter, balance: currentBalance, date: entry.date, nasdaq: entry.close, withdrawn: actualWithdrawn });
+                timeline.push({ month: monthCounter, balance: currentBalance, date: entry.date, nasdaq: entry.close, rate: entry.rate != null ? entry.rate : undefined, withdrawn: actualWithdrawn });
                 if (currentBalance <= 0 && monthCounter > withS) break;
             }
             if (!accEndBalance) accEndBalance = currentBalance;
@@ -7127,6 +7177,9 @@ Date,Nasdaq_Close,Fed_Rate
                 if (dd > maxDD) maxDD = dd;
             });
 
+            const rateValues = timeline.filter(t => t.rate != null).map(t => t.rate);
+            const minRate = rateValues.length ? Math.min(...rateValues) : 0;
+            const maxRate = rateValues.length ? Math.max(...rateValues) : 1;
             return { 
                 timeline, finalBalance: currentBalance, accEndBalance, actualWithdrawn, 
                 totalCost, maxDD, 
@@ -7134,7 +7187,10 @@ Date,Nasdaq_Close,Fed_Rate
                 annualizedRoi: calculateIRR(cashFlows) * 100,
                 roi: ((currentBalance + actualWithdrawn) / totalCost - 1) * 100,
                 maxBalance: Math.max(...timeline.map(d => d.balance)),
-                maxNasdaq: Math.max(...timeline.filter(t => t.nasdaq).map(t => t.nasdaq)) || 1
+                maxNasdaq: Math.max(...timeline.filter(t => t.nasdaq).map(t => t.nasdaq)) || 1,
+                hasRate: rateValues.length > 0,
+                minRate,
+                maxRate: maxRate > minRate ? maxRate : minRate + 1
             };
         }
 
@@ -7157,6 +7213,25 @@ Date,Nasdaq_Close,Fed_Rate
                 for (let j = 1; j < nPoints.length; j++) nD += ` L ${nPoints[j].x} ${nPoints[j].y}`;
                 displays.nasdaqPath.setAttribute('d', nD);
             }
+
+            const hasRate = data.hasRate && data.minRate != null && data.maxRate != null;
+            const fedLegend = document.getElementById('fed-legend');
+            if (displays.fedRatePath) {
+                if (hasRate) {
+                    const minR = data.minRate, maxR = data.maxRate, range = maxR - minR || 1;
+                    const ratePoints = timeline
+                        .map((d, index) => ({ x: (index / totalSteps) * width, rate: d.rate }))
+                        .filter(p => p.rate != null)
+                        .map((p, i, arr) => ({ x: p.x, y: height - ((p.rate - minR) / range) * height }));
+                    if (ratePoints.length > 0) {
+                        let rD = `M ${ratePoints[0].x} ${ratePoints[0].y}`;
+                        for (let j = 1; j < ratePoints.length; j++) rD += ` L ${ratePoints[j].x} ${ratePoints[j].y}`;
+                        displays.fedRatePath.setAttribute('d', rD);
+                        displays.fedRatePath.style.display = '';
+                    } else displays.fedRatePath.style.display = 'none';
+                } else displays.fedRatePath.style.display = 'none';
+            }
+            if (fedLegend) fedLegend.style.display = hasRate ? '' : 'none';
 
             // Dividers
             const totalM = timeline[timeline.length-1].month || 1;
@@ -7223,7 +7298,20 @@ Date,Nasdaq_Close,Fed_Rate
             });
         }
 
-        csvInput.addEventListener('change', handleCsvDataChange);
+        csvInput.addEventListener('input', handleCsvDataChange);
+        if (inputs.fedCsv) inputs.fedCsv.addEventListener('input', handleCsvDataChange);
+        const dropZoneFed = document.getElementById('drop-zone-fed');
+        if (dropZoneFed) {
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(name => dropZoneFed.addEventListener(name, e => { e.preventDefault(); e.stopPropagation(); }));
+            dropZoneFed.addEventListener('drop', e => {
+                const file = e.dataTransfer.files[0];
+                if (file && (file.name.endsWith('.csv') || file.type === 'text/csv')) {
+                    const reader = new FileReader();
+                    reader.onload = (evt) => { inputs.fedCsv.value = evt.target.result; handleCsvDataChange(); };
+                    reader.readAsText(file);
+                }
+            });
+        }
         displays.svg.addEventListener('mousemove', e => {
             if (!globalData) return;
             const rect = displays.svg.getBoundingClientRect(), x = e.clientX - rect.left, width = rect.width;
@@ -7236,6 +7324,8 @@ Date,Nasdaq_Close,Fed_Rate
             tooltipItems.withdrawn.textContent = formatCurrency(entry.withdrawn || 0);
             if (entry.nasdaq) { tooltipItems.nasdaqRow.classList.remove('hidden'); tooltipItems.nasdaq.textContent = entry.nasdaq.toLocaleString(); }
             else tooltipItems.nasdaqRow.classList.add('hidden');
+            if (entry.rate != null) { tooltipItems.fedRow.classList.remove('hidden'); tooltipItems.fedRate.textContent = entry.rate.toFixed(2) + '%'; }
+            else if (tooltipItems.fedRow) tooltipItems.fedRow.classList.add('hidden');
             displays.tooltip.classList.remove('hidden');
             const tw = displays.tooltip.offsetWidth;
             displays.tooltip.style.left = (posX + 20 + tw > width ? posX - tw - 20 : posX + 20) + 'px';
