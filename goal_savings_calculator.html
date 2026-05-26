@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>目标定投计算器（含通胀折算）</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'Noto Sans SC', 'ui-sans-serif', 'system-ui'],
+            mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace']
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    :root { color-scheme: light; }
+    body { font-family: theme('fontFamily.sans'); }
+    .number-input::-webkit-outer-spin-button,
+    .number-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    .number-input { -moz-appearance: textfield; }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-900">
+  <div class="mx-auto max-w-6xl p-4 md:p-8">
+    <header class="mb-6 md:mb-8">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight">
+            目标定投计算器
+            <span class="text-slate-500 font-semibold">（含通胀折算）</span>
+          </h1>
+          <p class="mt-2 text-sm md:text-base text-slate-600">
+            计算「按期限」的终值，或「按目标」反推每月定投金额。结果同时给出名义值与按通胀折算后的真实购买力（以今天的货币计）。
+          </p>
+        </div>
+        <a href="./index.html" class="shrink-0 inline-flex items-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50">
+          返回入口
+        </a>
+      </div>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
+      <section class="lg:col-span-5 rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div class="p-4 md:p-5 border-b border-slate-100">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <h2 class="text-lg font-bold">输入参数</h2>
+            <div class="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1 text-sm">
+              <button id="modeYearsBtn" type="button" class="px-3 py-1.5 rounded-md font-semibold bg-white shadow-sm" aria-pressed="true">按期限</button>
+              <button id="modeTargetBtn" type="button" class="px-3 py-1.5 rounded-md font-semibold text-slate-600" aria-pressed="false">按目标</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-4 md:p-5 space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-semibold text-slate-700 mb-1" for="initialAmount">初始金额（元）</label>
+              <input id="initialAmount" class="number-input w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-900 shadow-sm focus:outline-none focus:ring-4 focus:ring-sky-100 focus:border-sky-300"
+                type="number" inputmode="decimal" min="0" step="100" value="50000" />
+              <p class="mt-1 text-xs text-slate-500">一次性投入（可为 0）。</p>
+            </div>
+            <div id="monthlyWrap">
+              <label class="block text-sm font-semibold text-slate-700 mb-1" for="monthlyContribution">每月定投（元）</label>
+              <input id="monthlyContribution" class="number-input w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-900 shadow-sm focus:outline-none focus:ring-4 focus:ring-sky-100 focus:border-sky-300"
+                type="number" inputmode="decimal" min="0" step="100" value="3000" />
+              <p class="mt-1 text-xs text-slate-500">按月等额投入，默认月初投入。</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-semibold text-slate-700 mb-1" for="annualReturn">预期年化回报（%）</label>
+              <input id="annualReturn" class="number-input w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-900 shadow-sm focus:outline-none focus:ring-4 focus:ring-sky-100 focus:border-sky-300"
+                type="number" inputmode="decimal" step="0.1" value="8" />
+              <p class="mt-1 text-xs text-slate-500">名义回报率，不扣税费。</p>
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-slate-700 mb-1" for="annualInflation">年化通胀（%）</label>
+              <input id="annualInflation" class="number-input w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-900 shadow-sm focus:outline-none focus:ring-4 focus:ring-sky-100 focus:border-sky-300"
+                type="number" inputmode="decimal" step="0.1" value="2.5" />
+              <p class="mt-1 text-xs text-slate-500">用于把未来金额折算为今天购买力。</p>
+            </div>
+          </div>
+
+          <div id="yearsWrap" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-semibold text-slate-700 mb-1" for="years">投资期限（年）</label>
+              <input id="years" class="number-input w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-900 shadow-sm focus:outline-none focus:ring-4 focus:ring-sky-100 focus:border-sky-300"
+                type="number" inputmode="numeric" min="1" step="1" value="15" />
+              <p class="mt-1 text-xs text-slate-500">按整年展示年度明细。</p>
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-slate-700 mb-1" for="contribTiming">投入时点</label>
+              <select id="contribTiming" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-900 shadow-sm focus:outline-none focus:ring-4 focus:ring-sky-100 focus:border-sky-300">
+                <option value="begin" selected>月初投入（更激进）</option>
+                <option value="end">月末投入（更保守）</option>
+              </select>
+              <p class="mt-1 text-xs text-slate-500">两者仅相差一个月的复利。</p>
+            </div>
+          </div>
+
+          <div id="targetWrap" class="hidden space-y-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-1" for="targetAmount">目标金额（元）</label>
+                <input id="targetAmount" class="number-input w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-900 shadow-sm focus:outline-none focus:ring-4 focus:ring-sky-100 focus:border-sky-300"
+                  type="number" inputmode="decimal" min="0" step="10000" value="2000000" />
+                <p class="mt-1 text-xs text-slate-500">到期时的目标终值。</p>
+              </div>
+              <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-1" for="targetType">目标类型</label>
+                <select id="targetType" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-900 shadow-sm focus:outline-none focus:ring-4 focus:ring-sky-100 focus:border-sky-300">
+                  <option value="real" selected>今天购买力（真实值）</option>
+                  <option value="nominal">未来名义金额</option>
+                </select>
+                <p class="mt-1 text-xs text-slate-500">若选真实值，会自动按通胀换算为未来名义目标。</p>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-1" for="targetYears">期限（年）</label>
+                <input id="targetYears" class="number-input w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-900 shadow-sm focus:outline-none focus:ring-4 focus:ring-sky-100 focus:border-sky-300"
+                  type="number" inputmode="numeric" min="1" step="1" value="15" />
+                <p class="mt-1 text-xs text-slate-500">固定期限下反推每月定投。</p>
+              </div>
+              <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-1" for="targetTiming">投入时点</label>
+                <select id="targetTiming" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-900 shadow-sm focus:outline-none focus:ring-4 focus:ring-sky-100 focus:border-sky-300">
+                  <option value="begin" selected>月初投入（更激进）</option>
+                  <option value="end">月末投入（更保守）</option>
+                </select>
+                <p class="mt-1 text-xs text-slate-500">用于反推时的假设一致性。</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex flex-col sm:flex-row gap-3 pt-2">
+            <button id="calcBtn" type="button" class="inline-flex items-center justify-center rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-slate-200">
+              计算
+            </button>
+            <button id="downloadBtn" type="button" class="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-slate-100">
+              下载年度明细 CSV
+            </button>
+            <div id="errorBox" class="hidden sm:ml-auto rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700"></div>
+          </div>
+
+          <div class="rounded-2xl border border-slate-100 bg-slate-50 p-4 text-sm text-slate-700">
+            <div class="font-bold text-slate-900">计算说明（简版）</div>
+            <ul class="mt-2 list-disc pl-5 space-y-1">
+              <li>按月复利：月收益率 = (1+年化回报)^(1/12)-1。</li>
+              <li>真实值折算：真实值 = 名义值 / (1+年化通胀)^年数。</li>
+              <li>定投默认不考虑手续费、税费、滑点与中途断供。</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="lg:col-span-7 space-y-4 md:space-y-6">
+        <div class="rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div class="p-4 md:p-5 border-b border-slate-100 flex items-center justify-between gap-3">
+            <h2 class="text-lg font-bold">结果概览</h2>
+            <div class="text-xs text-slate-500 font-mono" id="resultStamp"></div>
+          </div>
+          <div class="p-4 md:p-5">
+            <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+              <div class="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                <div class="text-xs font-bold text-slate-500">到期名义终值</div>
+                <div class="mt-2 text-xl font-extrabold tabular-nums" id="outNominal">-</div>
+                <div class="mt-1 text-xs text-slate-500">未来金额（未扣通胀）</div>
+              </div>
+              <div class="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                <div class="text-xs font-bold text-slate-500">到期真实终值</div>
+                <div class="mt-2 text-xl font-extrabold tabular-nums" id="outReal">-</div>
+                <div class="mt-1 text-xs text-slate-500">折算为今天购买力</div>
+              </div>
+              <div class="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                <div class="text-xs font-bold text-slate-500" id="outMonthlyLabel">每月定投</div>
+                <div class="mt-2 text-xl font-extrabold tabular-nums" id="outMonthly">-</div>
+                <div class="mt-1 text-xs text-slate-500" id="outMonthlyHint">用于按期限模式</div>
+              </div>
+              <div class="rounded-2xl border border-slate-100 bg-white p-4">
+                <div class="text-xs font-bold text-slate-500">累计投入本金</div>
+                <div class="mt-2 text-lg font-extrabold tabular-nums" id="outContrib">-</div>
+                <div class="mt-1 text-xs text-slate-500">初始 + 每月投入总和</div>
+              </div>
+              <div class="rounded-2xl border border-slate-100 bg-white p-4">
+                <div class="text-xs font-bold text-slate-500">名义收益（增值）</div>
+                <div class="mt-2 text-lg font-extrabold tabular-nums" id="outGain">-</div>
+                <div class="mt-1 text-xs text-slate-500">终值 - 本金</div>
+              </div>
+              <div class="rounded-2xl border border-slate-100 bg-white p-4">
+                <div class="text-xs font-bold text-slate-500">真实年化回报</div>
+                <div class="mt-2 text-lg font-extrabold tabular-nums" id="outRealRate">-</div>
+                <div class="mt-1 text-xs text-slate-500">约等于 (1+r)/(1+i)-1</div>
+              </div>
+            </div>
+
+            <div class="mt-4 rounded-2xl border border-slate-100 bg-gradient-to-br from-sky-50 to-white p-4">
+              <div class="flex items-center justify-between gap-3">
+                <div>
+                  <div class="text-sm font-extrabold text-slate-900">年度走势（名义 vs 真实）</div>
+                  <div class="text-xs text-slate-600 mt-1">图表仅用于快速感知趋势，真实金额按通胀折算。</div>
+                </div>
+                <div class="text-xs font-mono text-slate-500" id="chartNote"></div>
+              </div>
+              <div class="mt-3">
+                <canvas id="chart" height="140" class="w-full rounded-xl bg-white border border-slate-100"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          <div class="p-4 md:p-5 border-b border-slate-100 flex items-center justify-between gap-3">
+            <h2 class="text-lg font-bold">年度明细</h2>
+            <div class="text-xs text-slate-500">单位：元</div>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="min-w-full text-sm">
+              <thead class="bg-slate-50 text-slate-600">
+                <tr>
+                  <th class="px-4 py-3 text-left font-bold">年份</th>
+                  <th class="px-4 py-3 text-right font-bold">累计投入</th>
+                  <th class="px-4 py-3 text-right font-bold">年末名义资产</th>
+                  <th class="px-4 py-3 text-right font-bold">年末真实资产</th>
+                </tr>
+              </thead>
+              <tbody id="tableBody" class="divide-y divide-slate-100"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const fmtCNY = (n) => new Intl.NumberFormat('zh-CN', { style: 'currency', currency: 'CNY', maximumFractionDigits: 0 }).format(n || 0);
+    const fmtNum0 = (n) => new Intl.NumberFormat('zh-CN', { maximumFractionDigits: 0 }).format(n || 0);
+    const fmtPct = (x) => (Number.isFinite(x) ? (x * 100).toFixed(2) + '%' : '-');
+
+    const state = {
+      mode: 'years', // 'years' | 'target'
+      lastRows: [],
+      lastMeta: null
+    };
+
+    function clampNumber(n, min, max) {
+      if (!Number.isFinite(n)) return min;
+      if (n < min) return min;
+      if (n > max) return max;
+      return n;
+    }
+
+    function parseNumber(value, fallback = 0) {
+      const n = parseFloat(String(value ?? '').trim());
+      return Number.isFinite(n) ? n : fallback;
+    }
+
+    function monthlyRateFromAnnual(annualPct) {
+      const r = parseNumber(annualPct, 0) / 100;
+      // allow negative, but cap to keep math stable
+      const capped = clampNumber(r, -0.95, 5);
+      return Math.pow(1 + capped, 1 / 12) - 1;
+    }
+
+    function annualRateFromMonthly(monthlyRate) {
+      return Math.pow(1 + monthlyRate, 12) - 1;
+    }
+
+    function simulateByYears({
+      initialAmount,
+      monthlyContribution,
+      years,
+      monthlyReturnRate,
+      annualInflationPct,
+      timing
+    }) {
+      const months = Math.max(1, Math.floor(years * 12));
+      let balance = Math.max(0, initialAmount);
+      let contributed = Math.max(0, initialAmount);
+
+      const rows = [];
+      const inflationAnnual = parseNumber(annualInflationPct, 0) / 100;
+      const inflationFactorAtYear = (y) => Math.pow(1 + inflationAnnual, y);
+
+      for (let m = 1; m <= months; m++) {
+        if (timing === 'begin') {
+          balance += Math.max(0, monthlyContribution);
+          contributed += Math.max(0, monthlyContribution);
+        }
+
+        balance = balance * (1 + monthlyReturnRate);
+
+        if (timing === 'end') {
+          balance += Math.max(0, monthlyContribution);
+          contributed += Math.max(0, monthlyContribution);
+        }
+
+        if (m % 12 === 0) {
+          const y = m / 12;
+          const nominal = balance;
+          const real = nominal / inflationFactorAtYear(y);
+          rows.push({ year: y, contributed, nominal, real });
+        }
+      }
+
+      const endNominal = balance;
+      const endReal = endNominal / inflationFactorAtYear(years);
+      return { endNominal, endReal, contributed, rows };
+    }
+
+    function solveMonthlyContributionForTarget({
+      initialAmount,
+      targetNominal,
+      years,
+      monthlyReturnRate,
+      annualInflationPct,
+      timing
+    }) {
+      const y = Math.max(1, Math.floor(years));
+      const months = y * 12;
+      const inflationAnnual = parseNumber(annualInflationPct, 0) / 100;
+      const inflationFactor = Math.pow(1 + inflationAnnual, y);
+
+      let target = Math.max(0, targetNominal);
+      if (!Number.isFinite(target)) target = 0;
+
+      // If return is extremely negative, binary search still works but may require huge contributions.
+      // Set a sensible upper bound by doubling until reached or cap.
+      const simulateWithMonthly = (monthly) => {
+        const res = simulateByYears({
+          initialAmount,
+          monthlyContribution: monthly,
+          years: y,
+          monthlyReturnRate,
+          annualInflationPct,
+          timing
+        });
+        return res.endNominal;
+      };
+
+      const base = simulateWithMonthly(0);
+      if (base >= target) {
+        const res = simulateByYears({
+          initialAmount,
+          monthlyContribution: 0,
+          years: y,
+          monthlyReturnRate,
+          annualInflationPct,
+          timing
+        });
+        return { monthly: 0, ...res, inflationFactor };
+      }
+
+      let lo = 0;
+      let hi = 1000;
+      const hiCap = 1e7; // 1000w/月 上限，避免无限跑
+
+      while (hi < hiCap && simulateWithMonthly(hi) < target) {
+        hi *= 2;
+      }
+      if (simulateWithMonthly(hi) < target) {
+        return { monthly: NaN, endNominal: NaN, endReal: NaN, contributed: NaN, rows: [], inflationFactor };
+      }
+
+      for (let i = 0; i < 60; i++) {
+        const mid = (lo + hi) / 2;
+        const v = simulateWithMonthly(mid);
+        if (v >= target) hi = mid;
+        else lo = mid;
+      }
+
+      const monthly = hi;
+      const res = simulateByYears({
+        initialAmount,
+        monthlyContribution: monthly,
+        years: y,
+        monthlyReturnRate,
+        annualInflationPct,
+        timing
+      });
+      return { monthly, ...res, inflationFactor };
+    }
+
+    function setMode(mode) {
+      state.mode = mode;
+      const isYears = mode === 'years';
+      $('modeYearsBtn').className = 'px-3 py-1.5 rounded-md font-semibold ' + (isYears ? 'bg-white shadow-sm' : 'text-slate-600');
+      $('modeYearsBtn').setAttribute('aria-pressed', String(isYears));
+      $('modeTargetBtn').className = 'px-3 py-1.5 rounded-md font-semibold ' + (!isYears ? 'bg-white shadow-sm' : 'text-slate-600');
+      $('modeTargetBtn').setAttribute('aria-pressed', String(!isYears));
+
+      $('yearsWrap').classList.toggle('hidden', !isYears);
+      $('targetWrap').classList.toggle('hidden', isYears);
+      $('monthlyWrap').classList.toggle('hidden', !isYears);
+
+      $('outMonthlyLabel').textContent = isYears ? '每月定投' : '反推每月定投';
+      $('outMonthlyHint').textContent = isYears ? '用于按期限模式' : '达到目标所需';
+    }
+
+    function nowStamp() {
+      const d = new Date();
+      return d.toLocaleString('zh-CN', { hour12: false });
+    }
+
+    function showError(msg) {
+      const box = $('errorBox');
+      if (!msg) {
+        box.classList.add('hidden');
+        box.textContent = '';
+        return;
+      }
+      box.classList.remove('hidden');
+      box.textContent = msg;
+    }
+
+    function buildRowsToTable(rows) {
+      const tbody = $('tableBody');
+      tbody.innerHTML = '';
+      const fragment = document.createDocumentFragment();
+      rows.forEach((r) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="px-4 py-3 font-semibold text-slate-700">第 ${r.year} 年</td>
+          <td class="px-4 py-3 text-right tabular-nums text-slate-700">${fmtNum0(r.contributed)}</td>
+          <td class="px-4 py-3 text-right tabular-nums font-semibold text-slate-900">${fmtNum0(r.nominal)}</td>
+          <td class="px-4 py-3 text-right tabular-nums font-semibold text-sky-700">${fmtNum0(r.real)}</td>
+        `;
+        fragment.appendChild(tr);
+      });
+      tbody.appendChild(fragment);
+    }
+
+    function drawChart(canvas, rows) {
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width = canvas.clientWidth * (window.devicePixelRatio || 1);
+      const h = canvas.height = Math.max(140, Math.round(canvas.clientHeight * (window.devicePixelRatio || 1)));
+      ctx.clearRect(0, 0, w, h);
+
+      const pad = 18 * (window.devicePixelRatio || 1);
+      const innerW = w - pad * 2;
+      const innerH = h - pad * 2;
+
+      const points = rows.map((r) => ({ x: r.year, nominal: r.nominal, real: r.real }));
+      const maxY = Math.max(1, ...points.flatMap(p => [p.nominal, p.real]));
+      const minY = 0;
+
+      const xToPx = (x, idx) => {
+        if (points.length <= 1) return pad;
+        const t = idx / (points.length - 1);
+        return pad + t * innerW;
+      };
+      const yToPx = (y) => {
+        const t = (y - minY) / (maxY - minY);
+        return pad + (1 - t) * innerH;
+      };
+
+      // grid
+      ctx.strokeStyle = 'rgba(15, 23, 42, 0.08)';
+      ctx.lineWidth = 1 * (window.devicePixelRatio || 1);
+      for (let i = 0; i <= 4; i++) {
+        const y = pad + (innerH * i) / 4;
+        ctx.beginPath();
+        ctx.moveTo(pad, y);
+        ctx.lineTo(w - pad, y);
+        ctx.stroke();
+      }
+
+      function drawLine(key, color) {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2.2 * (window.devicePixelRatio || 1);
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        points.forEach((p, idx) => {
+          const x = xToPx(p.x, idx);
+          const y = yToPx(p[key]);
+          if (idx === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+      }
+
+      drawLine('nominal', 'rgba(15, 23, 42, 0.85)');  // slate-900
+      drawLine('real', 'rgba(2, 132, 199, 0.9)');     // sky-600
+
+      // legend
+      ctx.font = `${12 * (window.devicePixelRatio || 1)}px ui-monospace, SFMono-Regular, Menlo, monospace`;
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.7)';
+      ctx.fillText('名义', pad, h - pad / 2);
+      ctx.fillStyle = 'rgba(2, 132, 199, 0.9)';
+      ctx.fillText('真实', pad + 50 * (window.devicePixelRatio || 1), h - pad / 2);
+    }
+
+    function toCSV(rows) {
+      const header = ['Year', 'Contributed', 'Nominal', 'Real'];
+      const lines = [header.join(',')];
+      rows.forEach(r => {
+        lines.push([r.year, Math.round(r.contributed), Math.round(r.nominal), Math.round(r.real)].join(','));
+      });
+      return lines.join('\n');
+    }
+
+    function downloadCSV(filename, csvText) {
+      const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function calculate() {
+      showError('');
+      const initialAmount = clampNumber(parseNumber($('initialAmount').value, 0), 0, 1e12);
+      const annualReturn = clampNumber(parseNumber($('annualReturn').value, 0), -95, 500);
+      const annualInflation = clampNumber(parseNumber($('annualInflation').value, 0), -95, 100);
+      const monthlyReturnRate = monthlyRateFromAnnual(annualReturn);
+      const realAnnualRate = ((1 + (annualReturn / 100)) / (1 + (annualInflation / 100))) - 1;
+
+      let meta = null;
+      if (state.mode === 'years') {
+        const years = clampNumber(parseNumber($('years').value, 1), 1, 120);
+        const monthlyContribution = clampNumber(parseNumber($('monthlyContribution').value, 0), 0, 1e9);
+        const timing = $('contribTiming').value;
+        const res = simulateByYears({
+          initialAmount,
+          monthlyContribution,
+          years,
+          monthlyReturnRate,
+          annualInflationPct: annualInflation,
+          timing
+        });
+        meta = { ...res, years, monthlyContribution, timing, targetNominal: null, targetType: null };
+      } else {
+        const years = clampNumber(parseNumber($('targetYears').value, 1), 1, 120);
+        const targetAmount = clampNumber(parseNumber($('targetAmount').value, 0), 0, 1e15);
+        const targetType = $('targetType').value;
+        const timing = $('targetTiming').value;
+        const inflationFactor = Math.pow(1 + annualInflation / 100, years);
+        const targetNominal = targetType === 'real' ? targetAmount * inflationFactor : targetAmount;
+
+        const solved = solveMonthlyContributionForTarget({
+          initialAmount,
+          targetNominal,
+          years,
+          monthlyReturnRate,
+          annualInflationPct: annualInflation,
+          timing
+        });
+
+        if (!Number.isFinite(solved.monthly)) {
+          showError('目标过高或参数导致无法在上限内反推（尝试降低目标/提高回报/延长期限）。');
+          $('outNominal').textContent = '-';
+          $('outReal').textContent = '-';
+          $('outMonthly').textContent = '-';
+          $('outContrib').textContent = '-';
+          $('outGain').textContent = '-';
+          $('outRealRate').textContent = fmtPct(realAnnualRate);
+          $('tableBody').innerHTML = '';
+          $('resultStamp').textContent = nowStamp();
+          $('chartNote').textContent = '';
+          const canvas = $('chart');
+          const ctx = canvas.getContext('2d');
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          state.lastRows = [];
+          state.lastMeta = null;
+          return;
+        }
+
+        meta = {
+          ...solved,
+          years,
+          monthlyContribution: solved.monthly,
+          timing,
+          targetNominal,
+          targetType
+        };
+      }
+
+      state.lastRows = meta.rows;
+      state.lastMeta = meta;
+
+      $('outNominal').textContent = fmtCNY(meta.endNominal);
+      $('outReal').textContent = fmtCNY(meta.endReal);
+      $('outMonthly').textContent = fmtCNY(meta.monthlyContribution);
+      $('outContrib').textContent = fmtCNY(meta.contributed);
+      $('outGain').textContent = fmtCNY(meta.endNominal - meta.contributed);
+      $('outRealRate').textContent = fmtPct(realAnnualRate);
+      $('resultStamp').textContent = nowStamp();
+
+      if (state.mode === 'target') {
+        const showTarget = meta.targetType === 'real'
+          ? `目标真实 ${fmtCNY(parseNumber($('targetAmount').value, 0))}`
+          : `目标名义 ${fmtCNY(parseNumber($('targetAmount').value, 0))}`;
+        $('chartNote').textContent = `${showTarget} · 期限 ${meta.years} 年`;
+      } else {
+        $('chartNote').textContent = `期限 ${meta.years} 年 · ${meta.timing === 'begin' ? '月初' : '月末'}投入`;
+      }
+
+      buildRowsToTable(meta.rows);
+      drawChart($('chart'), meta.rows);
+    }
+
+    function onResize() {
+      if (state.lastRows && state.lastRows.length) drawChart($('chart'), state.lastRows);
+    }
+
+    $('modeYearsBtn').addEventListener('click', () => setMode('years'));
+    $('modeTargetBtn').addEventListener('click', () => setMode('target'));
+    $('calcBtn').addEventListener('click', calculate);
+    $('downloadBtn').addEventListener('click', () => {
+      if (!state.lastRows || !state.lastRows.length) {
+        showError('请先计算，再下载明细。');
+        return;
+      }
+      const meta = state.lastMeta;
+      const modeTag = state.mode === 'years' ? 'years' : 'target';
+      const filename = `goal_savings_${modeTag}_${meta.years}y_${new Date().toISOString().slice(0,10)}.csv`;
+      downloadCSV(filename, toCSV(state.lastRows));
+    });
+
+    window.addEventListener('resize', () => {
+      clearTimeout(window.__rsz);
+      window.__rsz = setTimeout(onResize, 120);
+    });
+
+    // initial render
+    setMode('years');
+    calculate();
+  </script>
+</body>
+</html>
