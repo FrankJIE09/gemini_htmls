@@ -1,0 +1,4817 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>上海梧桐区全域认路记忆宝典 - 真实地理比例版</title>
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 Leaflet 地图 CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- 引入 Google 字体提升艺术气质 -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=ZCOOL+XiaoWei&family=Noto+Serif+SC:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Serif SC', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #FAF5EB; /* 温暖复古宣纸色 */
+            color: #2E2B27;
+        }
+        .handwritten-title {
+            font-family: 'ZCOOL XiaoWei', serif;
+        }
+        /* 拟真手绘纸张微阴影 */
+        .sketch-card {
+            background: #FCF9F2;
+            border: 2px solid #3E3933;
+            box-shadow: 4px 4px 0px #3E3933;
+            transition: all 0.2s ease;
+        }
+        .sketch-card:hover {
+            transform: translate(-1px, -1px);
+            box-shadow: 5px 5px 0px #3E3933;
+        }
+        /* 让 Leaflet 容器呈现温暖复古的梧桐色调 */
+        .warm-paper-map .leaflet-tile-pane {
+            filter: sepia(0.45) saturate(1.15) contrast(0.9) brightness(1.02);
+        }
+        /* 自定义精美路名浮动标签，防止被官方底图遮挡 */
+        .custom-road-label {
+            background-color: #1F402B !important;
+            border: 1.5px solid #3E3933 !important;
+            box-shadow: 2px 2px 0px #3E3933 !important;
+            font-family: 'Inter', 'Noto Serif SC', sans-serif;
+            font-weight: 800;
+            font-size: 11px;
+            color: #FAF5EB !important;
+            padding: 2px 6px;
+            border-radius: 4px;
+            white-space: nowrap;
+            text-align: center;
+        }
+        .custom-road-label-minor {
+            background-color: #4A5D52 !important;
+            border: 1px solid #3E3933 !important;
+            box-shadow: 1px 1px 0px #3E3933 !important;
+            font-size: 9px !important;
+            font-weight: 700 !important;
+            padding: 1px 4px !important;
+            opacity: 0.85;
+        }
+        .custom-road-label-vertical {
+            z-index: 650 !important;
+            letter-spacing: 0.02em;
+        }
+        .leaflet-tooltip-pane { z-index: 650; }
+        .custom-road-label-blind {
+            background-color: #FFFDF7 !important;
+            border: 1.5px solid #C88A4B !important;
+            box-shadow: 2px 2px 0px #C88A4B !important;
+            font-weight: 800;
+            color: #C88A4B !important;
+            font-size: 11px;
+            padding: 2px 5px;
+            border-radius: 4px;
+        }
+        /* 地标自定义 Emoji 样式 */
+        .landmark-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #FFFDF9;
+            border: 2px solid #3E3933;
+            box-shadow: 2px 2px 0px #3E3933;
+            border-radius: 50%;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .landmark-icon:hover {
+            transform: scale(1.15) rotate(-5deg);
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="min-h-screen pb-12">
+
+<header class="w-full bg-[#1F402B] text-[#FAF5EB] py-6 px-4 shadow-md relative overflow-hidden border-b-4 border-[#3E3933]">
+    <div class="absolute right-6 top-2 opacity-10 pointer-events-none">
+        <svg width="130" height="130" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C11.5 4 9 7.5 6 9.5C3 11.5 2 13.5 2 15.5C2 18.5 4.5 21 7.5 21C10.5 21 12 18 12 18C12 18 13.5 21 16.5 21C19.5 21 22 18.5 22 15.5C22 13.5 21 11.5 18 9.5C15 7.5 12.5 4 12 2Z"/>
+        </svg>
+    </div>
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2">
+                <span class="bg-[#D9A05B] text-[#1F402B] text-[10px] font-bold px-2 py-0.5 rounded-sm transform -rotate-1">全域164路完整标注</span>
+                <h1 class="text-3xl md:text-4xl font-bold handwritten-title tracking-wider">
+                    🍂 上海梧桐区全域认路神器 <span class="text-lg md:text-xl font-sans font-light opacity-80">(Leaflet 真实GPS投影版)</span>
+                </h1>
+            </div>
+            <p class="text-xs md:text-sm opacity-90 mt-2 font-light leading-relaxed max-w-4xl">
+                彻底还原了上海衡复历史风貌区（法租界旧址核心圈）的真实街道比例。本站已标注<b>164条具名道路</b>（36条精品详解 + 128条支路），基于无标签盲测底图与 OSM 真实 GPS 折线叠加。放大至 16 级以上可显示支路路名。
+            </p>
+        </div>
+        <div class="flex gap-2 shrink-0">
+            <span class="bg-[#FAF5EB] text-[#1F402B] px-3 py-1 rounded-full text-xs font-bold shadow-sm border border-[#3E3933]">
+                🧭 GPS真实投影
+            </span>
+            <span class="bg-[#D9A05B] text-[#1F402B] px-3 py-1 rounded-full text-xs font-bold shadow-sm border border-[#3E3933]">
+                🏆 无标速记考场
+            </span>
+        </div>
+    </div>
+</header>
+
+<main class="max-w-7xl mx-auto px-4 mt-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <!-- 左栏：控制台与主地图 -->
+    <section class="lg:col-span-7 flex flex-col gap-4">
+        
+        <!-- 地图互动控制面板 -->
+        <div class="sketch-card p-4 rounded-xl flex flex-wrap items-center justify-between gap-3 bg-white">
+            <div class="flex items-center gap-2">
+                <span class="text-xs font-bold text-gray-700">模式切换:</span>
+                <div class="inline-flex rounded-md shadow-sm" role="group">
+                    <button id="btn-study" onclick="switchMode('study')" class="px-3 py-1.5 text-xs font-bold rounded-l-lg bg-[#1F402B] text-white border border-[#1F402B] transition">
+                        📖 明记对照
+                    </button>
+                    <button id="btn-blind" onclick="switchMode('blind')" class="px-3 py-1.5 text-xs font-bold bg-white text-gray-700 border-t border-b border-gray-300 hover:bg-gray-50 transition">
+                        ❓ 遮蔽暗记
+                    </button>
+                    <button id="btn-quiz" onclick="switchMode('quiz')" class="px-3 py-1.5 text-xs font-bold rounded-r-lg bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 transition">
+                        🏆 实测盲敲
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 盲测问答条 -->
+            <div id="quiz-status-bar" class="hidden items-center gap-2 text-sm bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-300">
+                <span id="quiz-question" class="font-bold text-amber-900">请点击地图上的: </span>
+                <span id="quiz-score" class="text-xs bg-amber-200 text-amber-950 px-2 py-0.5 rounded-full font-bold">得分: 0/0</span>
+                <button onclick="skipQuizQuestion()" class="text-xs underline text-gray-500 hover:text-gray-800 ml-1">跳过</button>
+            </div>
+
+            <div class="flex gap-2">
+                <button onclick="resetHighlights()" class="text-xs bg-gray-200 hover:bg-gray-300 px-3 py-1.5 rounded-lg text-gray-700 font-medium transition">
+                    清除高亮
+                </button>
+            </div>
+        </div>
+
+        <!-- 地图容器卡片 -->
+        <div class="sketch-card p-2 rounded-2xl relative bg-[#FAF5EB]">
+            <!-- 地图顶部指示器 -->
+            <div class="absolute top-4 left-4 flex flex-col items-start gap-1 z-[1000] select-none pointer-events-none">
+                <div class="bg-[#1F402B] text-[#FAF5EB] px-2.5 py-1 rounded text-[11px] font-bold shadow-md">
+                    🗺️ 梧桐区地理骨架（高精测绘数据）
+                </div>
+                <div class="text-[9px] text-gray-700 bg-white/95 px-2 py-0.5 rounded border border-gray-300 shadow-sm font-semibold">
+                    上北 ⬆️ (物理真北对齐)
+                </div>
+            </div>
+
+            <!-- Leaflet 地图容器挂载点 -->
+            <div id="leaflet-map" class="w-full h-[580px] rounded-xl warm-paper-map z-10 border border-[#3E3933]"></div>
+        </div>
+
+        <!-- 路线一键点亮快捷栏 -->
+        <div class="sketch-card p-4 rounded-xl">
+            <h4 class="font-bold text-sm text-[#1F402B] mb-2 flex items-center gap-1">
+                🚶‍♂️ 精品漫步路线（一键点亮测绘骨架）:
+            </h4>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 text-xs">
+                <button onclick="highlightRoute('classic')" class="bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-900 p-2 rounded-lg text-left transition flex flex-col justify-between">
+                    <span class="font-bold">A. 顶流文艺弧</span>
+                    <span class="opacity-80 text-[10px] mt-1">武康大楼➔武康路➔安福路</span>
+                </button>
+                <button onclick="highlightRoute('trend')" class="bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 p-2 rounded-lg text-left transition flex flex-col justify-between">
+                    <span class="font-bold">B. 巨富长穿梭</span>
+                    <span class="opacity-80 text-[10px] mt-1">巨鹿路➔富民路➔长乐路</span>
+                </button>
+                <button onclick="highlightRoute('music')" class="bg-blue-50 hover:bg-blue-100 border border-blue-300 text-blue-900 p-2 rounded-lg text-left transition flex flex-col justify-between">
+                    <span class="font-bold">C. 优雅音乐回廊</span>
+                    <span class="opacity-80 text-[10px] mt-1">衡山路➔东平路➔汾阳路</span>
+                </button>
+                <button onclick="highlightRoute('culture')" class="bg-purple-50 hover:bg-purple-100 border border-purple-300 text-purple-900 p-2 rounded-lg text-left transition flex flex-col justify-between">
+                    <span class="font-bold">D. 红墙公馆线</span>
+                    <span class="opacity-80 text-[10px] mt-1">思南路➔复兴中路➔南昌路</span>
+                </button>
+                <button onclick="highlightRoute('secret')" class="bg-rose-50 hover:bg-rose-100 border border-rose-300 text-rose-900 p-2 rounded-lg text-left transition flex flex-col justify-between">
+                    <span class="font-bold">E. 老洋房幽境</span>
+                    <span class="opacity-80 text-[10px] mt-1">兴国路➔泰安路➔湖南路</span>
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- 右栏：动态名录与路网名册 -->
+    <section class="lg:col-span-5 flex flex-col gap-6">
+        
+        <!-- 动态详情交互展示卡片 -->
+        <div id="detail-card" class="sketch-card p-5 rounded-2xl bg-white border-2 border-[#1F402B] min-h-[170px] flex flex-col justify-between relative">
+            <div class="absolute top-2 right-2 text-4xl opacity-15" id="detail-icon">🗺️</div>
+            <div>
+                <span id="detail-type" class="text-[9px] font-bold tracking-widest uppercase bg-[#1F402B] text-[#FAF5EB] px-2 py-0.5 rounded">
+                    请在地图或下方列表点选道路
+                </span>
+                <h3 id="detail-title" class="text-2xl font-bold mt-2 text-[#2E2B27] handwritten-title">
+                    物理比例认路空间
+                </h3>
+                <p id="detail-desc" class="text-xs text-gray-600 mt-2 leading-relaxed">
+                    本版本标注<b>风貌区164条马路</b>（含36条精品详解）。点击地图或下方名录，可查看道路走向、认路心法、<b>路名由来</b>与沿线地标。
+                </p>
+                
+                <!-- 记忆背诵口诀 -->
+                <div id="detail-mnemonic-box" class="hidden mt-3.5 p-2.5 bg-amber-50 rounded-lg border border-amber-200">
+                    <span class="text-xs font-bold text-amber-900 block">🧠 极简认路心法 / 空间解构:</span>
+                    <p id="detail-mnemonic" class="text-xs text-amber-950 font-medium mt-1 leading-relaxed"></p>
+                </div>
+                <div id="detail-origin-box" class="hidden mt-3.5 p-2.5 bg-emerald-50 rounded-lg border border-emerald-200">
+                    <span class="text-xs font-bold text-emerald-900 block">📜 路名由来 / 历史沿革:</span>
+                    <p id="detail-origin" class="text-xs text-emerald-950 font-medium mt-1 leading-relaxed"></p>
+                </div>
+            </div>
+
+            <!-- 核心地标链 -->
+            <div id="detail-landmarks-box" class="hidden mt-4 pt-3 border-t border-gray-100">
+                <span class="text-xs font-bold text-gray-500 block">📍 沿线地标:</span>
+                <div id="detail-landmarks" class="flex flex-wrap gap-1.5 mt-1.5"></div>
+            </div>
+        </div>
+
+        <!-- 164路全域检索背诵目录 -->
+        <div class="sketch-card rounded-2xl overflow-hidden bg-white">
+            
+            <!-- 搜索与筛选控制栏 -->
+            <div class="p-3 bg-gray-50 border-b border-gray-200 flex flex-col gap-2">
+                <div class="relative">
+                    <input type="text" id="search-input" oninput="filterRoads()" placeholder="🔍 输入路名查找（如：湖南路、思南路）..." 
+                           class="w-full text-xs px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1F402B]">
+                </div>
+                <!-- 片区快捷键 -->
+                <div class="flex flex-wrap gap-1">
+                    <button onclick="filterBySubArea('all')" class="sub-area-btn px-2 py-1 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded text-[10px] font-semibold transition">全部</button>
+                    <button onclick="filterBySubArea('wukang')" class="sub-area-btn px-2 py-1 bg-white hover:bg-gray-100 text-gray-700 border border-gray-300 rounded text-[10px] transition">武康-湖南片</button>
+                    <button onclick="filterBySubArea('jufu')" class="sub-area-btn px-2 py-1 bg-white hover:bg-gray-100 text-gray-700 border border-gray-300 rounded text-[10px] transition">巨富长片</button>
+                    <button onclick="filterBySubArea('music')" class="sub-area-btn px-2 py-1 bg-white hover:bg-gray-100 text-gray-700 border border-gray-300 rounded text-[10px] transition">衡山-音乐片</button>
+                    <button onclick="filterBySubArea('shannan')" class="sub-area-btn px-2 py-1 bg-white hover:bg-gray-100 text-gray-700 border border-gray-300 rounded text-[10px] transition">陕南-思南片</button>
+                </div>
+            </div>
+
+            <div class="flex border-b border-gray-200 bg-gray-50 text-xs">
+                <button onclick="switchTab('tab-ew')" id="btn-tab-ew" class="flex-1 py-3 text-center font-bold text-[#1F402B] border-b-2 border-[#1F402B]">
+                    ↔️ 东西走向 (共 72 条)
+                </button>
+                <button onclick="switchTab('tab-ns')" id="btn-tab-ns" class="flex-1 py-3 text-center font-bold text-gray-500 hover:text-gray-800">
+                    ↕️ 南北走向 (共 92 条)
+                </button>
+            </div>
+
+            <!-- 东西平行路 -->
+            <div id="tab-ew" class="p-3 flex flex-col gap-1.5 max-h-[350px] overflow-y-auto">
+                <p class="text-[9px] text-[#1F402B] font-bold bg-[#FAF5EB] p-2 rounded mb-1">
+                    🧭 默认显示36条精品路；<b>搜索框输入路名</b>可查找全部164条。地图放大至16级显示支路标签。
+                </p>
+                <div class="grid grid-cols-2 gap-2" id="list-ew-roads">
+                    <!-- 动态生成 -->
+                </div>
+            </div>
+
+            <!-- 南北纵向路 -->
+            <div id="tab-ns" class="p-3 hidden flex flex-col gap-1.5 max-h-[350px] overflow-y-auto">
+                <p class="text-[9px] text-[#1F402B] font-bold bg-[#FAF5EB] p-2 rounded mb-1">
+                    🧭 默认显示36条精品路；<b>搜索框</b>可查找全部164条。地图<b>放大至16级</b>显示支路名标签。
+                </p>
+                <div class="grid grid-cols-2 gap-2" id="list-ns-roads">
+                    <!-- 动态生成 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 空间骨架总结 -->
+        <div class="sketch-card p-4 rounded-xl bg-[#FAF5EB]">
+            <h4 class="font-bold text-sm text-gray-800 mb-2 flex items-center gap-1">
+                📌 衡复风貌区全图四象限认路法：
+            </h4>
+            <div class="space-y-2 text-xs">
+                <div class="p-2.5 bg-white rounded-lg border border-gray-200">
+                    <span class="font-bold text-[#1F402B]">⭐ 西北象限 (武康/湖南/兴国区)</span>
+                    <p class="text-gray-600 mt-1">
+                        核心是完美的<b>武康路优雅半月弯</b>，外围被兴国路对称包裹。泰安路、湖南路、安福路、五原路、复兴西路在西方横向排列，密度极高。
+                    </p>
+                </div>
+                <div class="p-2.5 bg-white rounded-lg border border-gray-200">
+                    <span class="font-bold text-[#1F402B]">🩹 西南象限 (衡山/高安/宛平区)</span>
+                    <p class="text-gray-600 mt-1">
+                        <b>衡山路大斜街</b>作为主轴，余庆路、天平路、宛平路、高安路、乌南路呈散射状南北平铺，直插南界肇嘉浜路。
+                    </p>
+                </div>
+                <div class="p-2.5 bg-white rounded-lg border border-gray-200">
+                    <span class="font-bold text-[#1F402B]">📐 东北象限 (巨富长/襄阳区)</span>
+                    <p class="text-gray-600 mt-1">
+                        巨鹿、富民、长乐合围出“黄金三角”。富民路下接东湖路、汾阳路构成斜切线。襄阳北路与陕西南路提供宽阔通达。
+                    </p>
+                </div>
+                <div class="p-2.5 bg-white rounded-lg border border-gray-200">
+                    <span class="font-bold text-[#1F402B]">🎨 东南象限 (思南/绍兴/复兴中)</span>
+                    <p class="text-gray-600 mt-1">
+                        以<b>思南路人文公馆</b>和<b>绍兴路出版街</b>为核心。复兴中路、永嘉路、建国路提供稳定横轴，茂名南路、瑞金二路提供强力纵向。
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+
+<footer class="max-w-7xl mx-auto px-4 mt-8 text-center text-xs text-gray-500">
+    <hr class="border-gray-300 mb-4">
+    <p>🍃 真实GPS投影，彻底克服假图造成的方向错觉，用真实比例复刻每一个街角。 🍃</p>
+    <p class="mt-1">设计 & 物理地理对齐算法 © 2026 上海衡复风貌区认路记忆指南</p>
+</footer>
+
+<script>
+    const STREETS = [
+        {
+            id: 'julu',
+            name: '巨鹿路',
+            type: 'horizontal',
+            subArea: 'jufu',
+            featured: true,
+            desc: '由西向东极具文艺和生活气息的长街，精巧的买手店、花店和法式小餐馆云集，北部与延安高架平行。',
+            mnemonic: '“巨富长”潮流最北横线，平行于长乐路。西起常熟路，东直达瑞金一路，具有轻微的由西南向东北的倾斜率。',
+            origin: '原称卡尔登路（Cordon Road，一说源自法文“绳索/边界”音译）。1946年改为今名，以河北省巨鹿县命名，属抗战后法租界道路“中国化”改名潮。',
+            path: [
+                [31.219753, 121.44262],
+                [31.220336, 121.44374],
+                [31.220949, 121.445029],
+                [31.222018, 121.446637],
+                [31.222731, 121.448672],
+                [31.222935, 121.449524],
+                [31.223252, 121.450882],
+                [31.224594, 121.454754],
+                [31.224986, 121.456612],
+                [31.225011, 121.45696],
+                [31.224723, 121.457684],
+                [31.224779, 121.459977],
+                [31.224836, 121.461826],
+                [31.225207, 121.462941],
+                [31.225709, 121.464968]
+            ],
+            landmarks: ["巨鹿758", "巨五乐社区"],
+            tag: '手作买手/潮流园区'
+        },
+        {
+            id: 'changle',
+            name: '长乐路',
+            type: 'horizontal',
+            subArea: 'jufu',
+            featured: true,
+            desc: '享誉沪上的“潮流第一街”，梧桐浓密，这里曾是上海独立国潮品牌和先锋买手店的黄金温床。',
+            mnemonic: '紧邻巨鹿路南侧约150米，由西端乌鲁木齐中路起点向东，笔直穿过常熟路、富民路、陕西南路，终至茂名南路。',
+            origin: '原称蒲石路（Rue Bourgeat，以法国驻沪领事蒲石命名）。1946年改今名，以福建省长乐县命名，亦有“长久安乐”的吉祥寓意。',
+            path: [
+                [31.216275, 121.434799],
+                [31.217211, 121.439246],
+                [31.217597, 121.441569],
+                [31.217768, 121.442562],
+                [31.217962, 121.443662],
+                [31.218943, 121.446713],
+                [31.219264, 121.447615],
+                [31.219703, 121.448316],
+                [31.221688, 121.451441],
+                [31.222249, 121.454117],
+                [31.222931, 121.457357],
+                [31.223364, 121.460221],
+                [31.223818, 121.463052],
+                [31.224435, 121.465567],
+                [31.224988, 121.465904]
+            ],
+            landmarks: ["新锦江大酒店", "蒲石五里", "长乐邨"],
+            tag: '潮流始发地/新式里弄'
+        },
+        {
+            id: 'huaihai',
+            name: '淮海中路',
+            type: 'horizontal',
+            subArea: 'all',
+            featured: true,
+            desc: '衡复风貌区的最强斜轴。它并非正东正西，而是斜切整个街区，东部现代奢华，西段历史厚重。',
+            mnemonic: '重要的物理大斜轴！西南起于武康大楼，以近30度斜切度向上挺进，途径上海图书馆、常熟路、音乐学院，最终平稳折进iAPM环贸商圈。',
+            origin: '前身主要为霞飞路（Avenue Joffre，纪念法国元帅霞飞）东段及福煦路（Avenue Foch）等。1950年定名淮海中路，取苏北“淮海”地区之名（淮安—海州一带），与“淮海战役”无直接关联。',
+            path: [
+                [31.204158, 121.43055],
+                [31.205829, 121.433268],
+                [31.209056, 121.438324],
+                [31.210222, 121.440183],
+                [31.21215, 121.443184],
+                [31.214572, 121.445092],
+                [31.215541, 121.447137],
+                [31.21729, 121.451263],
+                [31.218572, 121.454289],
+                [31.219559, 121.456618],
+                [31.221003, 121.459964],
+                [31.22255, 121.463707],
+                [31.223773, 121.46663],
+                [31.224705, 121.468854],
+                [31.225987, 121.471958]
+            ],
+            landmarks: ["武康大楼", "上海图书馆", "环贸iAPM", "盛宣怀住宅"],
+            tag: '黄金大斜轴/繁华动脉'
+        },
+        {
+            id: 'anfu',
+            name: '安福路',
+            type: 'horizontal',
+            subArea: 'wukang',
+            featured: true,
+            desc: '被称为上海乃至全国的“宇宙网红中心”。仅有约800米长，却云集了最先锋的话剧、面包房、潮流买手和Bistro。',
+            mnemonic: '平行街区最北侧。西起武康路弯道顶端，东至常熟路，中段与正南北的乌鲁木齐中路交叉。',
+            origin: '原称马斯南路（Route Massenet，纪念法国作曲家马斯内）。1946年改今名，以江西省安福县命名。',
+            path: [
+                [31.217254, 121.443895],
+                [31.217232, 121.443841],
+                [31.21675, 121.442546],
+                [31.216639, 121.442245],
+                [31.216619, 121.442196],
+                [31.216251, 121.441046],
+                [31.216171, 121.440673],
+                [31.215982, 121.439769],
+                [31.215959, 121.43966],
+                [31.215919, 121.439465],
+                [31.215888, 121.439326],
+                [31.215411, 121.43705],
+                [31.21518, 121.43611],
+                [31.21504, 121.435623],
+                [31.214947, 121.435431]
+            ],
+            landmarks: ["上海话剧艺术中心", "Sunflour网红烘焙"],
+            tag: '话剧艺术/宇宙网红'
+        },
+        {
+            id: 'wuyuan',
+            name: '五原路',
+            type: 'horizontal',
+            subArea: 'wukang',
+            featured: true,
+            desc: '闹中取静的幽静街巷，两旁布满精致的老洋房、私人工作室和低调而高雅的买手店。',
+            mnemonic: '安福路正南面第一条平行小街。西自武康路出发，东至常熟路，中交乌鲁木齐中路。',
+            origin: '1946年定名，以内蒙古自治区五原县命名。该路在法租界时期为新建住宅街区，属批量“以国内县名命名”政策。',
+            path: [
+                [31.213472, 121.436376],
+                [31.21368, 121.437447],
+                [31.21392, 121.438658],
+                [31.21404, 121.439263],
+                [31.214216, 121.440168],
+                [31.214257, 121.440409],
+                [31.214355, 121.440911],
+                [31.214443, 121.441385],
+                [31.214859, 121.442569],
+                [31.215049, 121.443105],
+                [31.215078, 121.443185],
+                [31.215469, 121.44429],
+                [31.215535, 121.444461],
+                [31.21556, 121.444524]
+            ],
+            landmarks: ["张乐平故居", "自由公寓"],
+            tag: '幽静慢生活/文人故居'
+        },
+        {
+            id: 'fuxing_w',
+            name: '复兴西路',
+            type: 'horizontal',
+            subArea: 'wukang',
+            featured: true,
+            desc: '公认上海“梧桐树遮天蔽日最震撼”的优雅大道。全路几乎没有底商商铺，只有高墙后精致的西班牙式与Art Deco式洋房公寓。',
+            mnemonic: '五原路正南侧第二条平行线。西起华山路，向东穿过武康路，止于乌鲁木齐中路。往东过路口即称为“复兴中路”。',
+            origin: '1945年抗战胜利后改名“复兴”，寓民族复兴。复兴西路为原麦阳路（Rue Mayen）西段，麦阳路则以法国一地名音译而来。',
+            path: [
+                [31.212328, 121.443358],
+                [31.21238, 121.442141],
+                [31.212398, 121.44157],
+                [31.212422, 121.440707],
+                [31.212446, 121.439496],
+                [31.212609, 121.437115],
+                [31.212631, 121.436937],
+                [31.212644, 121.436426],
+                [31.212694, 121.435329],
+                [31.212714, 121.434732],
+                [31.212764, 121.433863],
+                [31.212837, 121.433531],
+                [31.21303, 121.433198],
+                [31.213394, 121.432872]
+            ],
+            landmarks: ["柯灵故居", "麦琪公寓", "黑石公寓西段"],
+            tag: '老洋房大观园/遮天绿荫'
+        },
+        {
+            id: 'fuxing_m',
+            name: '复兴中路',
+            type: 'horizontal',
+            subArea: 'shannan',
+            featured: true,
+            desc: '历史厚重的人文艺术大街。横跨多个行政区，交响乐、老式石库门、红色政权遗址与经典老公寓在沿线鳞次惬比。',
+            mnemonic: '复兴西路在乌中路口向东的完美笔直连贯。一路平直横穿汾阳路、陕西南路、茂名南路、瑞金二路，连接思南公馆。',
+            origin: '1945年定名“复兴中路”，取抗战胜利、国家复兴之义。前身为麦阳路东段及霞飞路部分延伸，与复兴西路在同一直线。',
+            path: [
+                [31.218717, 121.471947],
+                [31.2174, 121.467413],
+                [31.217505, 121.465993],
+                [31.217261, 121.464039],
+                [31.217041, 121.462563],
+                [31.216811, 121.461062],
+                [31.21643, 121.459306],
+                [31.215931, 121.458042],
+                [31.21558, 121.457129],
+                [31.215127, 121.455329],
+                [31.214715, 121.45368],
+                [31.213941, 121.450834],
+                [31.213273, 121.448422],
+                [31.212486, 121.445366],
+                [31.212328, 121.443358]
+            ],
+            landmarks: ["上海交响乐团音乐厅", "黑石公寓", "思南公馆(东段)"],
+            tag: '交响音乐/海派古典'
+        },
+        {
+            id: 'yongkang',
+            name: '永康路',
+            type: 'horizontal',
+            subArea: 'shannan',
+            featured: true,
+            desc: '上海咖啡馆密度和品质在全国名列前茅的人气微街，历经了酒吧街到法式咖啡烘焙街的成功转型。',
+            mnemonic: '复兴中路南面，西端起自乌鲁木齐南路，东端笔直穿过襄阳南路，直至陕西南路。',
+            origin: '原称雷米路（Rue Rémy）等。1946年改今名，以浙江省永康县命名。',
+            path: [
+                [31.213127, 121.454662],
+                [31.213076, 121.454496],
+                [31.212971, 121.45413],
+                [31.212796, 121.453502],
+                [31.212788, 121.453471],
+                [31.212714, 121.453207],
+                [31.212684, 121.453107],
+                [31.212535, 121.452754],
+                [31.212526, 121.452734],
+                [31.212489, 121.452646],
+                [31.212208, 121.451988],
+                [31.212194, 121.451954],
+                [31.212003, 121.451493],
+                [31.21183, 121.450986],
+                [31.211411, 121.449546]
+            ],
+            landmarks: ["精品咖啡一条街", "手作甜品"],
+            tag: '小街咖啡馆/烘焙地标'
+        },
+        {
+            id: 'jianguo',
+            name: '建国西路',
+            type: 'horizontal',
+            subArea: 'music',
+            featured: true,
+            desc: '衡复风貌区最南缘的核心横线。红砖石库门里弄与精致的高档现代餐饮穿插，呈现市井与高贵并存的迷人色调。',
+            mnemonic: '最南端平行线。西起衡山路口与岳阳路南口，向东横贯穿乌鲁木齐南路、高安路、襄阳南路、陕西南路。',
+            origin: '1945—1949年间定名“建国”，取建设新中国之意。前身法租界时期称红兰桥路、善继堂路等，为法租界南界一带里弄通道。',
+            path: [
+                [31.20191, 121.43848],
+                [31.201938, 121.438781],
+                [31.20234, 121.440588],
+                [31.20322, 121.443064],
+                [31.203368, 121.443582],
+                [31.203811, 121.444603],
+                [31.204738, 121.446173],
+                [31.205016, 121.447078],
+                [31.205472, 121.448747],
+                [31.206709, 121.452725],
+                [31.207729, 121.455699],
+                [31.208432, 121.457444],
+                [31.209193, 121.459436],
+                [31.210242, 121.461754],
+                [31.210922, 121.463276]
+            ],
+            landmarks: ["建业里(海派红砖)", "步高里(西界)"],
+            tag: '海派石库门/幽静里弄'
+        },
+        {
+            id: 'hunan',
+            name: '湖南路',
+            type: 'horizontal',
+            subArea: 'wukang',
+            featured: true,
+            desc: '极为优雅幽深的“梧桐树蔽日之首”，沿街尽是神秘深锁的名人花园洋房，静谧高雅。',
+            mnemonic: '西北片区核心斜行横线。西起华山路，向东穿过兴国路、泰安路、武康路，最终止于乌鲁木齐中路。',
+            origin: '原称约翰路（John Road）。1946年改今名，以湖南省命名。',
+            path: [
+                [31.209346, 121.438802],
+                [31.21001, 121.438003],
+                [31.210207, 121.437634],
+                [31.210317, 121.437306],
+                [31.210333, 121.436973],
+                [31.210162, 121.435974],
+                [31.210154, 121.435866],
+                [31.210186, 121.435622],
+                [31.210278, 121.434569],
+                [31.210291, 121.434421],
+                [31.210319, 121.433809],
+                [31.210338, 121.432807],
+                [31.210245, 121.431491],
+                [31.210031, 121.430193],
+                [31.209734, 121.428428]
+            ],
+            landmarks: ["湖南别墅", "鲁迅故居旁支"],
+            tag: '顶级深幽/名人宅邸'
+        },
+        {
+            id: 'taian',
+            name: '泰安路',
+            type: 'horizontal',
+            subArea: 'wukang',
+            featured: true,
+            desc: '上海最精致短小的高尚里弄洋房小道，经典的“卫乐新村”和“泰安别墅”隐匿其中。',
+            mnemonic: '夹在湖南路和兴国路之间。西端起于华山路，东端平稳止于武康路。',
+            origin: '原称麦特村路（Route Mayen 支路一带）。1946年改今名，以山东省泰安县（今泰安市）命名。',
+            path: [
+                [31.206763, 121.42923],
+                [31.206788, 121.429326],
+                [31.207256, 121.430893],
+                [31.207307, 121.431089],
+                [31.207472, 121.431904],
+                [31.207622, 121.432637],
+                [31.207664, 121.432966],
+                [31.20794, 121.434243],
+                [31.208018, 121.434619]
+            ],
+            landmarks: ["卫乐新村", "泰安别墅"],
+            tag: '里弄洋房/幽静短街'
+        },
+        {
+            id: 'dongping',
+            name: '东平路',
+            type: 'horizontal',
+            subArea: 'music',
+            featured: true,
+            desc: '上海无可争议的“情侣路”。全路没有一辆公交车，幽静深邃，隐藏着蒋宋旧居“爱庐”等数栋尊贵老洋房。',
+            mnemonic: '极为幽静。横向联通斜行衡山路与斜行汾阳路，是一条极短的隐藏型水平廊道。',
+            origin: '原称爱棠路（Rue Eden，Eden 音译“爱棠/怡登”）。1946年改今名，以山东省东平县命名。',
+            path: [
+                [31.210594, 121.443238],
+                [31.210587, 121.443725],
+                [31.210511, 121.444846],
+                [31.210503, 121.444945],
+                [31.210413, 121.445746],
+                [31.210317, 121.446279],
+                [31.210318, 121.446996],
+                [31.210359, 121.447187]
+            ],
+            landmarks: ["蒋介石爱庐别墅", "席素珍旧居"],
+            tag: '顶级隐逸/无公交绿色街'
+        },
+        {
+            id: 'yongjia',
+            name: '永嘉路',
+            type: 'horizontal',
+            subArea: 'shannan',
+            featured: true,
+            desc: '一条极长、极富市井故事的海派弄堂街。复古红砖老洋房与买手咖啡馆在沿路碰撞。',
+            mnemonic: '“建国西路”正北侧的平行长街。横跨衡山路、乌中路、襄阳南路、陕西南路，直至瑞金二路。',
+            origin: '原称嘉摩路（Rue Camoens，纪念葡萄牙诗人卡蒙斯）。1946年改今名，以浙江省永嘉县命名。',
+            path: [
+                [31.205444, 121.441071],
+                [31.206028, 121.442984],
+                [31.206574, 121.44434],
+                [31.207903, 121.447769],
+                [31.20814, 121.448685],
+                [31.209142, 121.450221],
+                [31.209671, 121.451129],
+                [31.210331, 121.452267],
+                [31.210925, 121.453267],
+                [31.21123, 121.454333],
+                [31.211415, 121.455016],
+                [31.211859, 121.456393],
+                [31.212014, 121.456933],
+                [31.212093, 121.457147],
+                [31.213688, 121.461267]
+            ],
+            landmarks: ["永嘉新村", "慎成里"],
+            tag: '海派弄堂/市井与小资'
+        },
+        {
+            id: 'shaoxing',
+            name: '绍兴路',
+            type: 'horizontal',
+            subArea: 'shannan',
+            featured: true,
+            desc: '大名鼎鼎的“书香出版第一街”。短短数百米，却云集了各大老牌出版社、画廊与深藏石库门的咖啡馆。',
+            mnemonic: '东南极精致小街。西起陕西南路，东至瑞金二路，平行于建国中路。',
+            origin: '1946年定名，以浙江省绍兴市命名。该路原为法租界东部短街，后因出版社云集成“书香街”。',
+            path: [
+                [31.212244, 121.461609],
+                [31.21209, 121.461072],
+                [31.211901, 121.460574],
+                [31.211844, 121.460476],
+                [31.211829, 121.46045],
+                [31.211633, 121.460111],
+                [31.211209, 121.459352],
+                [31.210991, 121.458951],
+                [31.210374, 121.45732],
+                [31.210353, 121.457209]
+            ],
+            landmarks: ["故事会/上海文艺出版社", "绍兴公园"],
+            tag: '书香出版/画廊咖啡'
+        },
+        {
+            id: 'nanchang',
+            name: '南昌路',
+            type: 'horizontal',
+            subArea: 'shannan',
+            featured: true,
+            desc: '紧贴淮海中路商圈的精致后花园。满街布满了富有海派韵味的复古杂货铺、独立设计师橱窗。',
+            mnemonic: '淮海中路正南侧第一条平行横街。横贯襄阳南路、陕西南路、茂名南路、瑞金二路直到思南路。',
+            origin: '原称环龙路（Route Ronde）。1946年改今名，以江西省南昌市命名。',
+            path: [
+                [31.216074, 121.452471],
+                [31.216325, 121.453284],
+                [31.216661, 121.454297],
+                [31.217041, 121.455249],
+                [31.218046, 121.457138],
+                [31.218964, 121.458192],
+                [31.219481, 121.459741],
+                [31.219691, 121.46067],
+                [31.220242, 121.462173],
+                [31.220986, 121.46399],
+                [31.221219, 121.464676],
+                [31.221244, 121.465429],
+                [31.22121, 121.46619],
+                [31.221004, 121.466371],
+                [31.220853, 121.466953]
+            ],
+            landmarks: ["科学会堂", "徐志摩旧居"],
+            tag: '精致后街/海派民居'
+        },
+        {
+            id: 'wukang',
+            name: '武康路',
+            type: 'vertical',
+            subArea: 'wukang',
+            featured: true,
+            desc: '中国历史文化名街。路面呈一道如新月般的绝美圆弧弯道，两侧分布了约30余处老洋房与名人旧居。',
+            mnemonic: '物理新月形弯曲！北起安福路，先向西南偏弧度延伸，随后优雅弯转向东南，精准落在武康大楼五岔路口。',
+            origin: '原称福开森路（Route Ferguson，纪念英国记者、教育家福开森）。1943年改今名，以浙江省武康县（今德清县武康街道）命名。',
+            path: [
+                [31.215199, 121.434608],
+                [31.21514, 121.43485],
+                [31.214947, 121.435431],
+                [31.214232, 121.435955],
+                [31.214079, 121.436053],
+                [31.213525, 121.436363],
+                [31.213223, 121.436438],
+                [31.212644, 121.436426],
+                [31.211499, 121.436112],
+                [31.210169, 121.435746],
+                [31.209075, 121.435333],
+                [31.208576, 121.434998],
+                [31.208018, 121.434619],
+                [31.206322, 121.43351],
+                [31.205829, 121.433268]
+            ],
+            landmarks: ["巴金故居", "罗密欧阳台", "密丹公寓"],
+            tag: '最美弯道/名人旧宅'
+        },
+        {
+            id: 'wulumuqi',
+            name: '乌鲁木齐路',
+            type: 'vertical',
+            subArea: 'all',
+            featured: true,
+            desc: '连缀南北的生命线，充溢着衡复风貌区极为难得、极具生活烟火气的中西结合色彩，水果摊、面包房密布。',
+            mnemonic: '核心正南北“大脊椎”！自北向南精准拉直，一杆贯穿：长乐路、安福路、五原路、复兴西路、永康路和建国西路。',
+            origin: '1946年定名，以新疆迪化（今乌鲁木齐）命名，体现“边疆省区入名”的命名惯例。前身曾为宝山路、迈尔斯路（Rue Mile）等段。',
+            path: [
+                [31.201584, 121.445824],
+                [31.202929, 121.445392],
+                [31.205082, 121.444713],
+                [31.208701, 121.44374],
+                [31.210594, 121.443238],
+                [31.212981, 121.441968],
+                [31.215618, 121.440909],
+                [31.217118, 121.440085],
+                [31.218465, 121.439383],
+                [31.220124, 121.439001],
+                [31.223309, 121.438326],
+                [31.224491, 121.437785],
+                [31.225313, 121.437205],
+                [31.226581, 121.435845],
+                [31.227251, 121.43641]
+            ],
+            landmarks: ["乌中市集", "美国领事馆旧址", "上海图书馆(南段)"],
+            tag: '市井烟火/核心主轴'
+        },
+        {
+            id: 'changshu',
+            name: '常熟路',
+            type: 'vertical',
+            subArea: 'jufu',
+            featured: true,
+            desc: '连接静安寺商圈与衡山路林荫大道的宽阔南北主干道，巨鹿、长乐、安福、五原皆向东汇集终止于此。',
+            mnemonic: '乌中路东侧平行。北起延安中路，南端直抵淮海中路与衡山路的物理转折点。',
+            origin: '原称白克路（Rue Boquet）。1946年改今名，以江苏省常熟市命名。',
+            path: [
+                [31.214368, 121.444963],
+                [31.215535, 121.444461],
+                [31.216357, 121.444105],
+                [31.217605, 121.443713],
+                [31.218123, 121.443533],
+                [31.218373, 121.443445],
+                [31.218613, 121.44336],
+                [31.218719, 121.443313],
+                [31.219016, 121.443163],
+                [31.219572, 121.442786],
+                [31.219655, 121.442659],
+                [31.220087, 121.442048],
+                [31.220219, 121.441915],
+                [31.219753, 121.44262]
+            ],
+            landmarks: ["常熟路地铁站", "善钟里"],
+            tag: '宽阔动脉/轨交枢纽'
+        },
+        {
+            id: 'hengshan',
+            name: '衡山路',
+            type: 'vertical',
+            subArea: 'music',
+            featured: true,
+            desc: '上海最富异国情调和夜生活美名的法国梧桐大道，是20世纪90年代红极一时的酒吧街鼻祖。',
+            mnemonic: '著名的西南斜切大通道！由常熟路/淮海路交叉口顺滑切出，斜向西南延伸，连通东平路、乌南路，终至建国西路。',
+            origin: '原称贝当路（Avenue Pétain，纪念法国元帅贝当）。1943年改今名，以湖南省衡山命名（汪伪时期“去殖民化”改名）。',
+            path: [
+                [31.211381, 121.445428],
+                [31.210511, 121.444846],
+                [31.209008, 121.443656],
+                [31.205444, 121.441071],
+                [31.204428, 121.440331],
+                [31.203187, 121.439413],
+                [31.20191, 121.43848],
+                [31.19988, 121.436939],
+                [31.199406, 121.436591],
+                [31.198086, 121.435577],
+                [31.197624, 121.435206],
+                [31.19689, 121.434502],
+                [31.196463, 121.434049],
+                [31.196455, 121.433917],
+                [31.196766, 121.433777]
+            ],
+            landmarks: ["基督国际礼拜堂", "衡山宾馆", "衡山公园"],
+            tag: '林荫风情/酒吧街鼻祖'
+        },
+        {
+            id: 'fumin',
+            name: '富民路',
+            type: 'vertical',
+            subArea: 'jufu',
+            featured: true,
+            desc: '“巨富长”潮流三角的纵向脊梁，极其精致，布满了新潮独立设计师服装店和极高水平的餐饮、咖啡空间。',
+            mnemonic: '精短。北起延安西路，向南连接巨鹿路、长乐路，南端直接汇入东湖路/淮海路转角。',
+            origin: '1946年定名，取“富民”吉祥义，非旧县名。前身为法租界扩展区新筑道路，与巨鹿路、长乐路同期开发。',
+            path: [
+                [31.223576, 121.444974],
+                [31.223515, 121.445091],
+                [31.223379, 121.445256],
+                [31.221795, 121.446134],
+                [31.220636, 121.446794],
+                [31.219331, 121.447584],
+                [31.219264, 121.447615],
+                [31.219174, 121.447658],
+                [31.218842, 121.447765],
+                [31.218701, 121.447827]
+            ],
+            landmarks: ["保罗酒楼旧址", "古承公寓"],
+            tag: '“巨富长”纵脊/摩登先锋'
+        },
+        {
+            id: 'donghu',
+            name: '东湖路',
+            type: 'vertical',
+            subArea: 'jufu',
+            featured: true,
+            desc: '全线仅几百米，却被法国梧桐与洋房、全球一线的夜间酒吧、黑珍珠级西餐厅完全铺满，夜晚分外迷人。',
+            mnemonic: '富民路的南端折角。从淮海路口折向东南方，斜连到汾阳路/复兴中路交界。',
+            origin: '1945年后定名，因邻近复兴公园东侧水面旧称“东湖”而得名（相对公园西侧“西湖”），非浙江东湖。',
+            path: [
+                [31.219066, 121.447086],
+                [31.218977, 121.447191],
+                [31.218781, 121.447672],
+                [31.218701, 121.447827],
+                [31.218681, 121.447955],
+                [31.218636, 121.448226],
+                [31.21854, 121.448432],
+                [31.218208, 121.449284],
+                [31.217497, 121.45134],
+                [31.217358, 121.451423]
+            ],
+            landmarks: ["东湖宾馆(原杜月笙公馆)", "席家花园"],
+            tag: '精致法餐/摩登餐酒吧'
+        },
+        {
+            id: 'fenyang',
+            name: '汾阳路',
+            type: 'vertical',
+            subArea: 'music',
+            featured: true,
+            desc: '著名的“音乐之路”。这里有音乐学院，两旁的梧桐树下无时无刻不在流淌着大提琴和小提琴的动人弦音。',
+            mnemonic: '优雅斜向折线。西起淮海路/东湖路口，沿东南方向斜穿复兴中路，最终南止于普希金像三角地。',
+            origin: '原称白罗路/吉庆路（Rue Mercier 等）。1946年改今名，以山西省汾阳县命名。',
+            path: [
+                [31.210839, 121.446866],
+                [31.210906, 121.44708],
+                [31.211047, 121.447535],
+                [31.211299, 121.447889],
+                [31.211327, 121.447937],
+                [31.211556, 121.448329],
+                [31.21206, 121.449037],
+                [31.212234, 121.44932],
+                [31.21284, 121.449584],
+                [31.212911, 121.449612],
+                [31.213687, 121.449932],
+                [31.2156, 121.45079],
+                [31.21607, 121.450973],
+                [31.217258, 121.451434],
+                [31.217358, 121.451423]
+            ],
+            landmarks: ["上海音乐学院", "上海工艺美术博物馆"],
+            tag: '音乐学术重镇/浪漫斜街'
+        },
+        {
+            id: 'yueyang',
+            name: '岳阳路',
+            type: 'vertical',
+            subArea: 'music',
+            featured: true,
+            desc: '两旁红砖高墙深锁，法国梧桐盘根错节。这里集中了大量的国家级生命科研院所和老一辈科学家们的足迹。',
+            mnemonic: '正南北纵轴。北起普希金像三角地顺接汾阳路，一路向南直贯永康路延长线，直至建国西路。',
+            origin: '原称麦阳路支路/米业路（Rue Millet，Millet 音译“米业”）。1946年改今名，以湖南省岳阳市（古岳州）命名。',
+            path: [
+                [31.202579, 121.448758],
+                [31.20303, 121.448621],
+                [31.204481, 121.448365],
+                [31.205292, 121.448218],
+                [31.207491, 121.447844],
+                [31.207903, 121.447769],
+                [31.208714, 121.447594],
+                [31.208827, 121.447573],
+                [31.208988, 121.447534],
+                [31.209744, 121.447354],
+                [31.210359, 121.447187],
+                [31.210409, 121.447213],
+                [31.211047, 121.447535]
+            ],
+            landmarks: ["普希金铜像", "中科院生理所旧楼"],
+            tag: '红砖高墙/科研静土'
+        },
+        {
+            id: 'shaandong_s',
+            name: '陕西南路',
+            type: 'vertical',
+            subArea: 'all',
+            featured: true,
+            desc: '贯穿卢湾和徐汇两区的南北商业脊骨。从巨长潮流端到环贸iAPM商圈，一路上见证着上海近百年的商业变迁。',
+            mnemonic: '东侧最大的南北正规大轴线。北起长乐路，向南高直跨越淮海路（iAPM）、复兴中路、永康路和建国西路。',
+            origin: '原称祁门路（Rue du Père Huc，以法国汉学家古恒命名）。1946年改今名，以陕西省命名，南段称陕西南路。',
+            path: [
+                [31.225748, 121.452233],
+                [31.225068, 121.452313],
+                [31.224043, 121.452319],
+                [31.222934, 121.452813],
+                [31.22128, 121.453377],
+                [31.219697, 121.45403],
+                [31.219061, 121.454311],
+                [31.21799, 121.454785],
+                [31.21541, 121.456127],
+                [31.213781, 121.456602],
+                [31.21247, 121.456946],
+                [31.211953, 121.457038],
+                [31.209688, 121.457286],
+                [31.20683, 121.457618],
+                [31.2049, 121.457749]
+            ],
+            landmarks: ["环贸iAPM", "马勒别墅(偏北)", "步高里(石库门)"],
+            tag: '南北大动脉/商业中心'
+        },
+        {
+            id: 'maoming',
+            name: '茂名南路',
+            type: 'vertical',
+            subArea: 'shannan',
+            featured: true,
+            desc: '著名的海派定制时装与高级旗袍定制发源街区，老牌传奇花园酒店和百年戏院在其两端高密排开。',
+            mnemonic: '最东侧平行线。北接巨鹿、长乐，南连复兴中路、建国西路。老底子上海名流街。',
+            origin: '原称迈而浪路（Rue Mollan）。1946年改今名，以广东省茂名县（今茂名市）命名。',
+            path: [
+                [31.2129, 121.459027],
+                [31.214566, 121.458376],
+                [31.214762, 121.458306],
+                [31.215858, 121.457922],
+                [31.218099, 121.457195],
+                [31.21864, 121.457029],
+                [31.219485, 121.456778],
+                [31.219707, 121.456693],
+                [31.221311, 121.456108],
+                [31.221576, 121.456016],
+                [31.222599, 121.455678],
+                [31.223595, 121.455766],
+                [31.224838, 121.455956],
+                [31.225555, 121.456251],
+                [31.225948, 121.456349]
+            ],
+            landmarks: ["花园饭店", "锦江饭店", "兰心大戏院"],
+            tag: '高级定制/百年剧院'
+        },
+        {
+            id: 'xingguo',
+            name: '兴国路',
+            type: 'vertical',
+            subArea: 'wukang',
+            featured: true,
+            desc: '衡复西翼最幽静典雅的高墙大院绿荫街。兴国宾馆、万国公墓旧址静匿其间。',
+            mnemonic: '与武康路平行构成外包围双翼。北起华山路，向南优美斜穿湖南路、复兴西路，最后直落于武康大楼。',
+            origin: '1946年定名，以江西省兴国县命名。该路沿线曾有法租界万国公墓（后迁址），现以兴国宾馆闻名。',
+            path: [
+                [31.205829, 121.433268],
+                [31.205835, 121.433266],
+                [31.206518, 121.433022],
+                [31.206828, 121.432911],
+                [31.207622, 121.432637],
+                [31.208184, 121.432454],
+                [31.208692, 121.432216],
+                [31.20961, 121.431787],
+                [31.210245, 121.431491],
+                [31.210336, 121.431448],
+                [31.210405, 121.431417],
+                [31.211176, 121.431071],
+                [31.21153, 121.430971],
+                [31.212388, 121.43073],
+                [31.212971, 121.430574]
+            ],
+            landmarks: ["兴国宾馆大院"],
+            tag: '西翼大院/顶级静谧'
+        },
+        {
+            id: 'yuqing',
+            name: '余庆路',
+            type: 'vertical',
+            subArea: 'wukang',
+            featured: true,
+            desc: '一尘不染、不通公共汽车的超安宁街道。两侧皆是经典的南欧、法式花园住宅和高墙。',
+            mnemonic: '武康大楼五路路口向正南方垂直拉出的“静音”大道，南止于衡山路。',
+            origin: '1946年定名，以贵州省余庆县命名。路短而直，为武康大楼五岔口向南延伸的安静通道。',
+            path: [
+                [31.205829, 121.433268],
+                [31.205243, 121.433633],
+                [31.204195, 121.434286],
+                [31.203238, 121.434865],
+                [31.201226, 121.435973],
+                [31.199791, 121.436731],
+                [31.199692, 121.436795],
+                [31.199572, 121.43684]
+            ],
+            landmarks: ["高墙洋房群"],
+            tag: '安详绿道/南欧洋房'
+        },
+        {
+            id: 'tianping',
+            name: '天平路',
+            type: 'vertical',
+            subArea: 'wukang',
+            featured: true,
+            desc: '连接繁华徐家汇商圈与武康大楼核心风貌区的百年林荫道，老宅里飘着温暖的市井炊烟。',
+            mnemonic: '由武康大楼起斜向西南方直插，擦过衡山路北口，终至广元路/徐家汇。',
+            origin: '1946年定名，一说因苏州天平山得名，一说取“天平”公正之义。连接徐家汇与衡复风貌区。',
+            path: [
+                [31.19695, 121.436981],
+                [31.197315, 121.436693],
+                [31.197448, 121.436572],
+                [31.198045, 121.435661],
+                [31.198063, 121.435626],
+                [31.199349, 121.434483],
+                [31.199709, 121.434119],
+                [31.200543, 121.433628],
+                [31.201176, 121.433309],
+                [31.201497, 121.433148],
+                [31.202203, 121.432973],
+                [31.203716, 121.433112],
+                [31.204323, 121.433172],
+                [31.204626, 121.433197],
+                [31.205829, 121.433268]
+            ],
+            landmarks: ["天平宾馆", "徐家汇公园北翼"],
+            tag: '市井海派/徐汇接口'
+        },
+        {
+            id: 'wanping',
+            name: '宛平路',
+            type: 'vertical',
+            subArea: 'music',
+            featured: true,
+            desc: '平行于高安路与衡山路，紧邻徐家汇公园绿意，梧桐婆娑，优雅且安静。',
+            mnemonic: '北起淮海中路（上海图书馆西侧），向南横穿衡山路，南至肇嘉浜路。',
+            origin: '1946年定名，以北京宛平县（卢沟桥所在，今丰台区一部分）命名。',
+            path: [
+                [31.207203, 121.435458],
+                [31.20449, 121.437057],
+                [31.203532, 121.437594],
+                [31.202082, 121.438421],
+                [31.20191, 121.43848],
+                [31.201768, 121.438497],
+                [31.201719, 121.438526],
+                [31.199285, 121.439971],
+                [31.19915, 121.440056],
+                [31.198891, 121.440244],
+                [31.199224, 121.440211],
+                [31.199356, 121.440128],
+                [31.201761, 121.438578],
+                [31.201833, 121.438529],
+                [31.20191, 121.43848]
+            ],
+            landmarks: ["徐家汇公园东界", "上海少儿图书馆旧址"],
+            tag: '公园邻翼/高雅弄堂'
+        },
+        {
+            id: 'gaoan',
+            name: '高安路',
+            type: 'vertical',
+            subArea: 'music',
+            featured: true,
+            desc: '老海派经典高级老公寓的博览街。如阿达米公寓、高安公寓，民国风韵在这里凝固。',
+            mnemonic: '北起淮海中路（上海图书馆东侧），向南径直穿透康平路、衡山路，止于建国西路。',
+            origin: '原称戴拉脱路（Route Delastre）。1946年改今名，以江西省高安县（今高安市）命名。',
+            path: [
+                [31.209346, 121.438802],
+                [31.208197, 121.439412],
+                [31.208149, 121.439437],
+                [31.207666, 121.439694],
+                [31.207178, 121.439941],
+                [31.205273, 121.44095],
+                [31.205146, 121.441017],
+                [31.202897, 121.442023],
+                [31.202568, 121.442179],
+                [31.202313, 121.44231],
+                [31.202181, 121.442391],
+                [31.202056, 121.442453],
+                [31.200854, 121.443061],
+                [31.200539, 121.443226],
+                [31.200265, 121.443374]
+            ],
+            landmarks: ["阿达米公寓(高安一号)", "高安公寓"],
+            tag: '复古公寓/名流寓所'
+        },
+        {
+            id: 'sinan',
+            name: '思南路',
+            type: 'vertical',
+            subArea: 'shannan',
+            featured: true,
+            desc: '上海东部风貌区不折不扣的人文王冠。完全由经典的法式鹅卵石墙和连排独立花园洋房铺满。',
+            mnemonic: '东侧历史地标！北起淮海中路（复兴公园西侧），南贯复兴中路、思南公馆、建国中路，止于泰康路（田子坊）。',
+            origin: '1912年曾称善堂路。1945年改今名，一说源自法租界“Saint-Denis（圣但尼）”音译“思南”；一说寓“思南行”或纪念性命名，与思南公馆区域相关。',
+            path: [
+                [31.221562, 121.461365],
+                [31.220883, 121.461596],
+                [31.219514, 121.462084],
+                [31.219055, 121.462255],
+                [31.218045, 121.46265],
+                [31.21785, 121.462727],
+                [31.216825, 121.463221],
+                [31.216316, 121.463513],
+                [31.215149, 121.464182],
+                [31.21371, 121.464765],
+                [31.212806, 121.465065],
+                [31.21185, 121.465642],
+                [31.211172, 121.466029],
+                [31.210699, 121.466367],
+                [31.210143, 121.466778]
+            ],
+            landmarks: ["思南公馆", "周公馆", "孙中山故居"],
+            tag: '法式花园公馆/名人人文学府'
+        },
+        {
+            id: 'taojiang',
+            name: '桃江路',
+            type: 'vertical',
+            subArea: 'music',
+            featured: true,
+            desc: '保留了老上海传统“弹街石（鹅卵石）”铺设的特色马路，极致浪漫，小资酒吧与露天咖啡错位散落。',
+            mnemonic: '精巧斜弯线。从衡山路口出发往东北画出优美圆弧，完美汇入汾阳路普希金像广场。',
+            origin: '1946年定名，因路侧曾有种桃人家或“桃滨”俗称而得名，非湖北省桃江县。',
+            path: [
+                [31.210359, 121.447187],
+                [31.210595, 121.447079],
+                [31.210839, 121.446866],
+                [31.210874, 121.446715],
+                [31.210962, 121.4465],
+                [31.211356, 121.445485],
+                [31.211381, 121.445428],
+                [31.211381, 121.445374],
+                [31.211378, 121.44493],
+                [31.211317, 121.444265],
+                [31.211283, 121.444043],
+                [31.210929, 121.443051],
+                [31.210906, 121.44299]
+            ],
+            landmarks: ["弹街石特色街面", "老洋房小酒馆"],
+            tag: '弹街古石/极致法式小资'
+        },
+        {
+            id: 'xiangyang_s',
+            name: '襄阳南路',
+            type: 'vertical',
+            subArea: 'all',
+            featured: true,
+            desc: '贯通南北的闹市小长街，充满平民烟火与网红面包小店的奇妙混搭，具有老弄堂日常生态。',
+            mnemonic: '陕西南路西侧大平行。北接淮海路（襄阳公园），向南平直穿过复兴中路、永康路、永嘉路直到建国西路。',
+            origin: '1946年定名，以湖北省襄阳市（古襄阳）命名。淮海路以南称襄阳南路。',
+            path: [
+                [31.204, 121.454249],
+                [31.205282, 121.453784],
+                [31.205966, 121.453596],
+                [31.206967, 121.453532],
+                [31.209334, 121.453415],
+                [31.210246, 121.453375],
+                [31.211898, 121.453221],
+                [31.212127, 121.453187],
+                [31.212587, 121.453121],
+                [31.212833, 121.453083],
+                [31.213932, 121.452877],
+                [31.215047, 121.452659],
+                [31.215365, 121.452602],
+                [31.216316, 121.452432],
+                [31.21768, 121.452198]
+            ],
+            landmarks: ["襄阳南路菜场旧址", "老字号海派点心群"],
+            tag: '网红买手/生活烟火'
+        },
+        {
+            id: 'xiangyang_n',
+            name: '襄阳北路',
+            type: 'vertical',
+            subArea: 'jufu',
+            featured: true,
+            desc: '“巨富长”三角纵向的重要支撑轴，小众精品服饰与异国情调Brunch密布。',
+            mnemonic: '襄阳南路向北跨越淮海路后的正向延伸。直穿长乐、巨鹿，直抵延安中路。',
+            origin: '与襄阳南路同源，1946年以湖北襄阳命名。淮海路以北段称襄阳北路，与南路成对。',
+            path: [
+                [31.21768, 121.452198],
+                [31.21833, 121.451852],
+                [31.218438, 121.451794],
+                [31.219445, 121.451258],
+                [31.219615, 121.451174],
+                [31.220103, 121.45092],
+                [31.221095, 121.450423],
+                [31.222213, 121.449877],
+                [31.222859, 121.449551],
+                [31.222935, 121.449524]
+            ],
+            landmarks: ["襄阳公园(东界)", "新乐路路口圣母堂"],
+            tag: '“巨富长”中轴/海派先锋'
+        },
+        {
+            id: 'baoqing',
+            name: '宝庆路',
+            type: 'vertical',
+            subArea: 'music',
+            featured: true,
+            desc: '仅有几百米长的林荫斜接通道，掩映着美轮美奂的德国老洋房与交响音乐博物馆。',
+            mnemonic: '东北-西南斜轴。连通淮海路/常熟路/衡山路大五路口，向东南斜插至复兴中路/汾阳路。',
+            origin: '1946年定名，以湖南省宝庆府（今邵阳市）旧称命名。路短，连接淮海中路与复兴中路。',
+            path: [
+                [31.211356, 121.445485],
+                [31.211812, 121.445501],
+                [31.212175, 121.445482],
+                [31.212507, 121.44546],
+                [31.213348, 121.445313],
+                [31.213705, 121.445242],
+                [31.21432, 121.445054],
+                [31.214453, 121.445017]
+            ],
+            landmarks: ["上海交响音乐博物馆(宝庆路3号)"],
+            tag: '德国古宅/音乐博物馆'
+        },
+        {
+            id: 'ruijin',
+            name: '瑞金二路',
+            type: 'vertical',
+            subArea: 'shannan',
+            featured: true,
+            desc: '风貌区东端恢弘的南北干道。两侧遍布了宏大的老牌瑞金宾馆、瑞金医院以及海派经典弄堂。',
+            mnemonic: '东部核心垂直大动脉。北起淮海中路，一路直贯向南交汇南昌路、复兴中路、绍兴路、建国中路。',
+            origin: '1950年定名，以江西省瑞金市（原中央革命根据地）命名。前身为迈而浪路/双子路口一带通道，与“红色地名”命名风一致。',
+            path: [
+                [31.206424, 121.462372],
+                [31.207074, 121.462964],
+                [31.207465, 121.462908],
+                [31.209151, 121.462465],
+                [31.209561, 121.462346],
+                [31.209853, 121.462266],
+                [31.210921, 121.461957],
+                [31.211348, 121.461851],
+                [31.212915, 121.46147],
+                [31.215191, 121.460824],
+                [31.215745, 121.460661],
+                [31.216692, 121.460471],
+                [31.217459, 121.46029],
+                [31.218357, 121.460036],
+                [31.220747, 121.459395]
+            ],
+            landmarks: ["瑞金宾馆(老法租界公董局别墅)", "瑞金医院老红砖楼"],
+            tag: '巨擘公馆/东缘动脉'
+        },
+        {
+            id: 'r_66624',
+            name: '万航渡路',
+            type: 'vertical',
+            subArea: 'jufu',
+            featured: false,
+            desc: '衡复历史风貌区内的万航渡路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.227868, 121.429469],
+                [31.227341, 121.430287],
+                [31.226876, 121.431059],
+                [31.226944, 121.431621],
+                [31.227193, 121.432621],
+                [31.227322, 121.433104],
+                [31.227366, 121.433612],
+                [31.227344, 121.434908],
+                [31.227325, 121.435412],
+                [31.227296, 121.435811],
+                [31.227224, 121.436085],
+                [31.22675, 121.437747],
+                [31.226545, 121.438227],
+                [31.225941, 121.439176],
+                [31.225433, 121.439962]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_77757',
+            name: '东安路',
+            type: 'horizontal',
+            subArea: 'shannan',
+            featured: false,
+            desc: '衡复历史风貌区内的东安路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.201584, 121.445824],
+                [31.201433, 121.445845],
+                [31.201291, 121.445852],
+                [31.201021, 121.445879],
+                [31.200157, 121.44594],
+                [31.199492, 121.446095],
+                [31.199431, 121.446109],
+                [31.19888, 121.446332],
+                [31.198813, 121.446359],
+                [31.198487, 121.446491],
+                [31.197996, 121.446807],
+                [31.197461, 121.447152],
+                [31.196349, 121.447876]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_74939',
+            name: '东诸安浜路',
+            type: 'vertical',
+            subArea: 'jufu',
+            featured: false,
+            desc: '衡复历史风貌区内的东诸安浜路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.219827, 121.426997],
+                [31.219957, 121.427804],
+                [31.220037, 121.428217],
+                [31.220167, 121.42867],
+                [31.220195, 121.429008],
+                [31.220173, 121.429338],
+                [31.220153, 121.429621],
+                [31.220139, 121.429972],
+                [31.220159, 121.430301],
+                [31.220211, 121.430689],
+                [31.220295, 121.431303],
+                [31.220374, 121.431662],
+                [31.22047, 121.431973],
+                [31.220594, 121.432141],
+                [31.220782, 121.432253]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_39819',
+            name: '中山南一路',
+            type: 'vertical',
+            subArea: 'shannan',
+            featured: false,
+            desc: '衡复历史风貌区内的中山南一路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.199037, 121.471975],
+                [31.198642, 121.470771],
+                [31.198409, 121.470116],
+                [31.198098, 121.469186]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_15335',
+            name: '中山南二路',
+            type: 'vertical',
+            subArea: 'shannan',
+            featured: false,
+            desc: '衡复历史风貌区内的中山南二路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.195184, 121.462886],
+                [31.195452, 121.463396],
+                [31.196231, 121.465011],
+                [31.196341, 121.465244],
+                [31.196476, 121.465516],
+                [31.196863, 121.466325],
+                [31.197099, 121.46692],
+                [31.197678, 121.46861],
+                [31.197752, 121.468915],
+                [31.197894, 121.469327],
+                [31.197926, 121.469424],
+                [31.198387, 121.470798]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_63101',
+            name: '丽园路',
+            type: 'horizontal',
+            subArea: 'music',
+            featured: false,
+            desc: '衡复历史风貌区内的丽园路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.207627, 121.466342],
+                [31.207624, 121.466499],
+                [31.207721, 121.467071],
+                [31.207855, 121.467729],
+                [31.20799, 121.468339],
+                [31.208182, 121.469395],
+                [31.208232, 121.469624],
+                [31.208241, 121.46962],
+                [31.208211, 121.469381],
+                [31.208197, 121.469269],
+                [31.207896, 121.467719],
+                [31.20776, 121.467054],
+                [31.207769, 121.466964],
+                [31.207895, 121.466869],
+                [31.208133, 121.466831]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_75574',
+            name: '乐山支路',
+            type: 'vertical',
+            subArea: 'shannan',
+            featured: false,
+            desc: '衡复历史风貌区内的乐山支路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.198398, 121.425151],
+                [31.198307, 121.425451],
+                [31.19815, 121.425965],
+                [31.198068, 121.426233],
+                [31.197886, 121.426828]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_74971',
+            name: '乐山路',
+            type: 'vertical',
+            subArea: 'shannan',
+            featured: false,
+            desc: '衡复历史风貌区内的乐山路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.195757, 121.425944],
+                [31.196664, 121.426321],
+                [31.196939, 121.426435],
+                [31.197886, 121.426828],
+                [31.198202, 121.427615],
+                [31.198203, 121.427782],
+                [31.198206, 121.428712],
+                [31.198141, 121.429253],
+                [31.198096, 121.429462]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_96202',
+            name: '兆丰路',
+            type: 'horizontal',
+            subArea: 'shannan',
+            featured: false,
+            desc: '衡复历史风貌区内的兆丰路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.195074, 121.462942],
+                [31.195184, 121.462886],
+                [31.195318, 121.462824]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_46854',
+            name: '兴业路',
+            type: 'vertical',
+            subArea: 'jufu',
+            featured: false,
+            desc: '衡复历史风貌区内的兴业路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.220853, 121.466953],
+                [31.220899, 121.467049],
+                [31.221062, 121.46739],
+                [31.22108, 121.467464],
+                [31.22116, 121.467781],
+                [31.221345, 121.468565],
+                [31.221662, 121.46981],
+                [31.221797, 121.470336],
+                [31.221811, 121.47039],
+                [31.221823, 121.470438],
+                [31.221901, 121.470751],
+                [31.221983, 121.471065]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_84045',
+            name: '兴安路',
+            type: 'vertical',
+            subArea: 'jufu',
+            featured: false,
+            desc: '衡复历史风貌区内的兴安路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.223241, 121.467365],
+                [31.223437, 121.467967],
+                [31.223705, 121.468826],
+                [31.223781, 121.469075],
+                [31.223811, 121.469171],
+                [31.223849, 121.469267],
+                [31.224207, 121.470253],
+                [31.224249, 121.470376],
+                [31.224289, 121.470486],
+                [31.224521, 121.471207],
+                [31.224552, 121.47129]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_92748',
+            name: '利西路',
+            type: 'vertical',
+            subArea: 'wukang',
+            featured: false,
+            desc: '衡复历史风貌区内的利西路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.216555, 121.425166],
+                [31.216686, 121.425692],
+                [31.21678, 121.426029],
+                [31.216801, 121.426068],
+                [31.216824, 121.426089],
+                [31.216854, 121.426099],
+                [31.216911, 121.426128],
+                [31.216929, 121.426153],
+                [31.216942, 121.42619],
+                [31.217102, 121.426929],
+                [31.217143, 121.427094],
+                [31.217154, 121.427129],
+                [31.217173, 121.427191],
+                [31.217253, 121.427373],
+                [31.217432, 121.427769]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_12610',
+            name: '北京西路',
+            type: 'horizontal',
+            subArea: 'jufu',
+            featured: false,
+            desc: '衡复历史风貌区内的北京西路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.225142, 121.43742],
+                [31.225331, 121.437485],
+                [31.225433, 121.437521],
+                [31.225877, 121.43774],
+                [31.225968, 121.437791],
+                [31.226106, 121.437878],
+                [31.226199, 121.437945],
+                [31.226545, 121.438227],
+                [31.226704, 121.438365],
+                [31.226722, 121.438385],
+                [31.227068, 121.438832],
+                [31.22713, 121.438913],
+                [31.22779, 121.439777],
+                [31.227845, 121.439866],
+                [31.227982, 121.440148]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_38611',
+            name: '医学院路',
+            type: 'vertical',
+            subArea: 'shannan',
+            featured: false,
+            desc: '衡复历史风貌区内的医学院路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.202323, 121.456806],
+                [31.202363, 121.456644],
+                [31.202233, 121.45543],
+                [31.202052, 121.453805],
+                [31.202025, 121.453558],
+                [31.201966, 121.453047],
+                [31.201881, 121.452746],
+                [31.20166, 121.452124],
+                [31.201499, 121.451654],
+                [31.201221, 121.45084],
+                [31.200779, 121.449714],
+                [31.200744, 121.449616],
+                [31.200408, 121.44867],
+                [31.2002, 121.448082]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_49432',
+            name: '华亭路',
+            type: 'horizontal',
+            subArea: 'wukang',
+            featured: false,
+            desc: '衡复历史风貌区内的华亭路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.21523, 121.446401],
+                [31.216687, 121.445626],
+                [31.218377, 121.444947]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_98304',
+            name: '华山路',
+            type: 'horizontal',
+            subArea: 'jufu',
+            featured: false,
+            desc: '衡复历史风貌区内的华山路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.225433, 121.439962],
+                [31.225326, 121.440023],
+                [31.225037, 121.440245],
+                [31.224504, 121.440605],
+                [31.224347, 121.440637],
+                [31.222936, 121.440928],
+                [31.222684, 121.440974],
+                [31.22231, 121.441077],
+                [31.221617, 121.441314],
+                [31.221549, 121.441338],
+                [31.22147, 121.441373],
+                [31.220765, 121.44167],
+                [31.22044, 121.441806],
+                [31.220289, 121.441911]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_10964',
+            name: '南京西路',
+            type: 'vertical',
+            subArea: 'jufu',
+            featured: false,
+            desc: '衡复历史风貌区内的南京西路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.227784, 121.447003],
+                [31.227124, 121.445674],
+                [31.22687, 121.444964],
+                [31.226309, 121.443744],
+                [31.225898, 121.443275],
+                [31.225252, 121.442091],
+                [31.224937, 121.441462],
+                [31.224549, 121.440682],
+                [31.22407, 121.439887],
+                [31.223729, 121.43929],
+                [31.223287, 121.438279],
+                [31.223091, 121.437862],
+                [31.221702, 121.436317],
+                [31.221512, 121.436099],
+                [31.220716, 121.435351]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_31897',
+            name: '南塘浜路',
+            type: 'vertical',
+            subArea: 'shannan',
+            featured: false,
+            desc: '衡复历史风貌区内的南塘浜路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.204796, 121.46626],
+                [31.205285, 121.468127],
+                [31.205476, 121.468886],
+                [31.205844, 121.47014],
+                [31.205868, 121.47022],
+                [31.205969, 121.470473]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_58060',
+            name: '合宝路',
+            type: 'horizontal',
+            subArea: 'shannan',
+            featured: false,
+            desc: '衡复历史风貌区内的合宝路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.202743, 121.459774],
+                [31.202144, 121.460017],
+                [31.201607, 121.460236],
+                [31.201193, 121.460399]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_98070',
+            name: '合肥路',
+            type: 'vertical',
+            subArea: 'wukang',
+            featured: false,
+            desc: '衡复历史风貌区内的合肥路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.215651, 121.465738],
+                [31.215656, 121.466113],
+                [31.215681, 121.467845],
+                [31.215689, 121.467953],
+                [31.215707, 121.468065],
+                [31.215734, 121.468184],
+                [31.216046, 121.46918],
+                [31.216334, 121.47009],
+                [31.216549, 121.47077]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_57621',
+            name: '同生西路',
+            type: 'vertical',
+            subArea: 'shannan',
+            featured: false,
+            desc: '衡复历史风貌区内的同生西路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.198813, 121.446359],
+                [31.19874, 121.446143],
+                [31.198652, 121.445879],
+                [31.198591, 121.445699],
+                [31.198322, 121.444904],
+                [31.198303, 121.444847],
+                [31.198151, 121.444395],
+                [31.197765, 121.443259]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_59458',
+            name: '吴兴路',
+            type: 'horizontal',
+            subArea: 'shannan',
+            featured: false,
+            desc: '衡复历史风貌区内的吴兴路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.200224, 121.44142],
+                [31.201061, 121.441079],
+                [31.201776, 121.440787],
+                [31.20234, 121.440588],
+                [31.203712, 121.439939],
+                [31.203818, 121.439892],
+                [31.204622, 121.439419],
+                [31.205129, 121.43912],
+                [31.205744, 121.438659],
+                [31.206203, 121.438262],
+                [31.207029, 121.437586],
+                [31.207442, 121.437404],
+                [31.207631, 121.437342],
+                [31.207791, 121.43729],
+                [31.208277, 121.437132]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_29367',
+            name: '嘉善路',
+            type: 'horizontal',
+            subArea: 'music',
+            featured: false,
+            desc: '衡复历史风貌区内的嘉善路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.204938, 121.456376],
+                [31.207729, 121.455699],
+                [31.209917, 121.455442],
+                [31.211295, 121.454957],
+                [31.211478, 121.454895],
+                [31.211976, 121.454722],
+                [31.212123, 121.45467],
+                [31.212284, 121.454618],
+                [31.21244, 121.454585],
+                [31.212651, 121.454576],
+                [31.212947, 121.45462],
+                [31.213142, 121.454667],
+                [31.213722, 121.454812],
+                [31.213949, 121.454791],
+                [31.214916, 121.454478]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_40307',
+            name: '大木桥路',
+            type: 'horizontal',
+            subArea: 'shannan',
+            featured: false,
+            desc: '衡复历史风貌区内的大木桥路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.195442, 121.459621],
+                [31.196103, 121.459221],
+                [31.197684, 121.458204],
+                [31.198221, 121.457934],
+                [31.198404, 121.457882],
+                [31.198631, 121.457827],
+                [31.198934, 121.457747],
+                [31.199502, 121.457596],
+                [31.200102, 121.457463],
+                [31.201158, 121.457239],
+                [31.201898, 121.457063],
+                [31.20235, 121.456977],
+                [31.203851, 121.456639],
+                [31.204626, 121.456449],
+                [31.204938, 121.456376]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_69796',
+            name: '大沽路',
+            type: 'vertical',
+            subArea: 'jufu',
+            featured: false,
+            desc: '衡复历史风貌区内的大沽路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.227945, 121.465903],
+                [31.227847, 121.465653],
+                [31.227774, 121.465076],
+                [31.227727, 121.464672],
+                [31.227651, 121.46361],
+                [31.227635, 121.463479],
+                [31.227614, 121.463193]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_24125',
+            name: '天钥桥路',
+            type: 'horizontal',
+            subArea: 'shannan',
+            featured: false,
+            desc: '衡复历史风貌区内的天钥桥路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.196598, 121.435823],
+                [31.196304, 121.436002],
+                [31.19574, 121.436332]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_13890',
+            name: '太仓路',
+            type: 'vertical',
+            subArea: 'jufu',
+            featured: false,
+            desc: '衡复历史风貌区内的太仓路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.222406, 121.46753],
+                [31.222602, 121.468216],
+                [31.223114, 121.469445],
+                [31.223151, 121.469533],
+                [31.223285, 121.469822],
+                [31.223299, 121.469853],
+                [31.223346, 121.469955],
+                [31.223462, 121.47023],
+                [31.22348, 121.470272],
+                [31.223575, 121.470697],
+                [31.223604, 121.470814],
+                [31.223707, 121.471335],
+                [31.22373, 121.471447],
+                [31.223764, 121.47162],
+                [31.223778, 121.471709]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_39019',
+            name: '太原路',
+            type: 'horizontal',
+            subArea: 'music',
+            featured: false,
+            desc: '衡复历史风貌区内的太原路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.212234, 121.44932],
+                [31.211968, 121.449396],
+                [31.211494, 121.44952],
+                [31.211411, 121.449546],
+                [31.210791, 121.449718],
+                [31.209142, 121.450221],
+                [31.207845, 121.450563],
+                [31.207576, 121.450625],
+                [31.206169, 121.451011],
+                [31.205759, 121.451122],
+                [31.205213, 121.45129],
+                [31.203806, 121.451701],
+                [31.203699, 121.451732],
+                [31.203337, 121.451907]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_39634',
+            name: '威海路',
+            type: 'vertical',
+            subArea: 'jufu',
+            featured: false,
+            desc: '衡复历史风貌区内的威海路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.225824, 121.450566],
+                [31.225911, 121.450525],
+                [31.225988, 121.450498],
+                [31.226019, 121.450491],
+                [31.226088, 121.450489],
+                [31.226665, 121.451123],
+                [31.227213, 121.451873],
+                [31.227381, 121.452136],
+                [31.227881, 121.453002],
+                [31.228, 121.453251]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_77474',
+            name: '安义路',
+            type: 'vertical',
+            subArea: 'jufu',
+            featured: false,
+            desc: '衡复历史风貌区内的安义路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.225079, 121.443842],
+                [31.22582, 121.446361]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_12588',
+            name: '安亭路',
+            type: 'horizontal',
+            subArea: 'shannan',
+            featured: false,
+            desc: '衡复历史风貌区内的安亭路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.206028, 121.442984],
+                [31.205332, 121.443125],
+                [31.203353, 121.443513]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_85075',
+            name: '安化路',
+            type: 'vertical',
+            subArea: 'wukang',
+            featured: false,
+            desc: '衡复历史风貌区内的安化路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.217935, 121.42756],
+                [31.217796, 121.427045],
+                [31.217572, 121.426233],
+                [31.217475, 121.425839]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_30167',
+            name: '宛平南路',
+            type: 'horizontal',
+            subArea: 'shannan',
+            featured: false,
+            desc: '衡复历史风貌区内的宛平南路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.196045, 121.441468],
+                [31.196168, 121.441411],
+                [31.196295, 121.441359],
+                [31.197125, 121.441017],
+                [31.197736, 121.440758],
+                [31.198076, 121.440598],
+                [31.198335, 121.440485],
+                [31.198807, 121.44028],
+                [31.198891, 121.440244]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_82617',
+            name: '宜山北路',
+            type: 'horizontal',
+            subArea: 'shannan',
+            featured: false,
+            desc: '衡复历史风貌区内的宜山北路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.195034, 121.427668],
+                [31.196537, 121.428541],
+                [31.196669, 121.428612],
+                [31.196811, 121.428699],
+                [31.19691, 121.428757],
+                [31.1971, 121.428873],
+                [31.197212, 121.428943],
+                [31.197353, 121.429032]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_83605',
+            name: '宣化路',
+            type: 'vertical',
+            subArea: 'jufu',
+            featured: false,
+            desc: '衡复历史风貌区内的宣化路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.219597, 121.425383],
+                [31.219701, 121.426111],
+                [31.2198, 121.426809],
+                [31.219827, 121.426997]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_2787',
+            name: '富润路',
+            type: 'horizontal',
+            subArea: 'shannan',
+            featured: false,
+            desc: '衡复历史风貌区内的富润路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.196186, 121.471093],
+                [31.196126, 121.471096],
+                [31.196034, 121.47112]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_92409',
+            name: '小木桥路',
+            type: 'horizontal',
+            subArea: 'shannan',
+            featured: false,
+            desc: '衡复历史风貌区内的小木桥路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.203675, 121.451659],
+                [31.203165, 121.451309],
+                [31.202948, 121.451311],
+                [31.202385, 121.451668],
+                [31.20166, 121.452124],
+                [31.201333, 121.452331],
+                [31.201017, 121.45253],
+                [31.198851, 121.453982],
+                [31.198466, 121.454218],
+                [31.197802, 121.454625],
+                [31.197378, 121.454884],
+                [31.197181, 121.455003],
+                [31.196742, 121.455268],
+                [31.195886, 121.455786],
+                [31.195831, 121.455818]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_49793',
+            name: '嵩山路',
+            type: 'horizontal',
+            subArea: 'jufu',
+            featured: false,
+            desc: '衡复历史风貌区内的嵩山路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.226446, 121.470466],
+                [31.225971, 121.470675],
+                [31.225639, 121.470821],
+                [31.225539, 121.470864],
+                [31.224862, 121.471158],
+                [31.224634, 121.47125],
+                [31.224552, 121.47129],
+                [31.224467, 121.471329],
+                [31.224246, 121.471432],
+                [31.223849, 121.471587],
+                [31.223764, 121.47162]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_66761',
+            name: '常德路',
+            type: 'horizontal',
+            subArea: 'jufu',
+            featured: false,
+            desc: '衡复历史风貌区内的常德路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.227941, 121.442718],
+                [31.227757, 121.442781],
+                [31.227571, 121.442852],
+                [31.227297, 121.442958],
+                [31.227183, 121.442993],
+                [31.227045, 121.443046],
+                [31.2269, 121.443111],
+                [31.226235, 121.443424],
+                [31.225884, 121.443572],
+                [31.225079, 121.443842],
+                [31.224442, 121.444136],
+                [31.223928, 121.444504],
+                [31.223726, 121.44474],
+                [31.223649, 121.444866],
+                [31.223576, 121.444974]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_52250',
+            name: '平武路',
+            type: 'vertical',
+            subArea: 'music',
+            featured: false,
+            desc: '衡复历史风貌区内的平武路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.21026, 121.425449],
+                [31.210271, 121.425614],
+                [31.2103, 121.426043],
+                [31.210337, 121.426658],
+                [31.210466, 121.428368],
+                [31.210473, 121.428468]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_87355',
+            name: '平江路',
+            type: 'vertical',
+            subArea: 'shannan',
+            featured: false,
+            desc: '衡复历史风貌区内的平江路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.200932, 121.447875],
+                [31.201484, 121.449327],
+                [31.201677, 121.449822],
+                [31.202114, 121.450966],
+                [31.202385, 121.451668],
+                [31.202736, 121.452745]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_36008',
+            name: '幸福路',
+            type: 'horizontal',
+            subArea: 'music',
+            featured: false,
+            desc: '衡复历史风貌区内的幸福路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.211688, 121.425957],
+                [31.210366, 121.426677],
+                [31.210315, 121.426639],
+                [31.209935, 121.42665],
+                [31.209042, 121.426779],
+                [31.208866, 121.426779],
+                [31.208497, 121.426743],
+                [31.208393, 121.426741],
+                [31.207782, 121.426716],
+                [31.20712, 121.426672],
+                [31.206749, 121.426652],
+                [31.20638, 121.426627],
+                [31.206083, 121.42652],
+                [31.205647, 121.426379],
+                [31.205086, 121.426199]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_84832',
+            name: '广元西路',
+            type: 'vertical',
+            subArea: 'shannan',
+            featured: false,
+            desc: '衡复历史风貌区内的广元西路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.195551, 121.425145],
+                [31.195716, 121.425802],
+                [31.19581, 121.426136],
+                [31.195989, 121.426712],
+                [31.196022, 121.426812],
+                [31.19622, 121.427284],
+                [31.196511, 121.427856],
+                [31.196854, 121.428362],
+                [31.197257, 121.428838],
+                [31.197631, 121.429193],
+                [31.198096, 121.429462],
+                [31.19843, 121.42976],
+                [31.198965, 121.430355],
+                [31.1995, 121.43122],
+                [31.200152, 121.43223]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_41374',
+            name: '广元路',
+            type: 'vertical',
+            subArea: 'shannan',
+            featured: false,
+            desc: '衡复历史风貌区内的广元路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.200152, 121.43223],
+                [31.20021, 121.432382],
+                [31.200346, 121.432891],
+                [31.200543, 121.433628],
+                [31.201226, 121.435973],
+                [31.201632, 121.437412],
+                [31.201841, 121.438154],
+                [31.201861, 121.43825],
+                [31.20191, 121.43848]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_34101',
+            name: '康平路',
+            type: 'vertical',
+            subArea: 'shannan',
+            featured: false,
+            desc: '衡复历史风貌区内的康平路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.207178, 121.439941],
+                [31.206544, 121.439342],
+                [31.206101, 121.43895],
+                [31.205744, 121.438659],
+                [31.20449, 121.437057],
+                [31.203238, 121.434865],
+                [31.202203, 121.432973],
+                [31.201668, 121.431943],
+                [31.201642, 121.431825]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_18353',
+            name: '延安东路',
+            type: 'vertical',
+            subArea: 'jufu',
+            featured: false,
+            desc: '衡复历史风貌区内的延安东路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.227979, 121.468612],
+                [31.227216, 121.46657],
+                [31.226947, 121.465875],
+                [31.226899, 121.465766],
+                [31.226863, 121.465678],
+                [31.226534, 121.464861],
+                [31.226488, 121.464734],
+                [31.226434, 121.464588]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_94007',
+            name: '延安中路',
+            type: 'vertical',
+            subArea: 'jufu',
+            featured: false,
+            desc: '衡复历史风貌区内的延安中路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.222684, 121.440974],
+                [31.222786, 121.441875],
+                [31.223249, 121.443943],
+                [31.224387, 121.446928],
+                [31.225072, 121.448797],
+                [31.225638, 121.450467],
+                [31.225768, 121.452024],
+                [31.225741, 121.452429],
+                [31.225755, 121.455343],
+                [31.225787, 121.457081],
+                [31.225812, 121.458957],
+                [31.225649, 121.461347],
+                [31.225691, 121.462661],
+                [31.225872, 121.463586],
+                [31.226177, 121.464574]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_34392',
+            name: '延安西路',
+            type: 'vertical',
+            subArea: 'jufu',
+            featured: false,
+            desc: '衡复历史风貌区内的延安西路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.222936, 121.440928],
+                [31.222647, 121.439795],
+                [31.22204, 121.43864],
+                [31.221558, 121.437721],
+                [31.221402, 121.436728],
+                [31.221111, 121.435606],
+                [31.219797, 121.433742],
+                [31.218996, 121.432418],
+                [31.217835, 121.430661],
+                [31.216963, 121.429593],
+                [31.216215, 121.428447],
+                [31.216007, 121.427928],
+                [31.215085, 121.426368],
+                [31.214771, 121.426015],
+                [31.213351, 121.425115]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_30314',
+            name: '延庆路',
+            type: 'vertical',
+            subArea: 'wukang',
+            featured: false,
+            desc: '衡复历史风貌区内的延庆路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.21615, 121.444183],
+                [31.216171, 121.444253],
+                [31.216197, 121.444337],
+                [31.216687, 121.445626],
+                [31.217059, 121.446762],
+                [31.217224, 121.447153],
+                [31.217335, 121.447317],
+                [31.217541, 121.447564],
+                [31.217661, 121.447648],
+                [31.217829, 121.447742],
+                [31.217977, 121.447801],
+                [31.218173, 121.44786],
+                [31.218346, 121.44788],
+                [31.218504, 121.447883],
+                [31.218701, 121.447827]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_46612',
+            name: '建国东路',
+            type: 'vertical',
+            subArea: 'wukang',
+            featured: false,
+            desc: '衡复历史风貌区内的建国东路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.212657, 121.467512],
+                [31.212712, 121.467626],
+                [31.212758, 121.467722],
+                [31.213347, 121.469443],
+                [31.213457, 121.469772],
+                [31.213943, 121.47121],
+                [31.213974, 121.471314],
+                [31.214008, 121.471431]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_2246',
+            name: '建国中路',
+            type: 'vertical',
+            subArea: 'music',
+            featured: false,
+            desc: '衡复历史风貌区内的建国中路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.210922, 121.463276],
+                [31.210953, 121.46335],
+                [31.211006, 121.463475],
+                [31.211272, 121.464117],
+                [31.21185, 121.465642],
+                [31.212566, 121.467307],
+                [31.212605, 121.467395],
+                [31.212657, 121.467512]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_78255',
+            name: '建德路',
+            type: 'vertical',
+            subArea: 'music',
+            featured: false,
+            desc: '衡复历史风貌区内的建德路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.212352, 121.465345],
+                [31.211677, 121.463578],
+                [31.210921, 121.461957]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_64971',
+            name: '徐家汇路',
+            type: 'horizontal',
+            subArea: 'music',
+            featured: false,
+            desc: '衡复历史风貌区内的徐家汇路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.210262, 121.468312],
+                [31.209822, 121.467532],
+                [31.208385, 121.466965],
+                [31.209699, 121.467326],
+                [31.210257, 121.467981],
+                [31.210636, 121.468631],
+                [31.21062, 121.468862],
+                [31.211061, 121.471364],
+                [31.21043, 121.468272],
+                [31.210083, 121.46751],
+                [31.208205, 121.466652],
+                [31.209024, 121.46686],
+                [31.209949, 121.467248],
+                [31.210384, 121.467763],
+                [31.21072, 121.468342]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_97046',
+            name: '徐虹北路',
+            type: 'horizontal',
+            subArea: 'shannan',
+            featured: false,
+            desc: '衡复历史风貌区内的徐虹北路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.19516, 121.425566],
+                [31.195716, 121.425802]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_6509',
+            name: '德昌路',
+            type: 'vertical',
+            subArea: 'shannan',
+            featured: false,
+            desc: '衡复历史风貌区内的德昌路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.203532, 121.437594],
+                [31.203076, 121.436582],
+                [31.203017, 121.436457]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_28485',
+            name: '恭城路',
+            type: 'horizontal',
+            subArea: 'shannan',
+            featured: false,
+            desc: '衡复历史风貌区内的恭城路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.195414, 121.431813],
+                [31.197262, 121.431321],
+                [31.19735, 121.431303],
+                [31.198048, 121.4311],
+                [31.199222, 121.430771]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_93834',
+            name: '愚园东路',
+            type: 'vertical',
+            subArea: 'jufu',
+            featured: false,
+            desc: '衡复历史风貌区内的愚园东路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.227297, 121.442958],
+                [31.227383, 121.443173],
+                [31.227541, 121.443547],
+                [31.227615, 121.4437],
+                [31.227759, 121.444101],
+                [31.227882, 121.44442],
+                [31.227904, 121.444531],
+                [31.227904, 121.444563],
+                [31.227903, 121.444663],
+                [31.2279, 121.444791],
+                [31.227898, 121.444927],
+                [31.227911, 121.445042],
+                [31.227954, 121.445239],
+                [31.227981, 121.445345],
+                [31.22799, 121.445379]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_64651',
+            name: '愚园支路',
+            type: 'vertical',
+            subArea: 'jufu',
+            featured: false,
+            desc: '衡复历史风貌区内的愚园支路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.225062, 121.439188],
+                [31.225008, 121.439115],
+                [31.224971, 121.439066],
+                [31.224918, 121.438966],
+                [31.224874, 121.438876],
+                [31.224836, 121.438799],
+                [31.224805, 121.438713],
+                [31.224491, 121.437785]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_33079',
+            name: '愚园路',
+            type: 'vertical',
+            subArea: 'jufu',
+            featured: false,
+            desc: '衡复历史风貌区内的愚园路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.220665, 121.425127],
+                [31.221199, 121.426488],
+                [31.221665, 121.427671],
+                [31.222179, 121.429571],
+                [31.222705, 121.431524],
+                [31.223326, 121.433324],
+                [31.223434, 121.434119],
+                [31.223913, 121.435233],
+                [31.224499, 121.436236],
+                [31.224996, 121.437234],
+                [31.225183, 121.437562],
+                [31.225167, 121.4381],
+                [31.225062, 121.439188],
+                [31.226005, 121.440316],
+                [31.227183, 121.442993]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_11354',
+            name: '成都北路',
+            type: 'horizontal',
+            subArea: 'jufu',
+            featured: false,
+            desc: '衡复历史风貌区内的成都北路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.226434, 121.464588],
+                [31.226511, 121.464511],
+                [31.22672, 121.464281],
+                [31.226805, 121.464192],
+                [31.227107, 121.463872],
+                [31.227429, 121.463595],
+                [31.227635, 121.463479],
+                [31.227688, 121.463452],
+                [31.227884, 121.463327]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_9642',
+            name: '成都南路',
+            type: 'horizontal',
+            subArea: 'jufu',
+            featured: false,
+            desc: '衡复历史风貌区内的成都南路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.225721, 121.462926],
+                [31.225583, 121.46292],
+                [31.225449, 121.462914],
+                [31.225207, 121.462941],
+                [31.225119, 121.462951],
+                [31.223818, 121.463052],
+                [31.22255, 121.463707]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_74272',
+            name: '打浦路',
+            type: 'horizontal',
+            subArea: 'shannan',
+            featured: false,
+            desc: '衡复历史风貌区内的打浦路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.195012, 121.470004],
+                [31.195438, 121.46993],
+                [31.195946, 121.469902],
+                [31.196447, 121.469884],
+                [31.196925, 121.469776],
+                [31.197476, 121.469542],
+                [31.197948, 121.469289],
+                [31.198603, 121.468789],
+                [31.200705, 121.467487],
+                [31.201228, 121.467282],
+                [31.201866, 121.466973],
+                [31.202352, 121.466761],
+                [31.203982, 121.466589],
+                [31.206118, 121.465684],
+                [31.207557, 121.465077]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_30053',
+            name: '斜土路',
+            type: 'vertical',
+            subArea: 'shannan',
+            featured: false,
+            desc: '衡复历史风貌区内的斜土路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.19504, 121.445411],
+                [31.196118, 121.447319],
+                [31.197771, 121.451248],
+                [31.198343, 121.452694],
+                [31.199319, 121.455303],
+                [31.199656, 121.456163],
+                [31.200102, 121.457463],
+                [31.200586, 121.459098],
+                [31.201081, 121.460221],
+                [31.202535, 121.461999],
+                [31.202799, 121.462407],
+                [31.203091, 121.463366],
+                [31.203662, 121.465445],
+                [31.204917, 121.470541],
+                [31.205263, 121.47185]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_26893',
+            name: '斜徐路',
+            type: 'horizontal',
+            subArea: 'music',
+            featured: false,
+            desc: '衡复历史风貌区内的斜徐路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.209844, 121.467659],
+                [31.209658, 121.467736],
+                [31.209245, 121.467908],
+                [31.208025, 121.468324],
+                [31.20799, 121.468339]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_91009',
+            name: '新乐路',
+            type: 'vertical',
+            subArea: 'jufu',
+            featured: false,
+            desc: '衡复历史风貌区内的新乐路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.218636, 121.448226],
+                [31.218716, 121.448402],
+                [31.219615, 121.451174],
+                [31.219645, 121.451278],
+                [31.219713, 121.451472],
+                [31.219981, 121.452257],
+                [31.220072, 121.452531],
+                [31.220181, 121.452901],
+                [31.220388, 121.453683]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_83452',
+            name: '新华路',
+            type: 'vertical',
+            subArea: 'shannan',
+            featured: false,
+            desc: '衡复历史风貌区内的新华路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.20388, 121.425069],
+                [31.203749, 121.425438],
+                [31.203494, 121.426137],
+                [31.20347, 121.426206],
+                [31.20339, 121.426421],
+                [31.20336, 121.426504],
+                [31.20311, 121.427184],
+                [31.203103, 121.427202],
+                [31.202942, 121.427643],
+                [31.202803, 121.427722]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_70338',
+            name: '新闸路',
+            type: 'vertical',
+            subArea: 'jufu',
+            featured: false,
+            desc: '衡复历史风貌区内的新闸路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.225181, 121.431126],
+                [31.225587, 121.432133],
+                [31.226089, 121.433357],
+                [31.226596, 121.434386],
+                [31.22679, 121.434674],
+                [31.227339, 121.43523],
+                [31.227467, 121.435337],
+                [31.227582, 121.435454],
+                [31.2276, 121.435477],
+                [31.227684, 121.435581],
+                [31.227762, 121.435707],
+                [31.227832, 121.435841],
+                [31.227921, 121.436069],
+                [31.227944, 121.436148],
+                [31.227984, 121.436285]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_48227',
+            name: '日晖东路',
+            type: 'horizontal',
+            subArea: 'shannan',
+            featured: false,
+            desc: '衡复历史风貌区内的日晖东路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.195037, 121.465711],
+                [31.196476, 121.465516]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_4899',
+            name: '昭化东路',
+            type: 'vertical',
+            subArea: 'wukang',
+            featured: false,
+            desc: '衡复历史风貌区内的昭化东路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.215443, 121.430531],
+                [31.215785, 121.431183],
+                [31.21728, 121.434037]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_673',
+            name: '昭化路',
+            type: 'vertical',
+            subArea: 'wukang',
+            featured: false,
+            desc: '衡复历史风貌区内的昭化路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.21463, 121.425924],
+                [31.214629, 121.425703]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_41886',
+            name: '昭平路',
+            type: 'vertical',
+            subArea: 'shannan',
+            featured: false,
+            desc: '衡复历史风貌区内的昭平路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.198542, 121.433066],
+                [31.198498, 121.43292],
+                [31.198332, 121.432423],
+                [31.198048, 121.4311],
+                [31.197925, 121.430979],
+                [31.197848, 121.430806],
+                [31.197791, 121.430503],
+                [31.197741, 121.43038],
+                [31.197687, 121.430305],
+                [31.197439, 121.430128],
+                [31.197329, 121.430046],
+                [31.197207, 121.42988],
+                [31.197024, 121.42909],
+                [31.196811, 121.428699]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_10867',
+            name: '曹家堰路',
+            type: 'horizontal',
+            subArea: 'wukang',
+            featured: false,
+            desc: '衡复历史风貌区内的曹家堰路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.213108, 121.432022],
+                [31.214701, 121.430933],
+                [31.21481, 121.430886],
+                [31.215107, 121.430757],
+                [31.215176, 121.43071],
+                [31.215443, 121.430531],
+                [31.21555, 121.430372],
+                [31.215722, 121.430074],
+                [31.215893, 121.429787],
+                [31.215966, 121.429665],
+                [31.21601, 121.42959],
+                [31.216032, 121.429553],
+                [31.216323, 121.429175]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_94750',
+            name: '望亭路',
+            type: 'horizontal',
+            subArea: 'jufu',
+            featured: false,
+            desc: '衡复历史风貌区内的望亭路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.226892, 121.471536],
+                [31.225987, 121.471958]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_26636',
+            name: '枫林路',
+            type: 'horizontal',
+            subArea: 'shannan',
+            featured: false,
+            desc: '衡复历史风貌区内的枫林路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.195539, 121.452298],
+                [31.195659, 121.45224],
+                [31.196936, 121.451623],
+                [31.197385, 121.45142],
+                [31.197771, 121.451248],
+                [31.198585, 121.450837],
+                [31.198654, 121.450802],
+                [31.199516, 121.450376],
+                [31.200779, 121.449714],
+                [31.201129, 121.449515],
+                [31.201484, 121.449327],
+                [31.201962, 121.449065],
+                [31.202316, 121.448887],
+                [31.202509, 121.448792],
+                [31.202579, 121.448758]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_62877',
+            name: '正阳路',
+            type: 'vertical',
+            subArea: 'shannan',
+            featured: false,
+            desc: '衡复历史风貌区内的正阳路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.203162, 121.460382],
+                [31.203039, 121.460413],
+                [31.202966, 121.460398],
+                [31.202902, 121.460272],
+                [31.202743, 121.459774],
+                [31.202659, 121.459523],
+                [31.202603, 121.459248],
+                [31.202562, 121.458857],
+                [31.20256, 121.458753],
+                [31.202557, 121.458615],
+                [31.202548, 121.45841],
+                [31.202553, 121.45824],
+                [31.202537, 121.458054],
+                [31.20235, 121.456977],
+                [31.202323, 121.456806]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_58438',
+            name: '武夷路',
+            type: 'vertical',
+            subArea: 'wukang',
+            featured: false,
+            desc: '衡复历史风貌区内的武夷路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.215388, 121.425517],
+                [31.215311, 121.425721],
+                [31.215152, 121.426106],
+                [31.21513, 121.426161],
+                [31.215085, 121.426368],
+                [31.215083, 121.426587],
+                [31.215082, 121.426632],
+                [31.215081, 121.426833]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_68198',
+            name: '武宁南路',
+            type: 'vertical',
+            subArea: 'jufu',
+            featured: false,
+            desc: '衡复历史风貌区内的武宁南路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.227364, 121.433728],
+                [31.22746, 121.433631],
+                [31.227864, 121.43314]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_50869',
+            name: '武定西路',
+            type: 'vertical',
+            subArea: 'jufu',
+            featured: false,
+            desc: '衡复历史风貌区内的武定西路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.227747, 121.429706],
+                [31.227201, 121.428844],
+                [31.226838, 121.428254],
+                [31.226804, 121.428197],
+                [31.226609, 121.427865],
+                [31.226505, 121.427611],
+                [31.226462, 121.427489],
+                [31.226325, 121.426777],
+                [31.226288, 121.426501],
+                [31.226277, 121.426413],
+                [31.226221, 121.425979],
+                [31.226179, 121.425801],
+                [31.226139, 121.425692],
+                [31.22585, 121.425239],
+                [31.225684, 121.425058]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_32808',
+            name: '永源路',
+            type: 'vertical',
+            subArea: 'jufu',
+            featured: false,
+            desc: '衡复历史风貌区内的永源路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.223091, 121.437862],
+                [31.222981, 121.437328],
+                [31.222787, 121.436381],
+                [31.222658, 121.435845],
+                [31.221921, 121.434218],
+                [31.221099, 121.432463],
+                [31.220974, 121.432339],
+                [31.220782, 121.432253]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_58366',
+            name: '永福路',
+            type: 'horizontal',
+            subArea: 'music',
+            featured: false,
+            desc: '衡复历史风貌区内的永福路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.21404, 121.439263],
+                [31.213914, 121.439285],
+                [31.213187, 121.439375],
+                [31.213063, 121.43939],
+                [31.212349, 121.439479],
+                [31.211945, 121.438944],
+                [31.211749, 121.438745],
+                [31.211501, 121.43853],
+                [31.211273, 121.438383],
+                [31.211152, 121.438305],
+                [31.210941, 121.438219],
+                [31.210472, 121.438142],
+                [31.21029, 121.438127],
+                [31.210239, 121.438104],
+                [31.21001, 121.438003]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_9132',
+            name: '江苏路',
+            type: 'horizontal',
+            subArea: 'jufu',
+            featured: false,
+            desc: '衡复历史风貌区内的江苏路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.212426, 121.429514],
+                [31.212799, 121.429793],
+                [31.21304, 121.429819],
+                [31.21376, 121.429526],
+                [31.215542, 121.428687],
+                [31.215972, 121.428536],
+                [31.216503, 121.428327],
+                [31.217814, 121.427789],
+                [31.218301, 121.427575],
+                [31.220208, 121.426857],
+                [31.221749, 121.426282],
+                [31.223013, 121.42582],
+                [31.223481, 121.425621],
+                [31.224076, 121.425338],
+                [31.224303, 121.425157]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_5251',
+            name: '法华镇路',
+            type: 'vertical',
+            subArea: 'shannan',
+            featured: false,
+            desc: '衡复历史风貌区内的法华镇路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.205275, 121.425309],
+                [31.20511, 121.426092],
+                [31.205076, 121.426241],
+                [31.204914, 121.426917],
+                [31.204887, 121.427029],
+                [31.204728, 121.42767],
+                [31.2047, 121.427777],
+                [31.204552, 121.428336],
+                [31.204464, 121.428661],
+                [31.204383, 121.428895],
+                [31.204286, 121.429099],
+                [31.204261, 121.42914],
+                [31.204013, 121.429443],
+                [31.203951, 121.429493],
+                [31.203613, 121.429715]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_61005',
+            name: '泰康路',
+            type: 'vertical',
+            subArea: 'music',
+            featured: false,
+            desc: '衡复历史风貌区内的泰康路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.210384, 121.467763],
+                [31.210329, 121.467527],
+                [31.21024, 121.467173],
+                [31.210174, 121.467236],
+                [31.210123, 121.467278],
+                [31.209949, 121.467248]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_97352',
+            name: '淡水路',
+            type: 'horizontal',
+            subArea: 'jufu',
+            featured: false,
+            desc: '衡复历史风貌区内的淡水路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.224929, 121.46753],
+                [31.224708, 121.467604],
+                [31.224246, 121.467759],
+                [31.223832, 121.467865],
+                [31.223437, 121.467967],
+                [31.222414, 121.468304],
+                [31.222202, 121.468361],
+                [31.221345, 121.468565],
+                [31.220632, 121.468589],
+                [31.21997, 121.468644],
+                [31.216464, 121.46908],
+                [31.216046, 121.46918],
+                [31.215151, 121.469385],
+                [31.213457, 121.469772],
+                [31.213031, 121.46988]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_68770',
+            name: '淮海西路',
+            type: 'vertical',
+            subArea: 'shannan',
+            featured: false,
+            desc: '衡复历史风貌区内的淮海西路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.204158, 121.43055],
+                [31.203971, 121.430172],
+                [31.203732, 121.429646],
+                [31.203181, 121.42825],
+                [31.203008, 121.427811],
+                [31.202958, 121.427684],
+                [31.202942, 121.427643],
+                [31.202573, 121.426691],
+                [31.202532, 121.426587],
+                [31.202219, 121.425794],
+                [31.20195, 121.425107],
+                [31.201912, 121.425028]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_13252',
+            name: '清真路',
+            type: 'vertical',
+            subArea: 'shannan',
+            featured: false,
+            desc: '衡复历史风貌区内的清真路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.199516, 121.450376],
+                [31.200376, 121.452314],
+                [31.200595, 121.452819],
+                [31.20089, 121.453594],
+                [31.201077, 121.454081],
+                [31.201649, 121.455576],
+                [31.201682, 121.455662],
+                [31.202022, 121.456567],
+                [31.202123, 121.456768],
+                [31.202323, 121.456806]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_63277',
+            name: '湖滨路',
+            type: 'vertical',
+            subArea: 'jufu',
+            featured: false,
+            desc: '衡复历史风貌区内的湖滨路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.222541, 121.47187],
+                [31.222604, 121.471655],
+                [31.22264, 121.471458],
+                [31.222641, 121.471403],
+                [31.222643, 121.471248],
+                [31.222636, 121.471086],
+                [31.222623, 121.470905]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_20972',
+            name: '漕溪北路',
+            type: 'horizontal',
+            subArea: 'shannan',
+            featured: false,
+            desc: '衡复历史风貌区内的漕溪北路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.195646, 121.43393],
+                [31.19547, 121.43393],
+                [31.195345, 121.433909],
+                [31.195272, 121.433887]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_52533',
+            name: '炎虹路',
+            type: 'vertical',
+            subArea: 'shannan',
+            featured: false,
+            desc: '衡复历史风貌区内的炎虹路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.204204, 121.460025],
+                [31.204562, 121.4614],
+                [31.204958, 121.462799]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_32534',
+            name: '瑞金一路',
+            type: 'horizontal',
+            subArea: 'jufu',
+            featured: false,
+            desc: '衡复历史风貌区内的瑞金一路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.220747, 121.459395],
+                [31.221333, 121.459218],
+                [31.222074, 121.459012],
+                [31.222211, 121.458989],
+                [31.223188, 121.45882],
+                [31.223374, 121.458768],
+                [31.223795, 121.458713],
+                [31.224264, 121.458645],
+                [31.224595, 121.458607],
+                [31.224759, 121.458625],
+                [31.22483, 121.458648],
+                [31.225166, 121.458674],
+                [31.225553, 121.458696],
+                [31.225698, 121.458703],
+                [31.225819, 121.458709]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_28062',
+            name: '瑞金医院路',
+            type: 'vertical',
+            subArea: 'wukang',
+            featured: false,
+            desc: '衡复历史风貌区内的瑞金医院路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.213688, 121.461267],
+                [31.213703, 121.461328],
+                [31.213839, 121.462414],
+                [31.214196, 121.464442],
+                [31.214158, 121.464456],
+                [31.212486, 121.465076]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_24915',
+            name: '瑞金南路',
+            type: 'horizontal',
+            subArea: 'shannan',
+            featured: false,
+            desc: '衡复历史风貌区内的瑞金南路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.196476, 121.465516],
+                [31.196765, 121.465467],
+                [31.198634, 121.465077],
+                [31.199161, 121.464873],
+                [31.199783, 121.464546],
+                [31.199996, 121.464447],
+                [31.200879, 121.464112],
+                [31.201391, 121.463919],
+                [31.202483, 121.463651],
+                [31.203144, 121.463544],
+                [31.203751, 121.463376],
+                [31.20496, 121.463012],
+                [31.205118, 121.462953],
+                [31.206117, 121.462518],
+                [31.206424, 121.462372]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_85719',
+            name: '番禺路',
+            type: 'horizontal',
+            subArea: 'shannan',
+            featured: false,
+            desc: '衡复历史风貌区内的番禺路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.201745, 121.425066],
+                [31.201983, 121.425113],
+                [31.20253, 121.425214],
+                [31.203159, 121.425326],
+                [31.203526, 121.425396],
+                [31.203749, 121.425438],
+                [31.204161, 121.425512],
+                [31.204444, 121.42556],
+                [31.204541, 121.425578],
+                [31.204894, 121.425642],
+                [31.205087, 121.425676],
+                [31.205476, 121.425678],
+                [31.205684, 121.425651],
+                [31.205765, 121.425613],
+                [31.206418, 121.425039]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_66716',
+            name: '皋兰路',
+            type: 'vertical',
+            subArea: 'jufu',
+            featured: false,
+            desc: '衡复历史风貌区内的皋兰路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.218357, 121.460036],
+                [31.219055, 121.462255],
+                [31.219272, 121.462906]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_35192',
+            name: '瞿溪路',
+            type: 'vertical',
+            subArea: 'shannan',
+            featured: false,
+            desc: '衡复历史风貌区内的瞿溪路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.201207, 121.47193],
+                [31.201182, 121.471823],
+                [31.201068, 121.471051],
+                [31.200879, 121.469764],
+                [31.200824, 121.469483],
+                [31.200682, 121.468911],
+                [31.20025, 121.467753],
+                [31.199489, 121.464723],
+                [31.199427, 121.46444],
+                [31.199413, 121.464245],
+                [31.199396, 121.463749],
+                [31.199365, 121.463514],
+                [31.199309, 121.463255],
+                [31.199168, 121.462677]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_23718',
+            name: '石门一路',
+            type: 'horizontal',
+            subArea: 'jufu',
+            featured: false,
+            desc: '衡复历史风貌区内的石门一路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.225819, 121.458709],
+                [31.225988, 121.458716],
+                [31.226052, 121.458719],
+                [31.22662, 121.458674],
+                [31.226958, 121.458639],
+                [31.227096, 121.458628],
+                [31.22725, 121.458623]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_71427',
+            name: '秀山支路',
+            type: 'horizontal',
+            subArea: 'shannan',
+            featured: false,
+            desc: '衡复历史风貌区内的秀山支路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.198097, 121.425017],
+                [31.198398, 121.425151]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_88876',
+            name: '秀山路',
+            type: 'vertical',
+            subArea: 'shannan',
+            featured: false,
+            desc: '衡复历史风貌区内的秀山路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.197022, 121.425152],
+                [31.196807, 121.425856],
+                [31.196664, 121.426321]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_53949',
+            name: '老重庆中路',
+            type: 'horizontal',
+            subArea: 'jufu',
+            featured: false,
+            desc: '衡复历史风貌区内的老重庆中路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.224421, 121.465877],
+                [31.223602, 121.466215]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_26720',
+            name: '肇嘉浜路',
+            type: 'vertical',
+            subArea: 'shannan',
+            featured: false,
+            desc: '衡复历史风貌区内的肇嘉浜路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.207219, 121.462948],
+                [31.20691, 121.462174],
+                [31.206079, 121.460768],
+                [31.205335, 121.458332],
+                [31.204963, 121.456603],
+                [31.204802, 121.455654],
+                [31.203933, 121.452819],
+                [31.203491, 121.451111],
+                [31.202706, 121.449125],
+                [31.201901, 121.446748],
+                [31.201177, 121.444341],
+                [31.201099, 121.443814],
+                [31.200639, 121.442198],
+                [31.200224, 121.44142],
+                [31.201175, 121.444739]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_66632',
+            name: '胶州路',
+            type: 'horizontal',
+            subArea: 'jufu',
+            featured: false,
+            desc: '衡复历史风貌区内的胶州路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.226398, 121.440926],
+                [31.227425, 121.44026],
+                [31.227468, 121.440233],
+                [31.227667, 121.440111],
+                [31.227721, 121.440077],
+                [31.227899, 121.439969],
+                [31.227984, 121.439913]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_19125',
+            name: '自忠路',
+            type: 'vertical',
+            subArea: 'jufu',
+            featured: false,
+            desc: '衡复历史风貌区内的自忠路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.219614, 121.466965],
+                [31.219641, 121.467065],
+                [31.21997, 121.468644],
+                [31.220265, 121.47006],
+                [31.220535, 121.471365],
+                [31.220552, 121.471448],
+                [31.220571, 121.471525],
+                [31.220659, 121.471876]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_49966',
+            name: '茂名北路',
+            type: 'horizontal',
+            subArea: 'jufu',
+            featured: false,
+            desc: '衡复历史风貌区内的茂名北路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.227319, 121.455879],
+                [31.226837, 121.456092],
+                [31.225948, 121.456349]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_42085',
+            name: '茶陵北路',
+            type: 'horizontal',
+            subArea: 'shannan',
+            featured: false,
+            desc: '衡复历史风貌区内的茶陵北路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.201193, 121.460399],
+                [31.200226, 121.460776],
+                [31.199592, 121.46102]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_67224',
+            name: '茶陵路',
+            type: 'vertical',
+            subArea: 'shannan',
+            featured: false,
+            desc: '衡复历史风貌区内的茶陵路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.198187, 121.457874],
+                [31.198221, 121.457934],
+                [31.198538, 121.458771],
+                [31.198804, 121.459504],
+                [31.199289, 121.460312],
+                [31.199504, 121.460824],
+                [31.199814, 121.461737],
+                [31.199836, 121.462033],
+                [31.199782, 121.462254],
+                [31.199556, 121.462542],
+                [31.199168, 121.462677],
+                [31.198342, 121.46292],
+                [31.198126, 121.462984],
+                [31.196994, 121.463316],
+                [31.195913, 121.463613]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_15093',
+            name: '蒙自西路',
+            type: 'vertical',
+            subArea: 'music',
+            featured: false,
+            desc: '衡复历史风貌区内的蒙自西路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.209462, 121.470822],
+                [31.209169, 121.469426]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_68969',
+            name: '虹桥路',
+            type: 'horizontal',
+            subArea: 'shannan',
+            featured: false,
+            desc: '衡复历史风貌区内的虹桥路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.195823, 121.433907],
+                [31.195794, 121.433745],
+                [31.195758, 121.433547],
+                [31.195818, 121.433633],
+                [31.1959, 121.433722],
+                [31.195956, 121.433773],
+                [31.196047, 121.433848]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_61906',
+            name: '赵家桥路',
+            type: 'vertical',
+            subArea: 'jufu',
+            featured: false,
+            desc: '衡复历史风貌区内的赵家桥路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.227883, 121.44099],
+                [31.227879, 121.440939],
+                [31.227828, 121.44078],
+                [31.227736, 121.440489],
+                [31.227712, 121.440331],
+                [31.227667, 121.440111]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_84343',
+            name: '辛耕路',
+            type: 'vertical',
+            subArea: 'shannan',
+            featured: false,
+            desc: '衡复历史风貌区内的辛耕路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.196168, 121.441411],
+                [31.196133, 121.441284],
+                [31.195399, 121.439918]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_84897',
+            name: '进贤路',
+            type: 'vertical',
+            subArea: 'jufu',
+            featured: false,
+            desc: '衡复历史风貌区内的进贤路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.222934, 121.452813],
+                [31.223595, 121.455766]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_87078',
+            name: '重庆中路',
+            type: 'vertical',
+            subArea: 'jufu',
+            featured: false,
+            desc: '衡复历史风貌区内的重庆中路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.226177, 121.464574],
+                [31.226084, 121.464694],
+                [31.225792, 121.465073],
+                [31.225237, 121.465681],
+                [31.224988, 121.465904],
+                [31.224536, 121.466294]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_71928',
+            name: '重庆北路',
+            type: 'horizontal',
+            subArea: 'jufu',
+            featured: false,
+            desc: '衡复历史风貌区内的重庆北路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.226969, 121.465721],
+                [31.226989, 121.46572],
+                [31.227042, 121.465717],
+                [31.227721, 121.465693],
+                [31.227847, 121.465653]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_40583',
+            name: '重庆南路',
+            type: 'horizontal',
+            subArea: 'wukang',
+            featured: false,
+            desc: '衡复历史风貌区内的重庆南路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.223773, 121.46663],
+                [31.223376, 121.466834],
+                [31.22286, 121.466941],
+                [31.221922, 121.467105],
+                [31.220853, 121.466953],
+                [31.219359, 121.466523],
+                [31.21886, 121.46645],
+                [31.217503, 121.46607],
+                [31.215651, 121.465738],
+                [31.214752, 121.466012],
+                [31.214065, 121.466454],
+                [31.211719, 121.467928],
+                [31.21107, 121.468167],
+                [31.212566, 121.467307],
+                [31.214258, 121.466308]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_18714',
+            name: '金陵中路',
+            type: 'vertical',
+            subArea: 'jufu',
+            featured: false,
+            desc: '衡复历史风貌区内的金陵中路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.227044, 121.471909],
+                [31.226892, 121.471536],
+                [31.22667, 121.471026],
+                [31.226477, 121.470575],
+                [31.226446, 121.470466],
+                [31.226417, 121.470353],
+                [31.226246, 121.469561],
+                [31.226203, 121.469381],
+                [31.226162, 121.469218],
+                [31.226047, 121.468761],
+                [31.225852, 121.468354],
+                [31.225796, 121.468255]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_74423',
+            name: '金陵西路',
+            type: 'vertical',
+            subArea: 'jufu',
+            featured: false,
+            desc: '衡复历史风貌区内的金陵西路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.225796, 121.468255],
+                [31.225754, 121.468148],
+                [31.225626, 121.467416],
+                [31.225612, 121.467347],
+                [31.225519, 121.466639],
+                [31.225345, 121.46638],
+                [31.225181, 121.466138],
+                [31.22509, 121.46603],
+                [31.225057, 121.465989],
+                [31.224988, 121.465904]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_19906',
+            name: '铜仁路',
+            type: 'horizontal',
+            subArea: 'jufu',
+            featured: false,
+            desc: '衡复历史风貌区内的铜仁路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.22799, 121.445379],
+                [31.227974, 121.445385],
+                [31.22781, 121.445433],
+                [31.227516, 121.445611],
+                [31.227275, 121.445734],
+                [31.227177, 121.445789],
+                [31.225956, 121.446306],
+                [31.225923, 121.44632],
+                [31.22582, 121.446361],
+                [31.225162, 121.446614],
+                [31.224706, 121.446789],
+                [31.224576, 121.446846],
+                [31.224387, 121.446928]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_17765',
+            name: '镇宁路',
+            type: 'horizontal',
+            subArea: 'jufu',
+            featured: false,
+            desc: '衡复历史风貌区内的镇宁路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.226879, 121.430865],
+                [31.225181, 121.431126],
+                [31.224697, 121.431241],
+                [31.222891, 121.431511],
+                [31.222705, 121.431524],
+                [31.222633, 121.431535],
+                [31.221663, 121.431898],
+                [31.221348, 121.432023],
+                [31.220782, 121.432253],
+                [31.220051, 121.432637],
+                [31.219361, 121.433016],
+                [31.219142, 121.43313],
+                [31.216669, 121.43433],
+                [31.216295, 121.434642],
+                [31.216275, 121.434799]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_42145',
+            name: '陕西北路',
+            type: 'horizontal',
+            subArea: 'jufu',
+            featured: false,
+            desc: '衡复历史风貌区内的陕西北路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.227997, 121.45147],
+                [31.227817, 121.451617],
+                [31.227461, 121.451812],
+                [31.227213, 121.451873],
+                [31.226352, 121.452111],
+                [31.226203, 121.452155],
+                [31.225977, 121.452195],
+                [31.225856, 121.452216],
+                [31.225748, 121.452233]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_67685',
+            name: '雁荡路',
+            type: 'horizontal',
+            subArea: 'jufu',
+            featured: false,
+            desc: '衡复历史风貌区内的雁荡路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.223293, 121.465496],
+                [31.223161, 121.465532],
+                [31.222829, 121.465498],
+                [31.221253, 121.465249],
+                [31.220993, 121.465136],
+                [31.220704, 121.465094],
+                [31.22053, 121.465081]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_53007',
+            name: '雅安路',
+            type: 'horizontal',
+            subArea: 'shannan',
+            featured: false,
+            desc: '衡复历史风貌区内的雅安路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.205294, 121.459672],
+                [31.204668, 121.459864],
+                [31.204204, 121.460025],
+                [31.203314, 121.460329],
+                [31.203162, 121.460382]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_85577',
+            name: '零陵北路',
+            type: 'horizontal',
+            subArea: 'shannan',
+            featured: false,
+            desc: '衡复历史风貌区内的零陵北路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.196495, 121.461053],
+                [31.197619, 121.46073],
+                [31.1978, 121.460655],
+                [31.197905, 121.460592],
+                [31.198247, 121.46042],
+                [31.199096, 121.459979]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_76566',
+            name: '零陵路',
+            type: 'vertical',
+            subArea: 'shannan',
+            featured: false,
+            desc: '衡复历史风貌区内的零陵路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.195375, 121.457312],
+                [31.195525, 121.457708],
+                [31.195684, 121.458161],
+                [31.196058, 121.459105],
+                [31.196183, 121.459422],
+                [31.19631, 121.459748],
+                [31.196363, 121.459954],
+                [31.196389, 121.460127],
+                [31.196426, 121.46043],
+                [31.196471, 121.460912],
+                [31.196495, 121.461053],
+                [31.196738, 121.462179],
+                [31.196884, 121.46279],
+                [31.196976, 121.463004],
+                [31.197122, 121.463279]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_32979',
+            name: '香山路',
+            type: 'vertical',
+            subArea: 'wukang',
+            featured: false,
+            desc: '衡复历史风貌区内的香山路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.218045, 121.46265],
+                [31.217667, 121.461136],
+                [31.217459, 121.46029]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_17342',
+            name: '马当路',
+            type: 'horizontal',
+            subArea: 'jufu',
+            featured: false,
+            desc: '衡复历史风貌区内的马当路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.225796, 121.468255],
+                [31.22477, 121.468739],
+                [31.224291, 121.468953],
+                [31.223881, 121.469144],
+                [31.223228, 121.469497],
+                [31.222994, 121.469578],
+                [31.221662, 121.46981],
+                [31.220265, 121.47006],
+                [31.218214, 121.47046],
+                [31.217007, 121.470683],
+                [31.215586, 121.470973],
+                [31.213866, 121.471333],
+                [31.212578, 121.471559],
+                [31.21131, 121.471799],
+                [31.21109, 121.471971]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_46972',
+            name: '高邮路',
+            type: 'horizontal',
+            subArea: 'music',
+            featured: false,
+            desc: '衡复历史风貌区内的高邮路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.210338, 121.432807],
+                [31.210674, 121.432662],
+                [31.210833, 121.432619],
+                [31.210926, 121.432636],
+                [31.211014, 121.432673],
+                [31.211256, 121.432822],
+                [31.211665, 121.433358],
+                [31.211942, 121.433721],
+                [31.212441, 121.434379],
+                [31.212714, 121.434732]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_23944',
+            name: '鲁班路',
+            type: 'horizontal',
+            subArea: 'shannan',
+            featured: false,
+            desc: '衡复历史风貌区内的鲁班路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.210405, 121.468458],
+                [31.209905, 121.468685],
+                [31.209554, 121.468808],
+                [31.209267, 121.468896],
+                [31.208211, 121.469381],
+                [31.207721, 121.469561],
+                [31.205994, 121.470193],
+                [31.205966, 121.470218],
+                [31.205951, 121.470305],
+                [31.20598, 121.470373],
+                [31.206211, 121.470329],
+                [31.205969, 121.470473],
+                [31.204981, 121.470843],
+                [31.203125, 121.471521],
+                [31.202327, 121.47176]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_8675',
+            name: '黄陂南路',
+            type: 'horizontal',
+            subArea: 'jufu',
+            featured: false,
+            desc: '衡复历史风貌区内的黄陂南路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.227846, 121.468669],
+                [31.22754, 121.468714],
+                [31.226329, 121.469318],
+                [31.226048, 121.469454],
+                [31.225219, 121.469833],
+                [31.22497, 121.469964],
+                [31.224249, 121.470376],
+                [31.223833, 121.470582],
+                [31.223575, 121.470697],
+                [31.222783, 121.470882],
+                [31.222486, 121.470924],
+                [31.221983, 121.471065],
+                [31.220686, 121.471412],
+                [31.220416, 121.471482],
+                [31.218717, 121.471947]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+        {
+            id: 'r_30927',
+            name: '龙华东路',
+            type: 'vertical',
+            subArea: 'shannan',
+            featured: false,
+            desc: '衡复历史风貌区内的龙华东路，属区域路网组成部分。点击可查看其在地图上的精确走向。',
+            mnemonic: '风貌区支路。在地图上沿 OSM 测绘折线辨认其与周边主干的相对位置。',
+            path: [
+                [31.195037, 121.465711],
+                [31.195222, 121.466592],
+                [31.195487, 121.46785],
+                [31.195552, 121.468118],
+                [31.195625, 121.468383],
+                [31.195832, 121.469044],
+                [31.195931, 121.469354],
+                [31.196051, 121.469741],
+                [31.196081, 121.469871],
+                [31.196055, 121.469906],
+                [31.196085, 121.470125],
+                [31.196107, 121.470729],
+                [31.196126, 121.471096],
+                [31.19617, 121.471765],
+                [31.1962, 121.471942]
+            ],
+            landmarks: [],
+            tag: '风貌区支路'
+        },
+    ];
+    const LANDMARKS_INFO = {
+        wukang_mansion: {
+            name: '武康大楼',
+            coords: [31.2043, 121.4385],
+            desc: '建筑宗师邬达克1924年作，首座外廊式公寓。处在极窄三角形分岔，像巨轮驶来，是风貌区最耀眼的西南坐标。',
+            mnemonic: '淮海中路、武康路、兴国路、天平路、余庆路五岔口正中心。',
+            icon: '🏢'
+        },
+        sh_library: {
+            name: '上海图书馆',
+            coords: [31.2085, 121.4435],
+            desc: '藏书大港，周边法桐蔽日，其外高耸的阅读长廊常年对望淮海路典雅红砖别墅。',
+            mnemonic: '淮海中路与正南北乌鲁木齐南路十字路口西南角。',
+            icon: '📚'
+        },
+        sh_music: {
+            name: '上海音乐学院',
+            coords: [31.2140, 121.4542],
+            desc: '新中国音乐最高学府。唯美校区在汾阳路与淮海路交界敞开，周遭处处琴声飘扬。',
+            mnemonic: '汾阳路、东湖路与淮海中路交接合围三角洲。',
+            icon: '🎵'
+        },
+        drama_center: {
+            name: '上海话剧艺术中心',
+            coords: [31.2173, 121.4390],
+            desc: '安福路文化地标，沪上话剧话语权圣地。青年与艺术在此高密度碰撞。',
+            mnemonic: '安福路中段（武康路口以东约150米）。',
+            icon: '🎭'
+        },
+        iapm: {
+            name: '环贸 iAPM 商场',
+            coords: [31.2153, 121.4582],
+            desc: '轻奢繁华的大型夜行商场。象征风貌区从静穆老街区过渡到繁复徐汇商业核心的物理支柱。',
+            mnemonic: '陕西南路与淮海中路超级十字大路口西南角。',
+            icon: '🛍️'
+        },
+        julu758: {
+            name: '巨鹿758',
+            coords: [31.2223, 121.4590],
+            desc: '工业遗迹重生的网红创意街区。云集了高水准的西餐小餐馆、设计师酒家。',
+            mnemonic: '巨鹿路东段靠近富民路。',
+            icon: '🍕'
+        },
+        pushkin_statue: {
+            name: '普希金纪念碑',
+            coords: [31.2115, 121.4535],
+            desc: '1937年旅沪白俄捐建，老上海极为少见的纯粹街头铜质文艺人像。',
+            mnemonic: '汾阳路、岳阳路、桃江路三街物理斜角交汇形成的三角绿岛。',
+            icon: '🗿'
+        },
+        sinan_mansion: {
+            name: '思南公馆',
+            coords: [31.2120, 121.4650],
+            desc: '51栋整栋法式花园别墅群组成的历史保护园区，极尽奢华与民国名流韵味。',
+            mnemonic: '思南路与复兴中路交界以南。',
+            icon: '🏡'
+        },
+        blackstone: {
+            name: '黑石公寓',
+            coords: [31.2121, 121.4500],
+            desc: '1924年巴洛克风格公寓，上海早期最高级的公寓住宅，目前是胶片、古典交响乐的核心地标。',
+            mnemonic: '复兴中路中段（宝庆路口东侧）。',
+            icon: '🎻'
+        },
+        sun_residence: {
+            name: '孙中山故居',
+            coords: [31.2138, 121.4650],
+            desc: '国父孙中山与宋庆龄在上海的唯一共同住所，法式两层深灰色卵石墙楼房。',
+            mnemonic: '思南路香山路路口。',
+            icon: '📜'
+        }
+    };
+
+    // 经典漫步路线定义
+    const ROUTES = {
+        classic: ['wukang', 'anfu', 'wulumuqi'],
+        trend: ['julu', 'fumin', 'changle', 'xiangyang_n', 'shaandong_s'],
+        music: ['hengshan', 'dongping', 'fenyang', 'baoqing', 'fuxing_m'],
+        culture: ['sinan', 'fuxing_m', 'nanchang', 'ruijin'],
+        secret: ['xingguo', 'taian', 'hunan', 'wukang']
+    };
+
+    let map;
+    let currentMode = 'study'; // study, blind, quiz
+    let roadLayers = {}; // 存储所有马路 Leaflet 折线对象
+    let markerLayers = {}; // 存储所有地标 Leaflet 标记对象
+    let activeStreetId = null;
+    let quizTargetId = null;
+    let quizScoreCorrect = 0;
+    let quizScoreTotal = 0;
+
+    window.onload = function() {
+        initLeafletMap();
+        renderRoadLists();
+        switchMode('study'); // 默认明记
+    };
+
+    function initLeafletMap() {
+        // 设置地图中心在衡复风貌区核心 [31.2115, 121.4480]
+        map = L.map('leaflet-map', {
+            center: [31.2115, 121.4480],
+            zoom: 15,
+            minZoom: 14,
+            maxZoom: 18,
+            zoomControl: false 
+        });
+
+        // 引入 CartoDB 的无标静音底图
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; CartoDB No-Labels Map Projection',
+            subdomains: 'abcd',
+            maxZoom: 20
+        }).addTo(map);
+
+        // 渲染 164 条道路骨架（先横后纵，纵向置顶避免被遮挡）
+        const sortedRoads = [...STREETS].sort((a, b) => {
+            if (a.type === b.type) return 0;
+            return a.type === 'horizontal' ? -1 : 1;
+        });
+
+        sortedRoads.forEach(road => {
+            // 背景透光触发粗线（便于手机端大面积手指按压）
+            const clickPolyline = L.polyline(road.path, {
+                color: 'transparent',
+                weight: road.featured ? (road.type === 'vertical' ? 28 : 24) : 14,
+                cursor: 'pointer'
+            }).addTo(map);
+
+            // 视觉实体高显线（精品深描，支路浅描；纵横向统一实线保证可见）
+            const isMajor = road.featured && (road.id === 'huaihai' || road.id === 'hengshan' || road.id === 'shaandong_s' || road.id === 'ruijin');
+            const visualPolyline = L.polyline(road.path, {
+                color: road.featured ? '#3E3933' : '#8A8278',
+                weight: isMajor ? 5 : (road.featured ? (road.type === 'vertical' ? 4 : 3.5) : 2),
+                dashArray: road.featured ? null : '4, 6',
+                lineCap: 'round',
+                lineJoin: 'round',
+                opacity: road.featured ? 0.9 : 0.5
+            }).addTo(map);
+
+            roadLayers[road.id] = {
+                click: clickPolyline,
+                visual: visualPolyline,
+                road: road,
+                tooltip: null
+            };
+
+            // 点击与滑过行为
+            clickPolyline.on('click', () => onSelectStreet(road.id));
+            clickPolyline.on('mouseover', () => onHoverStreet(road.id, true));
+            clickPolyline.on('mouseout', () => onHoverStreet(road.id, false));
+
+            // 计算该道路物理中心点绑定文本
+            const centerIndex = Math.floor(road.path.length / 2);
+            const labelCoord = road.path[centerIndex];
+            
+            const tooltip = L.tooltip({
+                permanent: road.featured,
+                direction: road.type === 'vertical' ? 'right' : 'center',
+                offset: road.type === 'vertical' ? [6, 0] : [0, 0],
+                className: road.featured
+                    ? (road.type === 'vertical' ? 'custom-road-label custom-road-label-vertical' : 'custom-road-label')
+                    : 'custom-road-label custom-road-label-minor'
+            })
+            .setContent(road.name)
+            .setLatLng(labelCoord)
+            .addTo(map);
+
+            roadLayers[road.id].tooltip = tooltip;
+
+            if (road.type === 'vertical') {
+                visualPolyline.bringToFront();
+                clickPolyline.bringToFront();
+            }
+        });
+
+        // 渲染 10 大物理地标
+        Object.keys(LANDMARKS_INFO).forEach(key => {
+            const landmark = LANDMARKS_INFO[key];
+            const customIcon = L.divIcon({
+                html: `<div class="landmark-icon" style="width: 32px; height: 32px;">${landmark.icon}</div>`,
+                className: '',
+                iconSize: [32, 32],
+                iconAnchor: [16, 16]
+            });
+
+            const marker = L.marker(landmark.coords, { icon: customIcon }).addTo(map);
+            marker.on('click', () => showLandmarkInfo(key));
+            markerLayers[key] = marker;
+        });
+
+        // 纵向精品路与标签最终置顶，避免被横向路遮挡
+        STREETS.filter(r => r.featured && r.type === 'vertical').forEach(road => {
+            const layer = roadLayers[road.id];
+            if (!layer) return;
+            layer.visual.bringToFront();
+            layer.click.bringToFront();
+            if (layer.tooltip?.getElement()) {
+                layer.tooltip.getElement().style.zIndex = '700';
+            }
+        });
+
+        map.on('zoomend', updateRoadLabelVisibility);
+        updateRoadLabelVisibility();
+    }
+
+    function updateRoadLabelVisibility() {
+        const showMinor = map.getZoom() >= 16;
+        Object.values(roadLayers).forEach(layer => {
+            if (!layer.road.featured && layer.tooltip) {
+                const el = layer.tooltip.getElement();
+                if (el) el.style.display = showMinor ? '' : 'none';
+            }
+            if (layer.road.featured && layer.road.type === 'vertical' && layer.tooltip?.getElement()) {
+                layer.tooltip.getElement().style.zIndex = '700';
+            }
+        });
+    }
+
+    function renderRoadLists(filterText = '', filterSubArea = 'all') {
+        const ewList = document.getElementById('list-ew-roads');
+        const nsList = document.getElementById('list-ns-roads');
+
+        ewList.innerHTML = '';
+        nsList.innerHTML = '';
+
+        STREETS.forEach(road => {
+            if (!filterText && !road.featured) return;
+            // 文字检索过滤
+            if (filterText && !road.name.includes(filterText) && !road.desc.includes(filterText) && !(road.origin && road.origin.includes(filterText))) {
+                return;
+            }
+            // 片区过滤
+            if (filterSubArea !== 'all' && road.subArea !== filterSubArea && road.id !== 'huaihai' && road.id !== 'wulumuqi' && road.id !== 'shaandong_s') {
+                return; // 贯穿全局干线不截断
+            }
+
+            const btn = document.createElement('button');
+            btn.setAttribute('id', `btn-list-${road.id}`);
+            btn.onclick = () => onSelectStreet(road.id);
+            btn.onmouseover = () => onHoverStreet(road.id, true);
+            btn.onmouseout = () => onHoverStreet(road.id, false);
+            btn.className = "text-left p-2 rounded-lg border border-gray-200 hover:border-[#1F402B] hover:bg-[#FAF5EB] transition flex items-center justify-between group bg-white";
+            
+            btn.innerHTML = `
+                <div class="truncate w-full pr-1">
+                    <span class="font-bold text-xs text-gray-800 group-hover:text-[#1F402B] block">${road.name}</span>
+                    <span class="text-[9px] text-gray-500 block truncate w-full">${road.tag}</span>
+                </div>
+                <span class="text-xs opacity-0 group-hover:opacity-100 text-[#1F402B] transition shrink-0">➔</span>
+            `;
+
+            if (road.type === 'horizontal') {
+                ewList.appendChild(btn);
+            } else {
+                nsList.appendChild(btn);
+            }
+        });
+    }
+
+    // 文字模糊检索
+    function filterRoads() {
+        const text = document.getElementById('search-input').value.trim();
+        renderRoadLists(text, 'all');
+    }
+
+    // 片区检索过滤
+    function filterBySubArea(areaKey) {
+        document.querySelectorAll('.sub-area-btn').forEach(btn => {
+            btn.className = "sub-area-btn px-2 py-1 bg-white hover:bg-gray-100 text-gray-700 border border-gray-300 rounded text-[10px] transition";
+        });
+        event.target.className = "sub-area-btn px-2 py-1 bg-[#1F402B] text-white rounded text-[10px] font-semibold transition";
+        renderRoadLists('', areaKey);
+    }
+
+    function switchMode(mode) {
+        currentMode = mode;
+        resetHighlights();
+
+        // 按钮高亮切换
+        const btns = {
+            study: document.getElementById('btn-study'),
+            blind: document.getElementById('btn-blind'),
+            quiz: document.getElementById('btn-quiz')
+        };
+        Object.keys(btns).forEach(key => {
+            if (key === mode) {
+                btns[key].className = "px-3 py-1.5 text-xs font-bold rounded-lg bg-[#1F402B] text-white border border-[#1F402B] transition shadow-inner";
+            } else {
+                btns[key].className = "px-3 py-1.5 text-xs font-medium bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 transition";
+            }
+        });
+
+        const quizBar = document.getElementById('quiz-status-bar');
+
+        if (mode === 'study') {
+            quizBar.classList.add('hidden');
+            quizBar.classList.remove('flex');
+            // 显示精品路名标签
+            STREETS.forEach(road => {
+                const layer = roadLayers[road.id];
+                if (layer && layer.tooltip && road.featured) {
+                    layer.tooltip.setContent(road.name);
+                    L.DomUtil.removeClass(layer.tooltip.getElement(), 'custom-road-label-blind');
+                    L.DomUtil.addClass(layer.tooltip.getElement(), 'custom-road-label');
+                }
+            });
+            updateRoadLabelVisibility();
+        } 
+        else if (mode === 'blind') {
+            quizBar.classList.add('hidden');
+            quizBar.classList.remove('flex');
+            // 精品路遮蔽为问号❓
+            STREETS.forEach(road => {
+                const layer = roadLayers[road.id];
+                if (layer && layer.tooltip && road.featured) {
+                    layer.tooltip.setContent('❓');
+                    L.DomUtil.removeClass(layer.tooltip.getElement(), 'custom-road-label');
+                    L.DomUtil.addClass(layer.tooltip.getElement(), 'custom-road-label-blind');
+                }
+            });
+        } 
+        else if (mode === 'quiz') {
+            quizBar.classList.remove('hidden');
+            quizBar.classList.add('flex');
+            // 完全清空无提示
+            STREETS.forEach(road => {
+                const layer = roadLayers[road.id];
+                if (layer && layer.tooltip) {
+                    layer.tooltip.setContent(' ');
+                }
+            });
+            quizScoreCorrect = 0;
+            quizScoreTotal = 0;
+            updateQuizScoreUI();
+            generateQuizQuestion();
+        }
+    }
+
+    function getDefaultRoadStyle(road) {
+        const isMajor = road.featured && (road.id === 'huaihai' || road.id === 'hengshan' || road.id === 'shaandong_s' || road.id === 'ruijin');
+        return {
+            color: road.featured ? '#3E3933' : '#8A8278',
+            weight: isMajor ? 5 : (road.featured ? (road.type === 'vertical' ? 4 : 3.5) : 2),
+            dashArray: road.featured ? null : '4, 6',
+            opacity: road.featured ? 0.9 : 0.5
+        };
+    }
+
+    // 鼠标划入高亮反馈
+    function onHoverStreet(id, isHover) {
+        if (currentMode === 'quiz') return; // 盲测期间禁止滑过剧透
+        const layer = roadLayers[id];
+        if (!layer) return;
+
+        if (isHover) {
+            if (activeStreetId !== id) {
+                layer.visual.setStyle({ color: '#C88A4B', weight: 8, opacity: 0.95 });
+            }
+        } else {
+            if (activeStreetId !== id) {
+                layer.visual.setStyle(getDefaultRoadStyle(layer.road));
+            }
+        }
+    }
+
+    function onSelectStreet(id) {
+        const layer = roadLayers[id];
+        if (!layer) return;
+
+        if (currentMode === 'quiz') {
+            submitQuizAnswer(id);
+            return;
+        }
+
+        resetHighlights();
+        activeStreetId = id;
+
+        // 绿色高光高亮
+        layer.visual.setStyle({ color: '#1F402B', weight: 8 });
+
+        // 右边名录按钮激活样式
+        const listBtn = document.getElementById(`btn-list-${id}`);
+        if (listBtn) {
+            listBtn.classList.add('border-[#1F402B]', 'bg-emerald-50', 'scale-[1.01]');
+        }
+
+        // 暗记模式点击后才揭晓路名
+        if (currentMode === 'blind') {
+            layer.tooltip.setContent(layer.road.name);
+            L.DomUtil.removeClass(layer.tooltip.getElement(), 'custom-road-label-blind');
+            L.DomUtil.addClass(layer.tooltip.getElement(), 'custom-road-label');
+        }
+
+        updateDetailCard(layer.road);
+    }
+
+    function updateDetailCard(road) {
+        document.getElementById('detail-type').textContent = road.featured
+            ? (road.type === 'horizontal' ? '↔️ 东西走向 / 横向骨架' : '↕️ 南北走向 / 纵向或斜大轴')
+            : (road.type === 'horizontal' ? '↔️ 风貌区支路 / 横向' : '↕️ 风貌区支路 / 纵向');
+        document.getElementById('detail-title').textContent = road.name;
+        document.getElementById('detail-desc').textContent = road.desc;
+        document.getElementById('detail-icon').textContent = road.type === 'horizontal' ? '↔️' : '↕️';
+
+        const mBox = document.getElementById('detail-mnemonic-box');
+        const mText = document.getElementById('detail-mnemonic');
+        if (road.mnemonic) {
+            mBox.classList.remove('hidden');
+            mText.textContent = road.mnemonic;
+        } else {
+            mBox.classList.add('hidden');
+        }
+
+        const oBox = document.getElementById('detail-origin-box');
+        const oText = document.getElementById('detail-origin');
+        if (road.origin) {
+            oBox.classList.remove('hidden');
+            oText.textContent = road.origin;
+        } else {
+            oBox.classList.add('hidden');
+        }
+
+        const lBox = document.getElementById('detail-landmarks-box');
+        const lContainer = document.getElementById('detail-landmarks');
+        lContainer.innerHTML = '';
+        if (road.landmarks && road.landmarks.length > 0) {
+            lBox.classList.remove('hidden');
+            road.landmarks.forEach(land => {
+                const tag = document.createElement('span');
+                tag.className = "bg-gray-100 text-gray-800 border border-gray-300 px-2.5 py-0.5 rounded text-[10px] font-medium";
+                tag.textContent = land;
+                lContainer.appendChild(tag);
+            });
+        } else {
+            lBox.classList.add('hidden');
+        }
+    }
+
+    function showLandmarkInfo(key) {
+        const item = LANDMARKS_INFO[key];
+        if (!item) return;
+
+        resetHighlights();
+
+        document.getElementById('detail-type').textContent = '📍 梧桐区风貌人文空间坐标地标';
+        document.getElementById('detail-title').textContent = item.name;
+        document.getElementById('detail-desc').textContent = item.desc;
+        document.getElementById('detail-icon').textContent = item.icon;
+
+        const mBox = document.getElementById('detail-mnemonic-box');
+        const mText = document.getElementById('detail-mnemonic');
+        mBox.classList.remove('hidden');
+        mText.textContent = `核心落脚位置: ${item.mnemonic}`;
+
+        document.getElementById('detail-landmarks-box').classList.add('hidden');
+        document.getElementById('detail-origin-box').classList.add('hidden');
+
+        // 地图平滑居中聚焦该地标
+        map.flyTo(item.coords, 17);
+    }
+
+    function highlightRoute(routeKey) {
+        resetHighlights();
+        const streetIds = ROUTES[routeKey];
+        if (!streetIds) return;
+
+        streetIds.forEach(id => {
+            const layer = roadLayers[id];
+            if (layer) {
+                layer.visual.setStyle({ color: '#C88A4B', weight: 8 });
+            }
+        });
+
+        const routeTitles = {
+            classic: 'A. 顶流文艺漫步弧 (武康大楼 ➔ 武康路 ➔ 安福路 ➔ 乌中路)',
+            trend: 'B. 黄金“巨富长”潮流三角穿梭 (巨鹿路 ➔ 富民路 ➔ 长乐路 ➔ 襄阳北路 ➔ 陕西南路)',
+            music: 'C. 优雅音乐洋房回廊 (衡山路 ➔ 东平路 ➔ 汾阳路 ➔ 宝庆路 ➔ 复兴中路)',
+            culture: 'D. 红墙公馆人文底蕴线 (思南路 ➔ 复兴中路 ➔ 南昌路 ➔ 瑞金二路)',
+            secret: 'E. 老洋房僻静探秘幽林线 (兴国路 ➔ 泰安路 ➔ 湖南路 ➔ 武康路)'
+        };
+        const routeDescs = {
+            classic: '最经典的网红朝圣弧线。完美展现了武康路地理新月弯，在安福路戏剧咖啡街区折向正东，直扣乌中脊梁。',
+            trend: '横穿极具现代独立设计师情调的黄金三角带，再连接开阔繁忙的襄阳北路与陕西南路（环贸iAPM商圈），市井潮酷。',
+            music: '风貌区内无可挑剔的古典高雅之声走廊。横穿极有情侣情调的东平路，斜插汾阳路普希金像广场，最终合围到黑石交响音乐核心区。',
+            culture: '充满法式连排公馆大宅、极多红色政权历史保护点的东部漫步轴。思南路浓密法国梧桐衬托着红砖院落，再漫步至极静的南昌路后门街道。',
+            secret: '极其静谧的洋房林荫私密路网。涵盖兴国宾馆大院墙、泰安路卫乐新村，以及“梧桐蔽日之首”湖南路名人旧里。'
+        };
+
+        document.getElementById('detail-type').textContent = '🚶‍♂️ 规划漫游路线骨架（一键高亮）';
+        document.getElementById('detail-title').textContent = routeTitles[routeKey];
+        document.getElementById('detail-desc').textContent = routeDescs[routeKey];
+        document.getElementById('detail-icon').textContent = '🐾';
+        document.getElementById('detail-mnemonic-box').classList.add('hidden');
+        document.getElementById('detail-origin-box').classList.add('hidden');
+        document.getElementById('detail-landmarks-box').classList.add('hidden');
+
+        // 缩放聚焦至该路线所有坐标包围框
+        const coordsGroup = [];
+        streetIds.forEach(id => {
+            if (roadLayers[id]) coordsGroup.push(...roadLayers[id].road.path);
+        });
+        map.fitBounds(L.polyline(coordsGroup).getBounds(), { padding: [40, 40] });
+    }
+
+    function generateQuizQuestion() {
+        const randomIndex = Math.floor(Math.random() * STREETS.filter(r => r.featured).length);
+        const road = STREETS.filter(r => r.featured)[randomIndex];
+        quizTargetId = road.id;
+
+        document.getElementById('quiz-question').innerHTML = `请在地图上找到并点击: <span class="bg-amber-200 text-amber-950 px-2.5 py-0.5 rounded font-black text-sm border border-amber-400 shadow-sm">${road.name}</span>`;
+    }
+
+    function skipQuizQuestion() {
+        generateQuizQuestion();
+    }
+
+    // 盲敲验证
+    function submitQuizAnswer(clickedId) {
+        const targetLayer = roadLayers[quizTargetId];
+        const clickedLayer = roadLayers[clickedId];
+        
+        quizScoreTotal++;
+
+        if (clickedId === quizTargetId) {
+            quizScoreCorrect++;
+            
+            // 答对：绿色高亮闪烁提示
+            targetLayer.visual.setStyle({ color: '#10B981', weight: 10 });
+            targetLayer.tooltip.setContent(targetLayer.road.name);
+            
+            const copyId = quizTargetId;
+            setTimeout(() => {
+                const layer = roadLayers[copyId];
+                if (layer) {
+                    layer.visual.setStyle(getDefaultRoadStyle(layer.road));
+                    if (currentMode === 'quiz') layer.tooltip.setContent(' ');
+                }
+            }, 1200);
+
+            updateDetailCard(targetLayer.road);
+            document.getElementById('detail-type').textContent = '🎉 答对了！空间匹配100%正确';
+        } else {
+            // 答错：红线警示
+            clickedLayer.visual.setStyle({ color: '#EF4444', weight: 10 });
+            setTimeout(() => {
+                clickedLayer.visual.setStyle(getDefaultRoadStyle(clickedLayer.road));
+            }, 1200);
+
+            updateDetailCard(targetLayer.road);
+            document.getElementById('detail-type').textContent = `❌ 答错了！您点到的是: ${clickedLayer.road.name}`;
+        }
+
+        updateQuizScoreUI();
+        
+        setTimeout(() => {
+            if (currentMode === 'quiz') generateQuizQuestion();
+        }, 1400);
+    }
+
+    function updateQuizScoreUI() {
+        document.getElementById('quiz-score').textContent = `盲测得分: ${quizScoreCorrect}/${quizScoreTotal}`;
+    }
+
+    function resetHighlights() {
+        activeStreetId = null;
+        STREETS.forEach(road => {
+            const layer = roadLayers[road.id];
+            if (layer) {
+                layer.visual.setStyle(getDefaultRoadStyle(road));
+            }
+
+            const listBtn = document.getElementById(`btn-list-${road.id}`);
+            if (listBtn) {
+                listBtn.className = "text-left p-2 rounded-lg border border-gray-200 hover:border-[#1F402B] hover:bg-[#FAF5EB] transition flex items-center justify-between group bg-white";
+            }
+        });
+
+        if (currentMode === 'blind') {
+            STREETS.forEach(road => {
+                const layer = roadLayers[road.id];
+                if (layer && layer.tooltip && road.featured) {
+                    layer.tooltip.setContent('❓');
+                    L.DomUtil.removeClass(layer.tooltip.getElement(), 'custom-road-label');
+                    L.DomUtil.addClass(layer.tooltip.getElement(), 'custom-road-label-blind');
+                }
+            });
+        }
+    }
+
+    function switchTab(tabId) {
+        const tabEW = document.getElementById('tab-ew');
+        const tabNS = document.getElementById('tab-ns');
+        const btnEW = document.getElementById('btn-tab-ew');
+        const btnNS = document.getElementById('btn-tab-ns');
+
+        if (tabId === 'tab-ew') {
+            tabEW.classList.remove('hidden');
+            tabNS.classList.add('hidden');
+            btnEW.className = "flex-1 py-3 text-center font-bold text-[#1F402B] border-b-2 border-[#1F402B]";
+            btnNS.className = "flex-1 py-3 text-center font-bold text-gray-500 hover:text-gray-800";
+        } else {
+            tabEW.classList.add('hidden');
+            tabNS.classList.remove('hidden');
+            btnEW.className = "flex-1 py-3 text-center font-bold text-gray-500 hover:text-gray-800";
+            btnNS.className = "flex-1 py-3 text-center font-bold text-[#1F402B] border-b-2 border-[#1F402B]";
+        }
+    }
+</script>
+</body>
+</html>

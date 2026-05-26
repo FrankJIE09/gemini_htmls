@@ -1,0 +1,1573 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>上海苏州河沿岸认路记忆宝典 - 真实地理比例版</title>
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 Leaflet 地图 CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- 引入 Google 字体提升艺术气质 -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=ZCOOL+XiaoWei&family=Noto+Serif+SC:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Serif SC', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #F0F6FA; /* 温暖复古宣纸色 */
+            color: #2E2B27;
+        }
+        .handwritten-title {
+            font-family: 'ZCOOL XiaoWei', serif;
+        }
+        /* 拟真手绘纸张微阴影 */
+        .sketch-card {
+            background: #FCF9F2;
+            border: 2px solid #2C5282;
+            box-shadow: 4px 4px 0px #2C5282;
+            transition: all 0.2s ease;
+        }
+        .sketch-card:hover {
+            transform: translate(-1px, -1px);
+            box-shadow: 5px 5px 0px #2C5282;
+        }
+        /* 让 Leaflet 容器呈现温暖复古的梧桐色调 */
+        .river-paper-map .leaflet-tile-pane {
+            filter: sepia(0.15) saturate(0.95) contrast(0.92) brightness(1.05) hue-rotate(185deg);
+        }
+        /* 自定义精美路名浮动标签，防止被官方底图遮挡 */
+        .custom-road-label {
+            background-color: #1A3A5C !important;
+            border: 1.5px solid #2C5282 !important;
+            box-shadow: 2px 2px 0px #2C5282 !important;
+            font-family: 'Inter', 'Noto Serif SC', sans-serif;
+            font-weight: 800;
+            font-size: 11px;
+            color: #F0F6FA !important;
+            padding: 2px 6px;
+            border-radius: 4px;
+            white-space: nowrap;
+            text-align: center;
+        }
+        .custom-road-label-blind {
+            background-color: #FFFDF7 !important;
+            border: 1.5px solid #C88A4B !important;
+            box-shadow: 2px 2px 0px #C88A4B !important;
+            font-weight: 800;
+            color: #C88A4B !important;
+            font-size: 11px;
+            padding: 2px 5px;
+            border-radius: 4px;
+        }
+        /* 地标自定义 Emoji 样式 */
+        .landmark-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #FFFDF9;
+            border: 2px solid #2C5282;
+            box-shadow: 2px 2px 0px #2C5282;
+            border-radius: 50%;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .landmark-icon:hover {
+            transform: scale(1.15) rotate(-5deg);
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="min-h-screen pb-12">
+
+<header class="w-full bg-[#1A3A5C] text-[#F0F6FA] py-6 px-4 shadow-md relative overflow-hidden border-b-4 border-[#2C5282]">
+    <div class="absolute right-6 top-2 opacity-10 pointer-events-none">
+        <svg width="130" height="130" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C11.5 4 9 7.5 6 9.5C3 11.5 2 13.5 2 15.5C2 18.5 4.5 21 7.5 21C10.5 21 12 18 12 18C12 18 13.5 21 16.5 21C19.5 21 22 18.5 22 15.5C22 13.5 21 11.5 18 9.5C15 7.5 12.5 4 12 2Z"/>
+        </svg>
+    </div>
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2">
+                <span class="bg-[#5B8DB8] text-[#1A3A5C] text-[10px] font-bold px-2 py-0.5 rounded-sm transform -rotate-1">沿岸32路极精校正</span>
+                <h1 class="text-3xl md:text-4xl font-bold handwritten-title tracking-wider">
+                    🌊 上海苏州河沿岸认路神器 <span class="text-lg md:text-xl font-sans font-light opacity-80">(Leaflet 真实GPS投影版)</span>
+                </h1>
+            </div>
+            <p class="text-xs md:text-sm opacity-90 mt-2 font-light leading-relaxed max-w-4xl">
+                覆盖苏州河从<b>长宁区西端</b>经<b>静安区</b>至<b>黄浦区河口</b>的沿岸认路骨架。本站汇集 <b>32条</b>最具代表性的苏河街道，基于无标签盲测底图与 OpenStreetMap 真实 GPS 折线叠加，助您构建精准的滨水空间脑图。
+            </p>
+        </div>
+        <div class="flex gap-2 shrink-0">
+            <span class="bg-[#F0F6FA] text-[#1A3A5C] px-3 py-1 rounded-full text-xs font-bold shadow-sm border border-[#2C5282]">
+                🧭 GPS真实投影
+            </span>
+            <span class="bg-[#5B8DB8] text-[#1A3A5C] px-3 py-1 rounded-full text-xs font-bold shadow-sm border border-[#2C5282]">
+                🏆 无标速记考场
+            </span>
+        </div>
+    </div>
+</header>
+
+<main class="max-w-7xl mx-auto px-4 mt-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <!-- 左栏：控制台与主地图 -->
+    <section class="lg:col-span-7 flex flex-col gap-4">
+        
+        <!-- 地图互动控制面板 -->
+        <div class="sketch-card p-4 rounded-xl flex flex-wrap items-center justify-between gap-3 bg-white">
+            <div class="flex items-center gap-2">
+                <span class="text-xs font-bold text-gray-700">模式切换:</span>
+                <div class="inline-flex rounded-md shadow-sm" role="group">
+                    <button id="btn-study" onclick="switchMode('study')" class="px-3 py-1.5 text-xs font-bold rounded-l-lg bg-[#1A3A5C] text-white border border-[#1A3A5C] transition">
+                        📖 明记对照
+                    </button>
+                    <button id="btn-blind" onclick="switchMode('blind')" class="px-3 py-1.5 text-xs font-bold bg-white text-gray-700 border-t border-b border-gray-300 hover:bg-gray-50 transition">
+                        ❓ 遮蔽暗记
+                    </button>
+                    <button id="btn-quiz" onclick="switchMode('quiz')" class="px-3 py-1.5 text-xs font-bold rounded-r-lg bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 transition">
+                        🏆 实测盲敲
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 盲测问答条 -->
+            <div id="quiz-status-bar" class="hidden items-center gap-2 text-sm bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-300">
+                <span id="quiz-question" class="font-bold text-amber-900">请点击地图上的: </span>
+                <span id="quiz-score" class="text-xs bg-amber-200 text-amber-950 px-2 py-0.5 rounded-full font-bold">得分: 0/0</span>
+                <button onclick="skipQuizQuestion()" class="text-xs underline text-gray-500 hover:text-gray-800 ml-1">跳过</button>
+            </div>
+
+            <div class="flex gap-2">
+                <button onclick="resetHighlights()" class="text-xs bg-gray-200 hover:bg-gray-300 px-3 py-1.5 rounded-lg text-gray-700 font-medium transition">
+                    清除高亮
+                </button>
+            </div>
+        </div>
+
+        <!-- 地图容器卡片 -->
+        <div class="sketch-card p-2 rounded-2xl relative bg-[#F0F6FA]">
+            <!-- 地图顶部指示器 -->
+            <div class="absolute top-4 left-4 flex flex-col items-start gap-1 z-[1000] select-none pointer-events-none">
+                <div class="bg-[#1A3A5C] text-[#F0F6FA] px-2.5 py-1 rounded text-[11px] font-bold shadow-md">
+                    🗺️ 苏州河沿岸地理骨架（高精测绘数据）
+                </div>
+                <div class="text-[9px] text-gray-700 bg-white/95 px-2 py-0.5 rounded border border-gray-300 shadow-sm font-semibold">
+                    上北 ⬆️ (物理真北对齐)
+                </div>
+            </div>
+
+            <!-- Leaflet 地图容器挂载点 -->
+            <div id="leaflet-map" class="w-full h-[580px] rounded-xl river-paper-map z-10 border border-[#2C5282]"></div>
+        </div>
+
+        <!-- 路线一键点亮快捷栏 -->
+        <div class="sketch-card p-4 rounded-xl">
+            <h4 class="font-bold text-sm text-[#1A3A5C] mb-2 flex items-center gap-1">
+                🚶‍♂️ 精品漫步路线（一键点亮测绘骨架）:
+            </h4>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 text-xs">
+                                <button onclick="highlightRoute('classic')" class="bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-900 p-2 rounded-lg text-left transition flex flex-col justify-between">
+                    <span class="font-bold">A. 北岸经典线</span>
+                    <span class="opacity-80 text-[10px] mt-1">北苏州路➔浙江北路➔曲阜路</span>
+                </button>
+                <button onclick="highlightRoute('west')" class="bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 p-2 rounded-lg text-left transition flex flex-col justify-between">
+                    <span class="font-bold">B. 西段艺术湾</span>
+                    <span class="opacity-80 text-[10px] mt-1">万航渡路➔莫干山路➔昌化路</span>
+                </button>
+                <button onclick="highlightRoute('center')" class="bg-blue-50 hover:bg-blue-100 border border-blue-300 text-blue-900 p-2 rounded-lg text-left transition flex flex-col justify-between">
+                    <span class="font-bold">C. 中环纵切</span>
+                    <span class="opacity-80 text-[10px] mt-1">长寿路➔江宁路➔恒丰路</span>
+                </button>
+                <button onclick="highlightRoute('east')" class="bg-purple-50 hover:bg-purple-100 border border-purple-300 text-purple-900 p-2 rounded-lg text-left transition flex flex-col justify-between">
+                    <span class="font-bold">D. 河口外滩源</span>
+                    <span class="opacity-80 text-[10px] mt-1">南苏州路➔天潼路➔圆明园路</span>
+                </button>
+                <button onclick="highlightRoute('night')" class="bg-rose-50 hover:bg-rose-100 border border-rose-300 text-rose-900 p-2 rounded-lg text-left transition flex flex-col justify-between">
+                    <span class="font-bold">E. 夜景滨江</span>
+                    <span class="opacity-80 text-[10px] mt-1">邮政博物馆➔浙江路桥➔外白渡桥</span>
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- 右栏：动态名录与路网名册 -->
+    <section class="lg:col-span-5 flex flex-col gap-6">
+        
+        <!-- 动态详情交互展示卡片 -->
+        <div id="detail-card" class="sketch-card p-5 rounded-2xl bg-white border-2 border-[#1A3A5C] min-h-[170px] flex flex-col justify-between relative">
+            <div class="absolute top-2 right-2 text-4xl opacity-15" id="detail-icon">🗺️</div>
+            <div>
+                <span id="detail-type" class="text-[9px] font-bold tracking-widest uppercase bg-[#1A3A5C] text-[#F0F6FA] px-2 py-0.5 rounded">
+                    请在地图或下方列表点选道路
+                </span>
+                <h3 id="detail-title" class="text-2xl font-bold mt-2 text-[#2E2B27] handwritten-title">
+                    物理比例认路空间
+                </h3>
+                <p id="detail-desc" class="text-xs text-gray-600 mt-2 leading-relaxed">
+                    本版本覆盖<b>沿岸32条马路</b>。在左侧地图点击任意高亮道路线条，或点击下方分类名录中的路名，即可查看其空间几何走向、记忆心法与核心地标。
+                </p>
+                
+                <!-- 记忆背诵口诀 -->
+                <div id="detail-mnemonic-box" class="hidden mt-3.5 p-2.5 bg-amber-50 rounded-lg border border-amber-200">
+                    <span class="text-xs font-bold text-amber-900 block">🧠 极简认路心法 / 空间解构:</span>
+                    <p id="detail-mnemonic" class="text-xs text-amber-950 font-medium mt-1 leading-relaxed"></p>
+                </div>
+            </div>
+
+            <!-- 核心地标链 -->
+            <div id="detail-landmarks-box" class="hidden mt-4 pt-3 border-t border-gray-100">
+                <span class="text-xs font-bold text-gray-500 block">📍 沿线地标:</span>
+                <div id="detail-landmarks" class="flex flex-wrap gap-1.5 mt-1.5"></div>
+            </div>
+        </div>
+
+        <!-- 32路沿岸检索背诵目录 -->
+        <div class="sketch-card rounded-2xl overflow-hidden bg-white">
+            
+            <!-- 搜索与筛选控制栏 -->
+            <div class="p-3 bg-gray-50 border-b border-gray-200 flex flex-col gap-2">
+                <div class="relative">
+                    <input type="text" id="search-input" oninput="filterRoads()" placeholder="🔍 输入路名查找（如：北苏州路、莫干山路）..." 
+                           class="w-full text-xs px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1A3A5C]">
+                </div>
+                <!-- 片区快捷键 -->
+                <div class="flex flex-wrap gap-1">
+                    <button onclick="filterBySubArea('all')" class="sub-area-btn px-2 py-1 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded text-[10px] font-semibold transition">全部</button>
+                    <button onclick="filterBySubArea('changning')" class="sub-area-btn px-2 py-1 bg-white hover:bg-gray-100 text-gray-700 border border-gray-300 rounded text-[10px] transition">长宁西段</button>
+                    <button onclick="filterBySubArea('jingan')" class="sub-area-btn px-2 py-1 bg-white hover:bg-gray-100 text-gray-700 border border-gray-300 rounded text-[10px] transition">静安核心</button>
+                    <button onclick="filterBySubArea('huangpu')" class="sub-area-btn px-2 py-1 bg-white hover:bg-gray-100 text-gray-700 border border-gray-300 rounded text-[10px] transition">苏河湾</button>
+                    <button onclick="filterBySubArea('hongkou')" class="sub-area-btn px-2 py-1 bg-white hover:bg-gray-100 text-gray-700 border border-gray-300 rounded text-[10px] transition">黄浦河口</button>
+                </div>
+            </div>
+
+            <div class="flex border-b border-gray-200 bg-gray-50 text-xs">
+                <button onclick="switchTab('tab-ew')" id="btn-tab-ew" class="flex-1 py-3 text-center font-bold text-[#1A3A5C] border-b-2 border-[#1A3A5C]">
+                    ↔️ 东西走向 (共 25 条)
+                </button>
+                <button onclick="switchTab('tab-ns')" id="btn-tab-ns" class="flex-1 py-3 text-center font-bold text-gray-500 hover:text-gray-800">
+                    ↕️ 南北走向 (共 7 条)
+                </button>
+            </div>
+
+            <!-- 东西平行路 -->
+            <div id="tab-ew" class="p-3 flex flex-col gap-1.5 max-h-[350px] overflow-y-auto">
+                <p class="text-[9px] text-[#1A3A5C] font-bold bg-[#F0F6FA] p-2 rounded mb-1">
+                    🧭 典型骨架：北苏州路、光复路沿河延伸；长寿路、新闸路、北京西路构成平行横轴。
+                </p>
+                <div class="grid grid-cols-2 gap-2" id="list-ew-roads">
+                    <!-- 动态生成 -->
+                </div>
+            </div>
+
+            <!-- 南北纵向路 -->
+            <div id="tab-ns" class="p-3 hidden flex flex-col gap-1.5 max-h-[350px] overflow-y-auto">
+                <p class="text-[9px] text-[#1A3A5C] font-bold bg-[#F0F6FA] p-2 rounded mb-1">
+                    🧭 典型骨架：江宁路、西康路、恒丰路、西藏中路纵切；浙江北路、乍浦路以桥位勾连南北岸。
+                </p>
+                <div class="grid grid-cols-2 gap-2" id="list-ns-roads">
+                    <!-- 动态生成 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 空间骨架总结 -->
+        <div class="sketch-card p-4 rounded-xl bg-[#F0F6FA]">
+            <h4 class="font-bold text-sm text-gray-800 mb-2 flex items-center gap-1">
+                📌 苏州河沿岸三区认路法：
+            </h4>
+            <div class="space-y-2 text-xs">
+                <div class="p-2.5 bg-white rounded-lg border border-gray-200">
+                    <span class="font-bold text-[#1A3A5C]">⭐ 西段 (长宁/普陀入口)</span>
+                    <p class="text-gray-600 mt-1">
+                        以<b>万航渡路—长宁路—凯旋路</b>为入口扇形，莫干山路 M50 艺术区与昌化路桥构成西端认路核心。
+                    </p>
+                </div>
+                <div class="p-2.5 bg-white rounded-lg border border-gray-200">
+                    <span class="font-bold text-[#1A3A5C]">🩹 中段 (静安苏河湾)</span>
+                    <p class="text-gray-600 mt-1">
+                        <b>长寿路—江宁路—西康路</b>构成网格，北苏州路、光复路沿河延伸，四行仓库与浙江路桥是中段地标。
+                    </p>
+                </div>
+                <div class="p-2.5 bg-white rounded-lg border border-gray-200">
+                    <span class="font-bold text-[#1A3A5C]">📐 东段 (虹口/闸北南缘)</span>
+                    <p class="text-gray-600 mt-1">
+                        西藏北路、乍浦路纵切，四行仓库、曲阜路、北苏州路在此形成高密度桥位节点。
+                    </p>
+                </div>
+                <div class="p-2.5 bg-white rounded-lg border border-gray-200">
+                    <span class="font-bold text-[#1A3A5C]">🎨 河口 (黄浦外滩源)</span>
+                    <p class="text-gray-600 mt-1">
+                        南苏州路、天潼路、圆明园路环绕<b>外白渡桥</b>，福建中路、浙江中路构成河口纵轴，邮政博物馆是北岸终点。
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+
+<footer class="max-w-7xl mx-auto px-4 mt-8 text-center text-xs text-gray-500">
+    <hr class="border-gray-300 mb-4">
+    <p>🌊 真实 GPS 投影，OpenStreetMap 路网对齐，复刻苏州河每一个桥位与街角。 🌊</p>
+    <p class="mt-1">设计 & 物理地理对齐算法 © 2026 上海苏州河沿岸认路记忆指南</p>
+</footer>
+
+<script>
+    const STREETS = [
+        {
+            id: 'beisuzhou',
+            name: '北苏州路',
+            type: 'horizontal',
+            subArea: 'all',
+            desc: '苏州河北岸经典滨江步道，百年工业仓储与里弄立面连绵，是苏河贯通最标志性的认路主轴。',
+            mnemonic: '苏河北岸主廊道！西起浙江路桥，东接外白渡桥方向，与河南北路、福建中路、西藏中路等纵向路呈鱼骨状交汇。',
+            path: [
+                [31.246599, 121.483369],
+                [31.246628, 121.48325],
+                [31.246615, 121.482435],
+                [31.246504, 121.481775],
+                [31.246394, 121.481331],
+                [31.246366, 121.481222],
+                [31.24612, 121.480632],
+                [31.245945, 121.480314],
+                [31.24556, 121.479734],
+                [31.244452, 121.47854],
+                [31.246584, 121.483441],
+                [31.246402, 121.484219],
+                [31.246257, 121.484776],
+                [31.246097, 121.485407],
+                [31.245991, 121.485924]
+            ],
+            landmarks: ["上海邮政博物馆", "四行仓库", "浙江路桥"],
+            tag: '滨江步道/仓储里弄'
+        },
+        {
+            id: 'nansuzhou',
+            name: '南苏州路',
+            type: 'horizontal',
+            subArea: 'huangpu',
+            desc: '苏州河南岸老码头的遗韵所在，外滩源以北的窄街，保留大量近代金融与仓库建筑。',
+            mnemonic: '河南中路以西的河南岸平行线，与北苏州路隔河相望，经乍浦路桥、四川路桥与北岸勾连。',
+            path: [
+                [31.240075, 121.454479],
+                [31.240307, 121.454859],
+                [31.240707, 121.455323],
+                [31.241621, 121.456029],
+                [31.241919, 121.456257],
+                [31.242641, 121.457206],
+                [31.242914, 121.45824],
+                [31.242937, 121.4589],
+                [31.242767, 121.460074],
+                [31.242636, 121.460675],
+                [31.242358, 121.46145],
+                [31.242321, 121.461534],
+                [31.242214, 121.461725],
+                [31.241689, 121.462649],
+                [31.24123, 121.462456]
+            ],
+            landmarks: ["外滩源", "乍浦路桥"],
+            tag: '南岸码頭/金融旧址'
+        },
+        {
+            id: 'guangfu',
+            name: '光复路',
+            type: 'horizontal',
+            subArea: 'jingan',
+            desc: '紧贴苏州河南岸的次级滨水线，串联蝴蝶湾与昌化路桥一带的更新片区。',
+            mnemonic: '介于苏州河与长寿路之间的南岸支廊，西接西康路，东向浙江中路方向延伸。',
+            path: [
+                [31.246758, 121.444811],
+                [31.243586, 121.448519],
+                [31.240321, 121.452578],
+                [31.242241, 121.455753],
+                [31.243509, 121.458117],
+                [31.243441, 121.460201],
+                [31.243037, 121.461693],
+                [31.241821, 121.463768],
+                [31.241484, 121.465341],
+                [31.241563, 121.465772]
+            ],
+            landmarks: ["蝴蝶湾公园"],
+            tag: '滨水更新/蝴蝶湾'
+        },
+        {
+            id: 'mogan',
+            name: '莫干山路',
+            type: 'horizontal',
+            subArea: 'changning',
+            desc: 'M50创意园所在的艺术街区，苏州河西段最具工业遗产气质的横向通道。',
+            mnemonic: '苏州河西端重要横向动脉，与昌化路、西康路交汇，东接长寿路片区。',
+            path: [
+                [31.250305, 121.439484],
+                [31.250644, 121.442251],
+                [31.250647, 121.442323],
+                [31.250646, 121.442424],
+                [31.250625, 121.442576],
+                [31.2506, 121.442661],
+                [31.250529, 121.442803],
+                [31.250303, 121.44314],
+                [31.250263, 121.443185],
+                [31.250185, 121.443259],
+                [31.249876, 121.443509],
+                [31.249457, 121.443888],
+                [31.249106, 121.444244],
+                [31.248973, 121.444372],
+                [31.248722, 121.444613]
+            ],
+            landmarks: ["M50创意园"],
+            tag: 'M50艺术/工业遗存'
+        },
+        {
+            id: 'changning_r',
+            name: '长宁路',
+            type: 'horizontal',
+            subArea: 'changning',
+            desc: '长宁区沿苏州河的主轴大马路，连接中山公园商圈与苏河西入口。',
+            mnemonic: '苏州河西端北侧平行大道，与万航渡路、凯旋路、长宁支路构成扇形入口。',
+            path: [
+                [31.226067, 121.423207],
+                [31.226246, 121.423272],
+                [31.226676, 121.42333],
+                [31.227431, 121.423332],
+                [31.228915, 121.4232],
+                [31.228996, 121.423193],
+                [31.229369, 121.42316],
+                [31.229751, 121.423125],
+                [31.230188, 121.423088],
+                [31.231075, 121.422994]
+            ],
+            landmarks: ["中山公园"],
+            tag: '中山公园/西入口'
+        },
+        {
+            id: 'wanhangdu',
+            name: '万航渡路',
+            type: 'horizontal',
+            subArea: 'changning',
+            desc: '苏州河上游重要渡口旧址，现为西端纵向进入苏河廊道的门户。',
+            mnemonic: '沿苏州河弯道向北延伸，连接长宁路与康定路，是西段认路的起点锚点。',
+            path: [
+                [31.229941, 121.425393],
+                [31.229755, 121.425744],
+                [31.229447, 121.42633],
+                [31.229225, 121.426747],
+                [31.229094, 121.426998],
+                [31.228656, 121.42787],
+                [31.228392, 121.428419],
+                [31.228228, 121.428758],
+                [31.228181, 121.428855],
+                [31.228043, 121.429127]
+            ],
+            landmarks: [],
+            tag: '古渡口/西门户'
+        },
+        {
+            id: 'changshou',
+            name: '长寿路',
+            type: 'horizontal',
+            subArea: 'jingan',
+            desc: '静安区贯穿东西的超级商业轴，与苏州河平行且略偏北，轨交密集。',
+            mnemonic: '苏河北侧第一条大型平行商业轴，西起江宁路，东接西藏中路，与恒丰路、昌化路垂直相交。',
+            path: [
+                [31.247794, 121.448924],
+                [31.247441, 121.446253],
+                [31.246467, 121.441002],
+                [31.245338, 121.437367],
+                [31.243032, 121.43404],
+                [31.241079, 121.431684],
+                [31.239755, 121.429776],
+                [31.238676, 121.427203],
+                [31.236951, 121.426312],
+                [31.235276, 121.42502]
+            ],
+            landmarks: ["长寿路地铁站"],
+            tag: '轨交枢纽/商业主轴'
+        },
+        {
+            id: 'xinzha',
+            name: '新闸路',
+            type: 'horizontal',
+            subArea: 'jingan',
+            desc: '历史水闸命名之路，纵向切过苏河片区的老静安骨架。',
+            mnemonic: '自北向南穿越长寿路、北京西路，直抵苏州河南岸，与江宁路、石门一路平行。',
+            path: [
+                [31.229828, 121.43877],
+                [31.23263, 121.444085],
+                [31.234998, 121.450822],
+                [31.236681, 121.455051],
+                [31.238018, 121.455897],
+                [31.23993, 121.458849],
+                [31.238912, 121.456867],
+                [31.237211, 121.455324],
+                [31.235485, 121.452903],
+                [31.228065, 121.43653]
+            ],
+            landmarks: ["新闸路闸门旧址"],
+            tag: '水闸名路/老静安'
+        },
+        {
+            id: 'kangding',
+            name: '康定路',
+            type: 'horizontal',
+            subArea: 'jingan',
+            desc: '毗邻苏州河西段的文艺小马路，连接昌平路与西康路。',
+            mnemonic: '苏河西端北侧平行线，与万航渡路、余姚路、西康路构成细密网格。',
+            path: [
+                [31.232492, 121.435142],
+                [31.233432, 121.437348],
+                [31.234179, 121.438915],
+                [31.235496, 121.442407],
+                [31.235853, 121.443239],
+                [31.23619, 121.443888],
+                [31.236709, 121.445324],
+                [31.237287, 121.446945],
+                [31.238986, 121.450859],
+                [31.239124, 121.45113]
+            ],
+            landmarks: [],
+            tag: '文艺小街/西段网格'
+        },
+        {
+            id: 'yuyao',
+            name: '余姚路',
+            type: 'horizontal',
+            subArea: 'jingan',
+            desc: '西康路与江宁路之间的安静横向里弄街，生活气息浓厚。',
+            mnemonic: '介于康定路与长寿路之间，是西段认路的横向标尺之一。',
+            path: [
+                [31.231089, 121.426193],
+                [31.231685, 121.426282],
+                [31.233306, 121.427956],
+                [31.235049, 121.429756],
+                [31.235738, 121.430576],
+                [31.237203, 121.433229],
+                [31.237518, 121.433976],
+                [31.237977, 121.43549],
+                [31.238145, 121.439036],
+                [31.237995, 121.44011]
+            ],
+            landmarks: [],
+            tag: '里弄生活/西段标尺'
+        },
+        {
+            id: 'beijing_w',
+            name: '北京西路',
+            type: 'horizontal',
+            subArea: 'all',
+            desc: '横贯市中心的东西大轴，在苏河片与新闸路、西藏中路形成大十字。',
+            mnemonic: '苏河南北认路的重要分界参考线，与河南中路、西藏中路、石门一路交汇。',
+            path: [
+                [31.228182, 121.440565],
+                [31.229459, 121.443397],
+                [31.22999, 121.444672],
+                [31.231104, 121.447415],
+                [31.232608, 121.451861],
+                [31.234183, 121.455607],
+                [31.235345, 121.458169],
+                [31.236554, 121.461549],
+                [31.237953, 121.465421],
+                [31.239704, 121.469065]
+            ],
+            landmarks: ["自然博物馆"],
+            tag: '城市大轴/十字枢纽'
+        },
+        {
+            id: 'tiantong',
+            name: '天潼路',
+            type: 'horizontal',
+            subArea: 'huangpu',
+            desc: '外白渡桥以南、苏州河入黄浦江前的最后一段横向通道。',
+            mnemonic: '河南岸近黄浦江入口的横向短轴，连接江西中路与河南中路。',
+            path: [
+                [31.247333, 121.486921],
+                [31.247255, 121.486987],
+                [31.247233, 121.487005],
+                [31.247123, 121.487094],
+                [31.24628, 121.487813]
+            ],
+            landmarks: ["外白渡桥南"],
+            tag: '河口短轴/外白渡'
+        },
+        {
+            id: 'nantiantong',
+            name: '南天潼路',
+            type: 'horizontal',
+            subArea: 'huangpu',
+            desc: '天潼路南侧的平行补充线，服务外滩源北片区。',
+            mnemonic: '紧贴天潼路南侧，是河口片区认路的辅助横线。',
+            path: [
+                [31.244898, 121.47818],
+                [31.245116, 121.478629],
+                [31.245285, 121.478769],
+                [31.245326, 121.478775],
+                [31.245505, 121.478645],
+                [31.245575, 121.478641],
+                [31.245654, 121.478704],
+                [31.245857, 121.478999],
+                [31.245939, 121.479085],
+                [31.246043, 121.479137]
+            ],
+            landmarks: [],
+            tag: '外滩源北/辅助横线'
+        },
+        {
+            id: 'qufu',
+            name: '曲阜路',
+            type: 'horizontal',
+            subArea: 'huangpu',
+            desc: '八号桥与四行仓库附近的横向里弄通道，连接西藏北路与浙江北路。',
+            mnemonic: '苏河中东段横向连接轴，北邻四行仓库，南接曲阜路商圈。',
+            path: [
+                [31.245103, 121.471665],
+                [31.245049, 121.471411],
+                [31.244799, 121.470247],
+                [31.244763, 121.470079],
+                [31.244728, 121.469854],
+                [31.244437, 121.467952],
+                [31.244367, 121.467539],
+                [31.244316, 121.467254],
+                [31.244295, 121.467049],
+                [31.244278, 121.466906]
+            ],
+            landmarks: ["四行仓库"],
+            tag: '八号桥/四行仓库'
+        },
+        {
+            id: 'jiujiang',
+            name: '九江路',
+            type: 'horizontal',
+            subArea: 'huangpu',
+            desc: '南京东路以南、苏州河南岸片区的经典横向马路，近河南中路。',
+            mnemonic: '河口段南侧平行线，与汉口路、北京东路构成南岸横格。',
+            path: [
+                [31.239878, 121.485708],
+                [31.23922, 121.483064],
+                [31.238791, 121.481422],
+                [31.238542, 121.480452],
+                [31.237655, 121.477394],
+                [31.236864, 121.475374],
+                [31.236215, 121.472894],
+                [31.235666, 121.470384],
+                [31.235268, 121.467622],
+                [31.235229, 121.467333]
+            ],
+            landmarks: [],
+            tag: '南岸横格/近外滩'
+        },
+        {
+            id: 'hankou',
+            name: '汉口路',
+            type: 'horizontal',
+            subArea: 'huangpu',
+            desc: '外滩北侧的横向通道，与九江路、北京东路平行排列。',
+            mnemonic: '河南岸近黄浦江的传统横街，认路时可作九江路的邻居参照。',
+            path: [
+                [31.234863, 121.471018],
+                [31.235566, 121.473079],
+                [31.236217, 121.475799],
+                [31.237094, 121.478178],
+                [31.237639, 121.47985],
+                [31.237856, 121.480832],
+                [31.238226, 121.482506],
+                [31.238562, 121.484024],
+                [31.238903, 121.485532],
+                [31.238929, 121.485831]
+            ],
+            landmarks: [],
+            tag: '外滩北缘/传统横街'
+        },
+        {
+            id: 'hengfeng',
+            name: '恒丰路',
+            type: 'horizontal',
+            subArea: 'jingan',
+            desc: '上海站南广场出发的南北大动脉，纵切苏河片西侧。',
+            mnemonic: '苏河西段最重要的南北切线之一，与长寿路、汉中路、北京西路垂直相交。',
+            path: [
+                [31.257319, 121.447554],
+                [31.25426, 121.446857],
+                [31.252226, 121.446621],
+                [31.251386, 121.446768],
+                [31.250435, 121.447264],
+                [31.247794, 121.448924],
+                [31.245849, 121.450319],
+                [31.243893, 121.452375],
+                [31.243199, 121.452851],
+                [31.242779, 121.453048]
+            ],
+            landmarks: ["上海站南广场"],
+            tag: '上海站/西纵切'
+        },
+        {
+            id: 'xikang',
+            name: '西康路',
+            type: 'vertical',
+            subArea: 'jingan',
+            desc: '西段纵向主轴，连接康定路、长寿路与陕西北路。',
+            mnemonic: '苏河西段认路的纵向脊梁，与长寿路、昌平路、海防路交汇。',
+            path: [
+                [31.228628, 121.44845],
+                [31.230899, 121.446741],
+                [31.234378, 121.444077],
+                [31.236642, 121.441917],
+                [31.237995, 121.44011],
+                [31.239421, 121.439404],
+                [31.241395, 121.438186],
+                [31.243348, 121.43631],
+                [31.24462, 121.433962],
+                [31.246799, 121.430115]
+            ],
+            landmarks: [],
+            tag: '西段纵脊/里弄'
+        },
+        {
+            id: 'jiangning',
+            name: '江宁路',
+            type: 'vertical',
+            subArea: 'jingan',
+            desc: '纵贯苏河片的中轴纵向路，连接长寿路与北京西路。',
+            mnemonic: '与西康路平行的核心纵线，是西段网格的中央标尺。',
+            path: [
+                [31.250513, 121.432538],
+                [31.250508, 121.432308],
+                [31.250517, 121.43215]
+            ],
+            landmarks: [],
+            tag: '核心纵轴/网格中轴'
+        },
+        {
+            id: 'changhua',
+            name: '昌化路',
+            type: 'horizontal',
+            subArea: 'jingan',
+            desc: '苏州河与长寿路之间的纵向短轴，服务蝴蝶湾与昌化路桥。',
+            mnemonic: '西康路与江宁路之间的纵向连接，北接长寿路，南抵苏州河。',
+            path: [
+                [31.25121, 121.439356],
+                [31.250451, 121.439452],
+                [31.249056, 121.439795],
+                [31.247741, 121.439988],
+                [31.246139, 121.440456],
+                [31.24438, 121.442103],
+                [31.241789, 121.444618],
+                [31.240878, 121.445519],
+                [31.237887, 121.448831],
+                [31.235105, 121.451155]
+            ],
+            landmarks: ["昌化路桥"],
+            tag: '昌化路桥/蝴蝶湾'
+        },
+        {
+            id: 'kaixuan',
+            name: '凯旋路',
+            type: 'vertical',
+            subArea: 'changning',
+            desc: '长宁区东部纵向通道，连接中山公园与苏州河西端。',
+            mnemonic: '苏河西端外侧纵线，与长宁路、汇川路交汇。',
+            path: [
+                [31.25146, 121.428608],
+                [31.249481, 121.426495],
+                [31.249199, 121.426198],
+                [31.248799, 121.425732],
+                [31.24831, 121.425031]
+            ],
+            landmarks: [],
+            tag: '中山公园/东纵线'
+        },
+        {
+            id: 'anyuan',
+            name: '安远路',
+            type: 'vertical',
+            subArea: 'jingan',
+            desc: '苏州河弯道处的纵向连接路，近天安千树。',
+            mnemonic: '沿苏州河弯道分布，连接长寿路与澳门路，是天安千树片区的纵向入口。',
+            path: [
+                [31.237066, 121.426439],
+                [31.236858, 121.428299],
+                [31.23707, 121.430389],
+                [31.238126, 121.432604],
+                [31.239467, 121.434621],
+                [31.239919, 121.435711],
+                [31.241247, 121.4379],
+                [31.242757, 121.440522],
+                [31.24432, 121.44459],
+                [31.244887, 121.445176]
+            ],
+            landmarks: ["天安千树"],
+            tag: '天安千树/河弯'
+        },
+        {
+            id: 'aomen',
+            name: '澳门路',
+            type: 'vertical',
+            subArea: 'changning',
+            desc: '苏州河西端南岸的纵向短街，近昌化路桥。',
+            mnemonic: '西端南岸纵向连接，与莫干山路、长寿路构成三角。',
+            path: [
+                [31.245335, 121.432516],
+                [31.246971, 121.434434],
+                [31.247385, 121.434904],
+                [31.247559, 121.435099],
+                [31.247906, 121.435504],
+                [31.248524, 121.436307],
+                [31.248572, 121.436375],
+                [31.248616, 121.436447]
+            ],
+            landmarks: [],
+            tag: '西端南岸/短纵线'
+        },
+        {
+            id: 'xizang_n',
+            name: '西藏北路',
+            type: 'vertical',
+            subArea: 'jingan',
+            desc: '纵贯闸北-静安片的大通道，与曲阜路、中兴路相交。',
+            mnemonic: '苏河中东段西侧纵轴，与北苏州路、光复路在多个桥位交汇。',
+            path: [
+                [31.241643, 121.468134],
+                [31.243983, 121.46709],
+                [31.245089, 121.466943],
+                [31.24566, 121.46685],
+                [31.246948, 121.466676],
+                [31.246975, 121.466568],
+                [31.246158, 121.466662],
+                [31.245076, 121.466799],
+                [31.243922, 121.466946],
+                [31.241587, 121.468036]
+            ],
+            landmarks: [],
+            tag: '闸北南缘/大纵轴'
+        },
+        {
+            id: 'xizang_m',
+            name: '西藏中路',
+            type: 'horizontal',
+            subArea: 'huangpu',
+            desc: '人民广场东侧的南北大动脉，与南京路、北京西路形成大十字。',
+            mnemonic: '苏河片东缘纵轴，与北苏州路、南苏州路在新闸桥、浙江路桥附近勾连。',
+            path: [
+                [31.230722, 121.47386],
+                [31.23235, 121.472759],
+                [31.23298, 121.472297],
+                [31.233515, 121.471926],
+                [31.234118, 121.471491],
+                [31.235684, 121.4705],
+                [31.236644, 121.470035],
+                [31.238749, 121.469342],
+                [31.24041, 121.468751],
+                [31.241643, 121.468134]
+            ],
+            landmarks: [],
+            tag: '人民广场/东纵轴'
+        },
+        {
+            id: 'zhejiang_n',
+            name: '浙江北路',
+            type: 'horizontal',
+            subArea: 'jingan',
+            desc: '四行仓库与浙江路桥所在的纵向通道。',
+            mnemonic: '苏河核心纵线，北苏州路、曲阜路、北苏州路在此与浙江路桥交汇。',
+            path: [
+                [31.243722, 121.472046],
+                [31.243848, 121.472044],
+                [31.244983, 121.471686],
+                [31.245892, 121.471541],
+                [31.246501, 121.471361],
+                [31.247291, 121.47103],
+                [31.247925, 121.470826],
+                [31.248908, 121.470392],
+                [31.249744, 121.469904],
+                [31.250593, 121.469381]
+            ],
+            landmarks: ["浙江路桥"],
+            tag: '浙江路桥/四行仓库'
+        },
+        {
+            id: 'zhejiang_m',
+            name: '浙江中路',
+            type: 'horizontal',
+            subArea: 'huangpu',
+            desc: '南京东路与苏州河之间的纵向通道，近河南中路。',
+            mnemonic: '河口段东侧纵轴，与北苏州路、南苏州路在桥位形成南北认路节点。',
+            path: [
+                [31.243018, 121.472002],
+                [31.241665, 121.472033],
+                [31.240005, 121.472314],
+                [31.237942, 121.473511],
+                [31.23746, 121.47393],
+                [31.235886, 121.47452],
+                [31.234834, 121.474957],
+                [31.234125, 121.475304],
+                [31.233657, 121.475755],
+                [31.232425, 121.476921]
+            ],
+            landmarks: [],
+            tag: '河口纵轴/近南京路'
+        },
+        {
+            id: 'fujian_m',
+            name: '福建中路',
+            type: 'horizontal',
+            subArea: 'huangpu',
+            desc: '纵贯苏河片东缘，连接南京东路与北苏州路。',
+            mnemonic: '与浙江中路平行的东侧纵线，是认路东边界的重要参照。',
+            path: [
+                [31.233107, 121.478597],
+                [31.233413, 121.47845],
+                [31.235477, 121.477365],
+                [31.236523, 121.476578],
+                [31.237668, 121.475882],
+                [31.238222, 121.475644],
+                [31.239011, 121.475374],
+                [31.240136, 121.474929],
+                [31.241492, 121.474461],
+                [31.242369, 121.474399]
+            ],
+            landmarks: [],
+            tag: '东缘纵轴/近南京路'
+        },
+        {
+            id: 'zhapu',
+            name: '乍浦路',
+            type: 'horizontal',
+            subArea: 'hongkou',
+            desc: '虹口南部近苏州河的纵向路，乍浦路桥坐落于此。',
+            mnemonic: '苏州河中东段纵向通道，连接海宁路与北苏州路，以乍浦路桥闻名。',
+            path: [
+                [31.254334, 121.481526],
+                [31.253534, 121.482211],
+                [31.253414, 121.482227],
+                [31.253057, 121.482168],
+                [31.251383, 121.482586],
+                [31.249364, 121.483016],
+                [31.248443, 121.483206],
+                [31.247558, 121.483341],
+                [31.247078, 121.483354],
+                [31.246504, 121.483356]
+            ],
+            landmarks: ["乍浦路桥"],
+            tag: '乍浦路桥/虹口南'
+        },
+        {
+            id: 'yuanmingyuan',
+            name: '圆明园路',
+            type: 'horizontal',
+            subArea: 'huangpu',
+            desc: '外滩源历史风貌街，近外白渡桥与苏州河汇口。',
+            mnemonic: '极短而精致的纵向历史街，是河口认路的文艺锚点。',
+            path: [
+                [31.242691, 121.483812],
+                [31.242641, 121.483784],
+                [31.242282, 121.4837],
+                [31.242017, 121.483657],
+                [31.242758, 121.483862],
+                [31.242827, 121.483879],
+                [31.243632, 121.483735],
+                [31.244653, 121.483583],
+                [31.245103, 121.483558],
+                [31.24541, 121.483705]
+            ],
+            landmarks: ["外滩源"],
+            tag: '外滩源/历史街'
+        },
+        {
+            id: 'huqiu',
+            name: '虎丘路',
+            type: 'horizontal',
+            subArea: 'huangpu',
+            desc: '外滩源片区纵向小街，连接北京东路与苏州河南岸。',
+            mnemonic: '河口东侧纵向短街，与圆明园路并行，服务外滩源北。',
+            path: [
+                [31.245566, 121.483011],
+                [31.245545, 121.482992],
+                [31.245516, 121.482974],
+                [31.245372, 121.482913],
+                [31.245279, 121.482898],
+                [31.245102, 121.482892],
+                [31.244784, 121.482891],
+                [31.243731, 121.482878],
+                [31.243519, 121.482874],
+                [31.242699, 121.482876]
+            ],
+            landmarks: [],
+            tag: '外滩源/纵向短街'
+        },
+        {
+            id: 'putuo_s',
+            name: '普陀路',
+            type: 'vertical',
+            subArea: 'putuo',
+            desc: '苏州河上游西端纵向连接，近武宁路桥。',
+            mnemonic: '苏河最西端认路纵线之一，与长寿路、光复路在西端交汇。',
+            path: [
+                [31.247321, 121.43763],
+                [31.247687, 121.438502],
+                [31.247713, 121.438585],
+                [31.247723, 121.438644],
+                [31.247892, 121.439967],
+                [31.246818, 121.43668],
+                [31.246592, 121.436254],
+                [31.246514, 121.436106],
+                [31.246501, 121.436082],
+                [31.246165, 121.435447]
+            ],
+            landmarks: [],
+            tag: '西端纵线/武宁路桥'
+        },
+    ];
+
+    const LANDMARKS_INFO = {
+        sihang: {
+            name: '四行仓库',
+            coords: [31.2489, 121.4755],
+            desc: '淞沪会战标志性抗战遗址，谢晋元率八百壮士坚守。苏州河认路最硬核的地标。',
+            mnemonic: '西藏北路与曲阜路交界，浙江路桥北堍。',
+            icon: '🏛️'
+        },
+        post_museum: {
+            name: '上海邮政博物馆',
+            coords: [31.2462, 121.4848],
+            desc: '1924年建成的前大清邮政上海总局，欧式古典主义建筑，苏州河口邮政枢纽。',
+            mnemonic: '北苏州路近四川路桥。',
+            icon: '📮'
+        },
+        waibaidu: {
+            name: '外白渡桥',
+            coords: [31.2428, 121.4905],
+            desc: '苏州河入黄浦江口的标志性钢桥，上海城市符号之一。',
+            mnemonic: '北苏州路东端尽头，与黄浦江交汇处。',
+            icon: '🌉'
+        },
+        zhejiang_bridge: {
+            name: '浙江路桥',
+            coords: [31.2485, 121.4788],
+            desc: '连接静安区与虹口的百年老桥，四行仓库正对面。',
+            mnemonic: '浙江北路横跨苏州河处。',
+            icon: '🌉'
+        },
+        m50: {
+            name: 'M50创意园',
+            coords: [31.2488, 121.4482],
+            desc: '莫干山路50号，苏州河西段最具代表性的艺术创意园区。',
+            mnemonic: '莫干山路与昌化路交界。',
+            icon: '🎨'
+        },
+        tianan_trees: {
+            name: '天安千树',
+            coords: [31.2472, 121.4458],
+            desc: '苏州河弯道处的地标商业综合体，因千棵树木造型闻名。',
+            mnemonic: '莫干山路与昌化路之间，近苏州河。',
+            icon: '🌳'
+        },
+        suhuwan: {
+            name: '苏河湾万象天地',
+            coords: [31.2478, 121.4712],
+            desc: '苏河湾核心商业更新区，串联浙江路桥与西藏北路。',
+            mnemonic: '福建北路与北苏州路一带。',
+            icon: '🛍️'
+        },
+        huazheng: {
+            name: '华东政法大学',
+            coords: [31.2325, 121.4542],
+            desc: '苏州河沿岸最美校园，前身圣约翰大学，法学与历史建筑并存。',
+            mnemonic: '万航渡路1575号，苏州河弯道内侧。',
+            icon: '🎓'
+        },
+        bund_source: {
+            name: '外滩源',
+            coords: [31.2435, 121.4888],
+            desc: '苏州河汇黄浦江处的历史建筑群，圆明园路、虎丘路环绕。',
+            mnemonic: '外白渡桥西南，南苏州路以北。',
+            icon: '🏙️'
+        },
+    };
+
+    const ROUTES = {
+        classic: ["beisuzhou", "zhejiang_n", "qufu", "xizang_n"],
+        west: ["wanhangdu", "changning_r", "mogan", "changhua", "xikang"],
+        center: ["changshou", "jiangning", "hengfeng", "anyuan", "guangfu"],
+        east: ["nansuzhou", "tiantong", "yuanmingyuan", "huqiu", "fujian_m"],
+        night: ["beisuzhou", "zhejiang_n", "qufu", "yuanmingyuan", "fujian_m"],
+    };
+
+    let map;
+    let currentMode = 'study'; // study, blind, quiz
+    let roadLayers = {}; // 存储所有马路 Leaflet 折线对象
+    let markerLayers = {}; // 存储所有地标 Leaflet 标记对象
+    let activeStreetId = null;
+    let quizTargetId = null;
+    let quizScoreCorrect = 0;
+    let quizScoreTotal = 0;
+
+    window.onload = function() {
+        initLeafletMap();
+        renderRoadLists();
+        switchMode('study'); // 默认明记
+    };
+
+    function initLeafletMap() {
+        // 设置地图中心在衡复风貌区核心 [31.2115, 121.4480]
+        map = L.map('leaflet-map', {
+            center: [31.2445, 121.4600],
+            zoom: 14,
+            minZoom: 13,
+            maxZoom: 18,
+            zoomControl: false 
+        });
+
+        // 引入 CartoDB 的无标静音底图
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; CartoDB No-Labels Map Projection',
+            subdomains: 'abcd',
+            maxZoom: 20
+        }).addTo(map);
+
+        // 渲染 32 条道路骨架
+        STREETS.forEach(road => {
+            // 背景透光触发粗线（便于手机端大面积手指按压）
+            const clickPolyline = L.polyline(road.path, {
+                color: 'transparent',
+                weight: 24,
+                cursor: 'pointer'
+            }).addTo(map);
+
+            // 视觉实体高显线（深色钢笔手绘风）
+            const visualPolyline = L.polyline(road.path, {
+                color: '#2C5282',
+                weight: (road.id === 'beisuzhou' || road.id === 'nansuzhou' || road.id === 'changshou' || road.id === 'xizang_m') ? 5 : 3.5,
+                dashArray: road.type === 'horizontal' ? null : '6, 6', // 南北向采用经典手绘虚线
+                lineCap: 'round',
+                lineJoin: 'round',
+                opacity: 0.85
+            }).addTo(map);
+
+            roadLayers[road.id] = {
+                click: clickPolyline,
+                visual: visualPolyline,
+                road: road,
+                tooltip: null
+            };
+
+            // 点击与滑过行为
+            clickPolyline.on('click', () => onSelectStreet(road.id));
+            clickPolyline.on('mouseover', () => onHoverStreet(road.id, true));
+            clickPolyline.on('mouseout', () => onHoverStreet(road.id, false));
+
+            // 计算该道路物理中心点绑定文本
+            const centerIndex = Math.floor(road.path.length / 2);
+            const labelCoord = road.path[centerIndex];
+            
+            const tooltip = L.tooltip({
+                permanent: true,
+                direction: 'center',
+                className: 'custom-road-label'
+            })
+            .setContent(road.name)
+            .setLatLng(labelCoord)
+            .addTo(map);
+
+            roadLayers[road.id].tooltip = tooltip;
+        });
+
+        // 渲染 10 大物理地标
+        Object.keys(LANDMARKS_INFO).forEach(key => {
+            const landmark = LANDMARKS_INFO[key];
+            const customIcon = L.divIcon({
+                html: `<div class="landmark-icon" style="width: 32px; height: 32px;">${landmark.icon}</div>`,
+                className: '',
+                iconSize: [32, 32],
+                iconAnchor: [16, 16]
+            });
+
+            const marker = L.marker(landmark.coords, { icon: customIcon }).addTo(map);
+            marker.on('click', () => showLandmarkInfo(key));
+            markerLayers[key] = marker;
+        });
+    }
+
+    function renderRoadLists(filterText = '', filterSubArea = 'all') {
+        const ewList = document.getElementById('list-ew-roads');
+        const nsList = document.getElementById('list-ns-roads');
+
+        ewList.innerHTML = '';
+        nsList.innerHTML = '';
+
+        STREETS.forEach(road => {
+            // 文字检索过滤
+            if (filterText && !road.name.includes(filterText) && !road.desc.includes(filterText)) {
+                return;
+            }
+            // 片区过滤
+            if (filterSubArea !== 'all' && road.subArea !== filterSubArea && road.id !== 'beisuzhou' && road.id !== 'changshou' && road.id !== 'xizang_m') {
+                return; // 贯穿全局干线不截断
+            }
+
+            const btn = document.createElement('button');
+            btn.setAttribute('id', `btn-list-${road.id}`);
+            btn.onclick = () => onSelectStreet(road.id);
+            btn.onmouseover = () => onHoverStreet(road.id, true);
+            btn.onmouseout = () => onHoverStreet(road.id, false);
+            btn.className = "text-left p-2 rounded-lg border border-gray-200 hover:border-[#1A3A5C] hover:bg-[#F0F6FA] transition flex items-center justify-between group bg-white";
+            
+            btn.innerHTML = `
+                <div class="truncate w-full pr-1">
+                    <span class="font-bold text-xs text-gray-800 group-hover:text-[#1A3A5C] block">${road.name}</span>
+                    <span class="text-[9px] text-gray-500 block truncate w-full">${road.tag}</span>
+                </div>
+                <span class="text-xs opacity-0 group-hover:opacity-100 text-[#1A3A5C] transition shrink-0">➔</span>
+            `;
+
+            if (road.type === 'horizontal') {
+                ewList.appendChild(btn);
+            } else {
+                nsList.appendChild(btn);
+            }
+        });
+    }
+
+    // 文字模糊检索
+    function filterRoads() {
+        const text = document.getElementById('search-input').value.trim();
+        renderRoadLists(text, 'all');
+    }
+
+    // 片区检索过滤
+    function filterBySubArea(areaKey) {
+        document.querySelectorAll('.sub-area-btn').forEach(btn => {
+            btn.className = "sub-area-btn px-2 py-1 bg-white hover:bg-gray-100 text-gray-700 border border-gray-300 rounded text-[10px] transition";
+        });
+        event.target.className = "sub-area-btn px-2 py-1 bg-[#1A3A5C] text-white rounded text-[10px] font-semibold transition";
+        renderRoadLists('', areaKey);
+    }
+
+    function switchMode(mode) {
+        currentMode = mode;
+        resetHighlights();
+
+        // 按钮高亮切换
+        const btns = {
+            study: document.getElementById('btn-study'),
+            blind: document.getElementById('btn-blind'),
+            quiz: document.getElementById('btn-quiz')
+        };
+        Object.keys(btns).forEach(key => {
+            if (key === mode) {
+                btns[key].className = "px-3 py-1.5 text-xs font-bold rounded-lg bg-[#1A3A5C] text-white border border-[#1A3A5C] transition shadow-inner";
+            } else {
+                btns[key].className = "px-3 py-1.5 text-xs font-medium bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 transition";
+            }
+        });
+
+        const quizBar = document.getElementById('quiz-status-bar');
+
+        if (mode === 'study') {
+            quizBar.classList.add('hidden');
+            quizBar.classList.remove('flex');
+            // 显示全部路名标签
+            STREETS.forEach(road => {
+                const layer = roadLayers[road.id];
+                if (layer && layer.tooltip) {
+                    layer.tooltip.setContent(road.name);
+                    L.DomUtil.removeClass(layer.tooltip.getElement(), 'custom-road-label-blind');
+                    L.DomUtil.addClass(layer.tooltip.getElement(), 'custom-road-label');
+                }
+            });
+        } 
+        else if (mode === 'blind') {
+            quizBar.classList.add('hidden');
+            quizBar.classList.remove('flex');
+            // 全遮蔽变为问号❓
+            STREETS.forEach(road => {
+                const layer = roadLayers[road.id];
+                if (layer && layer.tooltip) {
+                    layer.tooltip.setContent('❓');
+                    L.DomUtil.removeClass(layer.tooltip.getElement(), 'custom-road-label');
+                    L.DomUtil.addClass(layer.tooltip.getElement(), 'custom-road-label-blind');
+                }
+            });
+        } 
+        else if (mode === 'quiz') {
+            quizBar.classList.remove('hidden');
+            quizBar.classList.add('flex');
+            // 完全清空无提示
+            STREETS.forEach(road => {
+                const layer = roadLayers[road.id];
+                if (layer && layer.tooltip) {
+                    layer.tooltip.setContent(' ');
+                }
+            });
+            quizScoreCorrect = 0;
+            quizScoreTotal = 0;
+            updateQuizScoreUI();
+            generateQuizQuestion();
+        }
+    }
+
+    // 鼠标划入高亮反馈
+    function onHoverStreet(id, isHover) {
+        if (currentMode === 'quiz') return; // 盲测期间禁止滑过剧透
+        const layer = roadLayers[id];
+        if (!layer) return;
+
+        if (isHover) {
+            if (activeStreetId !== id) {
+                layer.visual.setStyle({ color: '#C88A4B', weight: 8 });
+            }
+        } else {
+            if (activeStreetId !== id) {
+                layer.visual.setStyle({
+                    color: '#2C5282',
+                    weight: (id === 'huaihai' || id === 'hengshan' || id === 'shaandong_s' || id === 'ruijin') ? 5 : 3.5
+                });
+            }
+        }
+    }
+
+    function onSelectStreet(id) {
+        const layer = roadLayers[id];
+        if (!layer) return;
+
+        if (currentMode === 'quiz') {
+            submitQuizAnswer(id);
+            return;
+        }
+
+        resetHighlights();
+        activeStreetId = id;
+
+        // 绿色高光高亮
+        layer.visual.setStyle({ color: '#1A3A5C', weight: 8 });
+
+        // 右边名录按钮激活样式
+        const listBtn = document.getElementById(`btn-list-${id}`);
+        if (listBtn) {
+            listBtn.classList.add('border-[#1A3A5C]', 'bg-emerald-50', 'scale-[1.01]');
+        }
+
+        // 暗记模式点击后才揭晓路名
+        if (currentMode === 'blind') {
+            layer.tooltip.setContent(layer.road.name);
+            L.DomUtil.removeClass(layer.tooltip.getElement(), 'custom-road-label-blind');
+            L.DomUtil.addClass(layer.tooltip.getElement(), 'custom-road-label');
+        }
+
+        updateDetailCard(layer.road);
+    }
+
+    function updateDetailCard(road) {
+        document.getElementById('detail-type').textContent = road.type === 'horizontal' ? '↔️ 东西走向 / 横向骨架' : '↕️ 南北走向 / 纵向或斜大轴';
+        document.getElementById('detail-title').textContent = road.name;
+        document.getElementById('detail-desc').textContent = road.desc;
+        document.getElementById('detail-icon').textContent = road.type === 'horizontal' ? '↔️' : '↕️';
+
+        const mBox = document.getElementById('detail-mnemonic-box');
+        const mText = document.getElementById('detail-mnemonic');
+        if (road.mnemonic) {
+            mBox.classList.remove('hidden');
+            mText.textContent = road.mnemonic;
+        } else {
+            mBox.classList.add('hidden');
+        }
+
+        const lBox = document.getElementById('detail-landmarks-box');
+        const lContainer = document.getElementById('detail-landmarks');
+        lContainer.innerHTML = '';
+        if (road.landmarks && road.landmarks.length > 0) {
+            lBox.classList.remove('hidden');
+            road.landmarks.forEach(land => {
+                const tag = document.createElement('span');
+                tag.className = "bg-gray-100 text-gray-800 border border-gray-300 px-2.5 py-0.5 rounded text-[10px] font-medium";
+                tag.textContent = land;
+                lContainer.appendChild(tag);
+            });
+        } else {
+            lBox.classList.add('hidden');
+        }
+    }
+
+    function showLandmarkInfo(key) {
+        const item = LANDMARKS_INFO[key];
+        if (!item) return;
+
+        resetHighlights();
+
+        document.getElementById('detail-type').textContent = '📍 苏州河沿岸人文空间坐标地标';
+        document.getElementById('detail-title').textContent = item.name;
+        document.getElementById('detail-desc').textContent = item.desc;
+        document.getElementById('detail-icon').textContent = item.icon;
+
+        const mBox = document.getElementById('detail-mnemonic-box');
+        const mText = document.getElementById('detail-mnemonic');
+        mBox.classList.remove('hidden');
+        mText.textContent = `核心落脚位置: ${item.mnemonic}`;
+
+        document.getElementById('detail-landmarks-box').classList.add('hidden');
+
+        // 地图平滑居中聚焦该地标
+        map.flyTo(item.coords, 17);
+    }
+
+    function highlightRoute(routeKey) {
+        resetHighlights();
+        const streetIds = ROUTES[routeKey];
+        if (!streetIds) return;
+
+        streetIds.forEach(id => {
+            const layer = roadLayers[id];
+            if (layer) {
+                layer.visual.setStyle({ color: '#C88A4B', weight: 8 });
+            }
+        });
+
+        const routeTitles = {
+            classic: 'A. 北岸经典线 (北苏州路 ➔ 浙江北路 ➔ 曲阜路)',
+            west: 'B. 西段艺术湾 (万航渡路 ➔ 莫干山路 ➔ 昌化路)',
+            center: 'C. 中环纵切 (长寿路 ➔ 江宁路 ➔ 恒丰路)',
+            east: 'D. 河口外滩源 (南苏州路 ➔ 天潼路 ➔ 圆明园路)',
+            night: 'E. 夜景滨江 (北苏州路 ➔ 浙江路桥 ➔ 外白渡桥)'
+        };
+        const routeDescs = {
+            classic: '沿北苏州路滨江步行，经浙江北路与浙江路桥，穿越四行仓库所在的曲阜路，体验苏河最经典北岸认路线。',
+            west: '从万航渡路西端入口进入，经长宁路与莫干山路 M50 艺术区，至昌化路桥，感受苏州河西段更新气质。',
+            center: '以长寿路商业轴为纲，纵切江宁路与恒丰路，再下探安远路与光复路，掌握静安苏河湾网格。',
+            east: '南岸南苏州路起步，经天潼路与圆明园路，漫步外滩源历史街区，直至福建中路河口纵轴。',
+            night: '夜景专用动线：沿北苏州路向东，经浙江北路、曲阜路至圆明园路，邮政博物馆与外白渡桥灯光最佳。'
+        };
+
+        document.getElementById('detail-type').textContent = '🚶‍♂️ 规划漫游路线骨架（一键高亮）';
+        document.getElementById('detail-title').textContent = routeTitles[routeKey];
+        document.getElementById('detail-desc').textContent = routeDescs[routeKey];
+        document.getElementById('detail-icon').textContent = '🐾';
+        document.getElementById('detail-mnemonic-box').classList.add('hidden');
+        document.getElementById('detail-landmarks-box').classList.add('hidden');
+
+        // 缩放聚焦至该路线所有坐标包围框
+        const coordsGroup = [];
+        streetIds.forEach(id => {
+            if (roadLayers[id]) coordsGroup.push(...roadLayers[id].road.path);
+        });
+        map.fitBounds(L.polyline(coordsGroup).getBounds(), { padding: [40, 40] });
+    }
+
+    function generateQuizQuestion() {
+        const randomIndex = Math.floor(Math.random() * STREETS.length);
+        const road = STREETS[randomIndex];
+        quizTargetId = road.id;
+
+        document.getElementById('quiz-question').innerHTML = `请在地图上找到并点击: <span class="bg-amber-200 text-amber-950 px-2.5 py-0.5 rounded font-black text-sm border border-amber-400 shadow-sm">${road.name}</span>`;
+    }
+
+    function skipQuizQuestion() {
+        generateQuizQuestion();
+    }
+
+    // 盲敲验证
+    function submitQuizAnswer(clickedId) {
+        const targetLayer = roadLayers[quizTargetId];
+        const clickedLayer = roadLayers[clickedId];
+        
+        quizScoreTotal++;
+
+        if (clickedId === quizTargetId) {
+            quizScoreCorrect++;
+            
+            // 答对：绿色高亮闪烁提示
+            targetLayer.visual.setStyle({ color: '#10B981', weight: 10 });
+            targetLayer.tooltip.setContent(targetLayer.road.name);
+            
+            const copyId = quizTargetId;
+            setTimeout(() => {
+                const layer = roadLayers[copyId];
+                if (layer) {
+                    layer.visual.setStyle({
+                        color: '#2C5282',
+                        weight: (copyId === 'huaihai' || copyId === 'hengshan' || copyId === 'shaandong_s' || copyId === 'ruijin') ? 5 : 3.5
+                    });
+                    if (currentMode === 'quiz') layer.tooltip.setContent(' ');
+                }
+            }, 1200);
+
+            updateDetailCard(targetLayer.road);
+            document.getElementById('detail-type').textContent = '🎉 答对了！空间匹配100%正确';
+        } else {
+            // 答错：红线警示
+            clickedLayer.visual.setStyle({ color: '#EF4444', weight: 10 });
+            setTimeout(() => {
+                clickedLayer.visual.setStyle({
+                    color: '#2C5282',
+                    weight: (clickedId === 'huaihai' || clickedId === 'hengshan' || clickedId === 'shaandong_s' || clickedId === 'ruijin') ? 5 : 3.5
+                });
+            }, 1200);
+
+            updateDetailCard(targetLayer.road);
+            document.getElementById('detail-type').textContent = `❌ 答错了！您点到的是: ${clickedLayer.road.name}`;
+        }
+
+        updateQuizScoreUI();
+        
+        setTimeout(() => {
+            if (currentMode === 'quiz') generateQuizQuestion();
+        }, 1400);
+    }
+
+    function updateQuizScoreUI() {
+        document.getElementById('quiz-score').textContent = `盲测得分: ${quizScoreCorrect}/${quizScoreTotal}`;
+    }
+
+    function resetHighlights() {
+        activeStreetId = null;
+        STREETS.forEach(road => {
+            const layer = roadLayers[road.id];
+            if (layer) {
+                layer.visual.setStyle({
+                    color: '#2C5282',
+                    weight: (road.id === 'beisuzhou' || road.id === 'nansuzhou' || road.id === 'changshou' || road.id === 'xizang_m') ? 5 : 3.5
+                });
+            }
+
+            const listBtn = document.getElementById(`btn-list-${road.id}`);
+            if (listBtn) {
+                listBtn.className = "text-left p-2 rounded-lg border border-gray-200 hover:border-[#1A3A5C] hover:bg-[#F0F6FA] transition flex items-center justify-between group bg-white";
+            }
+        });
+
+        if (currentMode === 'blind') {
+            STREETS.forEach(road => {
+                const layer = roadLayers[road.id];
+                if (layer && layer.tooltip) {
+                    layer.tooltip.setContent('❓');
+                    L.DomUtil.removeClass(layer.tooltip.getElement(), 'custom-road-label');
+                    L.DomUtil.addClass(layer.tooltip.getElement(), 'custom-road-label-blind');
+                }
+            });
+        }
+    }
+
+    function switchTab(tabId) {
+        const tabEW = document.getElementById('tab-ew');
+        const tabNS = document.getElementById('tab-ns');
+        const btnEW = document.getElementById('btn-tab-ew');
+        const btnNS = document.getElementById('btn-tab-ns');
+
+        if (tabId === 'tab-ew') {
+            tabEW.classList.remove('hidden');
+            tabNS.classList.add('hidden');
+            btnEW.className = "flex-1 py-3 text-center font-bold text-[#1A3A5C] border-b-2 border-[#1A3A5C]";
+            btnNS.className = "flex-1 py-3 text-center font-bold text-gray-500 hover:text-gray-800";
+        } else {
+            tabEW.classList.add('hidden');
+            tabNS.classList.remove('hidden');
+            btnEW.className = "flex-1 py-3 text-center font-bold text-gray-500 hover:text-gray-800";
+            btnNS.className = "flex-1 py-3 text-center font-bold text-[#1A3A5C] border-b-2 border-[#1A3A5C]";
+        }
+    }
+</script>
+</body>
+</html>
