@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anatomically Accurate Head & Neck Lymphatic System 3D Explorer</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts for premium UI look -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for beautiful scientific icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        /* Custom scrollbar for educational side pane */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col overflow-x-hidden">
+
+    <!-- Header -->
+    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md px-6 py-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 z-10 shrink-0">
+        <div class="flex items-center gap-3">
+            <div class="bg-emerald-500/10 text-emerald-400 p-2.5 rounded-xl border border-emerald-500/20">
+                <i class="fa-solid fa-circle-nodes text-xl"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-lg md:text-xl tracking-tight text-white flex items-center gap-2">
+                    Lymphatics of the Head & Neck 
+                    <span class="text-xs bg-emerald-500/20 text-emerald-300 font-medium px-2.5 py-0.5 rounded-full border border-emerald-500/30">Anatomical 3D Atlas</span>
+                </h1>
+                <p class="text-xs text-slate-400 mt-0.5">Academic model courtesy of University of Dundee, School of Dentistry</p>
+            </div>
+        </div>
+        
+        <div class="flex items-center gap-2 self-stretch md:self-auto justify-end">
+            <button id="btn-reset" class="bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white px-4 py-2 rounded-xl text-sm font-medium transition duration-200 flex items-center gap-2 border border-slate-700">
+                <i class="fa-solid fa-arrows-spin"></i> Reset View
+            </button>
+            <button id="btn-theme" class="bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white px-4 py-2 rounded-xl text-sm font-medium transition duration-200 flex items-center gap-2 border border-slate-700">
+                <i id="theme-icon" class="fa-solid fa-palette"></i> Toggle Plain Background
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Grid -->
+    <main class="flex-1 flex flex-col lg:flex-row min-h-0 relative">
+        
+        <!-- Sidebar - Interactive Anatomy Glossary & Info (Left) -->
+        <section class="w-full lg:w-[400px] bg-slate-900 border-b lg:border-b-0 lg:border-r border-slate-800 flex flex-col shrink-0 order-2 lg:order-1">
+            <div class="p-6 border-b border-slate-800">
+                <h2 class="text-xs font-semibold text-emerald-400 uppercase tracking-widest mb-1">Interactive Index</h2>
+                <h3 class="text-base font-bold text-slate-200">Major Lymph Node Regions</h3>
+                <p class="text-xs text-slate-400 mt-1">Select a group below to highlight or read structural details. Use the 3D canvas on the right to rotate $360^\circ$ and examine deep/superficial channels.</p>
+            </div>
+            
+            <!-- Nodes list with details -->
+            <div class="flex-1 overflow-y-auto p-4 space-y-3" id="nodes-container">
+                <!-- Group 1 -->
+                <div class="node-card p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 hover:border-emerald-500/30 transition-all duration-200 cursor-pointer" data-id="parotid">
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="text-xs bg-amber-500/10 text-amber-300 font-semibold px-2 py-0.5 rounded border border-amber-500/20">Superficial Group</span>
+                        <i class="fa-solid fa-location-dot text-slate-500"></i>
+                    </div>
+                    <h4 class="font-bold text-sm text-white">Parotid Lymph Nodes</h4>
+                    <p class="text-xs text-slate-400 mt-1 leading-relaxed">
+                        Situated in and around the parotid salivary gland. They receive afferent lymphatic vessels from the temporal region, upper eyelids, external acoustic meatus, and posterior cheek.
+                    </p>
+                </div>
+
+                <!-- Group 2 -->
+                <div class="node-card p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 hover:border-emerald-500/30 transition-all duration-200 cursor-pointer" data-id="submandibular">
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="text-xs bg-emerald-500/10 text-emerald-300 font-semibold px-2 py-0.5 rounded border border-emerald-500/20">Submandibular Group</span>
+                        <i class="fa-solid fa-location-dot text-slate-500"></i>
+                    </div>
+                    <h4 class="font-bold text-sm text-white">Submandibular Nodes</h4>
+                    <p class="text-xs text-slate-400 mt-1 leading-relaxed">
+                        Nestled along the inferior border of the mandible. Crucial in dentistry as they drain the medial palpebral commissure, cheek, nose side, upper lip, and lateral lower lip.
+                    </p>
+                </div>
+
+                <!-- Group 3 -->
+                <div class="node-card p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 hover:border-emerald-500/30 transition-all duration-200 cursor-pointer" data-id="submental">
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="text-xs bg-emerald-500/10 text-emerald-300 font-semibold px-2 py-0.5 rounded border border-emerald-500/20">Submandibular Group</span>
+                        <i class="fa-solid fa-location-dot text-slate-500"></i>
+                    </div>
+                    <h4 class="font-bold text-sm text-white">Submental Nodes</h4>
+                    <p class="text-xs text-slate-400 mt-1 leading-relaxed">
+                        Located between the anterior bellies of the digastric muscles. They receive lymph from the central lower lip, tip of the tongue, and floor of the mouth.
+                    </p>
+                </div>
+
+                <!-- Group 4 -->
+                <div class="node-card p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 hover:border-emerald-500/30 transition-all duration-200 cursor-pointer" data-id="occipital">
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="text-xs bg-purple-500/10 text-purple-300 font-semibold px-2 py-0.5 rounded border border-purple-500/20">Occipital & Mastoid</span>
+                        <i class="fa-solid fa-location-dot text-slate-500"></i>
+                    </div>
+                    <h4 class="font-bold text-sm text-white">Occipital & Retroauricular</h4>
+                    <p class="text-xs text-slate-400 mt-1 leading-relaxed">
+                        Drains the scalp area behind the crown and lateral scalp regions. Vessels cascade directly downwards into deep cervical chains.
+                    </p>
+                </div>
+
+                <!-- Group 5 -->
+                <div class="node-card p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 hover:border-emerald-500/30 transition-all duration-200 cursor-pointer" data-id="deep-cervical">
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="text-xs bg-red-500/10 text-red-300 font-semibold px-2 py-0.5 rounded border border-red-500/20">Deep Cervical Chain</span>
+                        <i class="fa-solid fa-location-dot text-slate-500"></i>
+                    </div>
+                    <h4 class="font-bold text-sm text-white">Deep Cervical Nodes</h4>
+                    <p class="text-xs text-slate-400 mt-1 leading-relaxed">
+                        Clustered along the internal jugular vein. They form the final drainage gateway for all lymphatic fluid of the head and neck before reaching the thoracic duct.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Footer Meta Info -->
+            <div class="p-4 bg-slate-950 border-t border-slate-800 text-center text-[11px] text-slate-500">
+                <p>3D Interface Powered by Sketchfab API</p>
+                <p class="mt-0.5">Use mouse left-click to drag/rotate, right-click to pan, scroll to zoom.</p>
+            </div>
+        </section>
+
+        <!-- 3D Viewer Area (Right) -->
+        <section class="flex-1 flex flex-col relative order-1 lg:order-2 bg-slate-950 min-h-[450px]">
+            
+            <!-- Quick View Control Toolbar -->
+            <div class="absolute top-4 left-4 z-10 flex gap-2 flex-wrap max-w-[90%]">
+                <button class="view-preset-btn bg-slate-900/90 hover:bg-slate-800 text-slate-200 text-xs font-semibold px-3.5 py-2 rounded-xl backdrop-blur-sm border border-slate-700/80 transition duration-200 flex items-center gap-1.5 shadow-lg shadow-black/40" data-view="front">
+                    <i class="fa-solid fa-user"></i> Front View
+                </button>
+                <button class="view-preset-btn bg-slate-900/90 hover:bg-slate-800 text-slate-200 text-xs font-semibold px-3.5 py-2 rounded-xl backdrop-blur-sm border border-slate-700/80 transition duration-200 flex items-center gap-1.5 shadow-lg shadow-black/40" data-view="left">
+                    <i class="fa-solid fa-arrow-left"></i> Left Profile
+                </button>
+                <button class="view-preset-btn bg-slate-900/90 hover:bg-slate-800 text-slate-200 text-xs font-semibold px-3.5 py-2 rounded-xl backdrop-blur-sm border border-slate-700/80 transition duration-200 flex items-center gap-1.5 shadow-lg shadow-black/40" data-view="right">
+                    <i class="fa-solid fa-arrow-right"></i> Right Profile
+                </button>
+                <button class="view-preset-btn bg-slate-900/90 hover:bg-slate-800 text-slate-200 text-xs font-semibold px-3.5 py-2 rounded-xl backdrop-blur-sm border border-slate-700/80 transition duration-200 flex items-center gap-1.5 shadow-lg shadow-black/40" data-view="top">
+                    <i class="fa-solid fa-arrow-up"></i> Top down
+                </button>
+            </div>
+
+            <!-- Sketchfab Iframe Container -->
+            <div class="flex-1 w-full h-full relative" id="iframe-wrapper">
+                <iframe 
+                    class="w-full h-full border-0 absolute inset-0"
+                    id="sketchfab-iframe"
+                    src="https://sketchfab.com/models/5abcaca1574248c0860ae1d81b06998d/embed?autostart=1&camera=0&preload=1&ui_controls=0&ui_infos=0&ui_inspector=1&ui_watermark=0&ui_help=0&ui_settings=0&ui_vr=0&transparent=0&dnt=1" 
+                    allow="autoplay; fullscreen; xr-spatial-tracking" 
+                    execution-while-out-of-viewport 
+                    execution-while-not-rendered 
+                    web-share>
+                </iframe>
+            </div>
+
+            <!-- Onscreen Quick Guidance Overlay -->
+            <div class="absolute bottom-4 left-4 right-4 lg:left-auto lg:w-96 bg-slate-900/90 border border-slate-800 p-4 rounded-2xl backdrop-blur-md shadow-2xl z-10">
+                <div class="flex gap-3 items-start">
+                    <div class="bg-blue-500/10 text-blue-400 p-2 rounded-lg border border-blue-500/20 shrink-0">
+                        <i class="fa-solid fa-circle-info"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-xs text-slate-200">How to explore:</h4>
+                        <ul class="text-[11px] text-slate-400 mt-1 space-y-1 list-disc list-inside">
+                            <li>Hold <strong>Left Click</strong> and drag to rotate the model $360^\circ$.</li>
+                            <li>Hold <strong>Right Click</strong> or Shift key to pan camera.</li>
+                            <li>Use <strong>Mouse Scroll</strong> to zoom into deep lymph channels.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <!-- Sketchfab Viewer API Script -->
+    <script src="https://static.sketchfab.com/api/sketchfab-viewer-1.12.1.js"></script>
+    <script>
+        const iframe = document.getElementById('sketchfab-iframe');
+        const uid = '5abcaca1574248c0860ae1d81b06998d';
+        let apiObject = null;
+        let isPlainBackground = false;
+
+        // Custom camera view targets on Sketchfab models
+        const cameras = {
+            front: { eye: [0.03, -158.46, 21.03], target: [0.03, 10.51, 10.37] },
+            left: { eye: [-162.33, -17.43, 21.14], target: [0.03, 10.51, 10.37] },
+            right: { eye: [162.33, -17.43, 21.14], target: [0.03, 10.51, 10.37] },
+            top: { eye: [0.03, -1.05, 172.54], target: [0.03, 10.51, 10.37] },
+            initial: { eye: [0.03, -158.46, 21.03], target: [0.03, 10.51, 10.37] }
+        };
+
+        // Initialize Sketchfab Client API
+        const client = new Sketchfab(iframe);
+
+        client.init(uid, {
+            success: function onSuccess(api) {
+                apiObject = api;
+                api.start();
+                api.addEventListener('viewerready', function() {
+                    console.log('Sketchfab Anatomical 3D Model API Ready');
+                    // Fetch starting camera placement if needed
+                    api.getCamera(function(err, camera) {
+                        if (!err) {
+                            cameras.initial = camera;
+                        }
+                    });
+                });
+            },
+            error: function onError() {
+                console.error('Sketchfab API failed to initialize.');
+            },
+            autostart: 1,
+            preload: 1,
+            ui_controls: 0,
+            ui_infos: 0,
+            ui_inspector: 0,
+            ui_watermark: 0,
+            transparent: 0
+        });
+
+        // Toggle solid background color (Simulated via overlay or direct Sketchfab option)
+        document.getElementById('btn-theme').addEventListener('click', () => {
+            isPlainBackground = !isPlainBackground;
+            const wrapper = document.getElementById('iframe-wrapper');
+            const themeIcon = document.getElementById('theme-icon');
+            
+            if (isPlainBackground) {
+                // Change embed parameters dynamically for plain presentation if needed, or style UI
+                wrapper.style.filter = "contrast(1.05) brightness(0.95)";
+                themeIcon.className = "fa-solid fa-moon text-amber-400";
+            } else {
+                wrapper.style.filter = "none";
+                themeIcon.className = "fa-solid fa-palette text-slate-400";
+            }
+        });
+
+        // View presets trigger camera animations
+        document.querySelectorAll('.view-preset-btn').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const view = e.currentTarget.getAttribute('data-view');
+                if (apiObject && cameras[view]) {
+                    apiObject.setCameraLookAt(cameras[view].eye, cameras[view].target, 1.5, function(err) {
+                        if (err) console.log(err);
+                    });
+                }
+            });
+        });
+
+        // Reset button behavior
+        document.getElementById('btn-reset').addEventListener('click', () => {
+            if (apiObject) {
+                apiObject.recenterCamera(function(err) {
+                    if (err) console.log(err);
+                });
+            }
+        });
+
+        // Side list visual highlighters
+        document.querySelectorAll('.node-card').forEach(card => {
+            card.addEventListener('click', function() {
+                document.querySelectorAll('.node-card').forEach(c => c.classList.remove('border-emerald-500', 'bg-emerald-950/20'));
+                this.classList.add('border-emerald-500', 'bg-emerald-950/20');
+                
+                // Focus camera perspective depending on anatomical region clicked
+                const id = this.getAttribute('data-id');
+                if (apiObject) {
+                    if (id === 'parotid') {
+                        apiObject.setCameraLookAt([-70, -70, 40], [0, 10, 10], 1.5);
+                    } else if (id === 'submandibular' || id === 'submental') {
+                        apiObject.setCameraLookAt([-40, -100, -20], [0, 10, 0], 1.5);
+                    } else if (id === 'occipital') {
+                        apiObject.setCameraLookAt([100, 40, 20], [0, 10, 10], 1.5);
+                    } else if (id === 'deep-cervical') {
+                        apiObject.setCameraLookAt([-100, -80, -30], [0, -15, 0], 1.5);
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
