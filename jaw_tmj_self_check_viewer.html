@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>下颌 · TMJ · 咬肌 3D 自查参考</title>
+    <link rel="dns-prefetch" href="https://static.sketchfab.com">
+    <link rel="dns-prefetch" href="https://media.sketchfab.com">
+    <link rel="preconnect" href="https://static.sketchfab.com" crossorigin>
+    <link rel="preconnect" href="https://media.sketchfab.com" crossorigin>
+    <link rel="preload" href="https://static.sketchfab.com/api/sketchfab-viewer-1.12.1.js" as="script">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+        .viewer-frame {
+            position: absolute; inset: 0; width: 100%; height: 100%; border: 0;
+            visibility: hidden; pointer-events: none; z-index: 0;
+        }
+        .viewer-frame.active { visibility: visible; pointer-events: auto; z-index: 1; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col overflow-x-hidden">
+
+    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md px-6 py-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 z-10 shrink-0">
+        <div class="flex items-center gap-3">
+            <div class="bg-teal-500/10 text-teal-400 p-2.5 rounded-xl border border-teal-500/20">
+                <i class="fa-solid fa-teeth text-xl"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-lg md:text-xl tracking-tight text-white flex items-center gap-2 flex-wrap">
+                    下颌 · TMJ · 咬肌
+                    <span class="text-xs bg-teal-500/20 text-teal-300 font-medium px-2.5 py-0.5 rounded-full border border-teal-500/30">张口弹响 · 口呼吸 · 磨牙</span>
+                </h1>
+                <p class="text-xs text-slate-400 mt-0.5">学术模型来源：邓迪大学牙科学院 · Sketchfab</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2">
+            <button id="btn-reset" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-2 rounded-xl text-sm font-medium transition flex items-center gap-2 border border-slate-700">
+                <i class="fa-solid fa-arrows-spin"></i> 重置视角
+            </button>
+            <button id="btn-theme" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-2 rounded-xl text-sm font-medium transition flex items-center gap-2 border border-slate-700">
+                <i id="theme-icon" class="fa-solid fa-palette"></i> 切换背景
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-1 flex flex-col lg:flex-row min-h-0 relative">
+
+        <section class="w-full lg:w-[420px] bg-slate-900 border-b lg:border-b-0 lg:border-r border-slate-800 flex flex-col shrink-0 order-2 lg:order-1">
+            <div class="p-4 border-b border-slate-800">
+                <p class="text-xs font-semibold text-teal-400 uppercase tracking-widest mb-2">切换 3D 模型</p>
+                <div class="flex flex-wrap gap-2" id="model-tabs">
+                    <button class="model-tab active px-3 py-1.5 rounded-lg text-xs font-semibold border transition" data-model="disc">关节盘 · TMJ</button>
+                    <button class="model-tab px-3 py-1.5 rounded-lg text-xs font-semibold border transition" data-model="muscle">咀嚼肌</button>
+                    <button class="model-tab px-3 py-1.5 rounded-lg text-xs font-semibold border transition" data-model="nerve">神经支配</button>
+                </div>
+            </div>
+
+            <div class="p-5 border-b border-slate-800">
+                <h3 class="text-base font-bold text-slate-200">与症状相关的结构</h3>
+                <p class="text-xs text-slate-400 mt-1">首屏优先加载关节盘；其余模型在空闲时顺序预载，鼠标悬停标签可提前加载。已启用低分辨率纹理以加快显示。</p>
+                <div class="mt-3 p-3 rounded-lg bg-amber-500/5 border border-amber-500/20 text-[11px] text-amber-200/90 leading-relaxed">
+                    <i class="fa-solid fa-triangle-exclamation mr-1"></i>
+                    张口「咔哒」常见于关节盘复位、髁突轨迹异常；磨牙与口呼吸则与咬肌、翼肌长期紧张有关。本页仅供解剖对照，<strong>不能替代</strong>口腔颌面外科/康复科就诊。
+                </div>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-4 space-y-3" id="nodes-container">
+                <div class="node-card p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 hover:border-teal-500/30 transition cursor-pointer" data-model="disc" data-id="articular-disc">
+                    <span class="text-xs bg-red-500/10 text-red-300 font-semibold px-2 py-0.5 rounded border border-red-500/20">弹响 · 关节盘</span>
+                    <h4 class="font-bold text-sm text-white mt-2">关节盘（Disc）</h4>
+                    <p class="text-xs text-slate-400 mt-1 leading-relaxed">盘将 TMJ 分为上、下腔。盘前移或复位不良时，张口可闻<strong class="text-slate-300">弹响或碎裂声</strong>，常伴张口偏斜、最大张口受限。</p>
+                </div>
+
+                <div class="node-card p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 hover:border-teal-500/30 transition cursor-pointer" data-model="disc" data-id="condyle">
+                    <span class="text-xs bg-orange-500/10 text-orange-300 font-semibold px-2 py-0.5 rounded border border-orange-500/20">骨性结构</span>
+                    <h4 class="font-bold text-sm text-white mt-2">下颌骨髁突 · 关节结节</h4>
+                    <p class="text-xs text-slate-400 mt-1 leading-relaxed">髁突在关节窝/结节上滑动并旋转。骨性改建、创伤或长期异常负荷可致<strong class="text-slate-300">骨擦音、卡顿</strong>，需影像进一步评估。</p>
+                </div>
+
+                <div class="node-card p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 hover:border-teal-500/30 transition cursor-pointer" data-model="muscle" data-id="masseter">
+                    <span class="text-xs bg-violet-500/10 text-violet-300 font-semibold px-2 py-0.5 rounded border border-violet-500/20">磨牙 · 紧咬</span>
+                    <h4 class="font-bold text-sm text-white mt-2">咬肌（Masseter）</h4>
+                    <p class="text-xs text-slate-400 mt-1 leading-relaxed">最强闭口肌。夜间磨牙、白天紧咬牙时明显肥大、压痛；与 TMJ 负荷↑、头痛、牙体磨损相关。可触诊对比两侧是否对称紧张。</p>
+                </div>
+
+                <div class="node-card p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 hover:border-teal-500/30 transition cursor-pointer" data-model="muscle" data-id="temporalis">
+                    <span class="text-xs bg-sky-500/10 text-sky-300 font-semibold px-2 py-0.5 rounded border border-sky-500/20">咀嚼肌</span>
+                    <h4 class="font-bold text-sm text-white mt-2">颞肌（Temporalis）</h4>
+                    <p class="text-xs text-slate-400 mt-1 leading-relaxed">参与闭口及退下颌。太阳穴区域压痛、紧箍样头痛常见于肌筋膜痛；与咬肌一并评估可区分单纯 TMJ 内紊乱。</p>
+                </div>
+
+                <div class="node-card p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 hover:border-teal-500/30 transition cursor-pointer" data-model="muscle" data-id="pterygoid">
+                    <span class="text-xs bg-emerald-500/10 text-emerald-300 font-semibold px-2 py-0.5 rounded border border-emerald-500/20">张口</span>
+                    <h4 class="font-bold text-sm text-white mt-2">翼外肌 · 翼内肌</h4>
+                    <p class="text-xs text-slate-400 mt-1 leading-relaxed">翼外肌（尤其上头）主导下颌前伸与开口；与髁突轨迹、盘位置密切相关。深部压痛、张口末受限时需考虑翼肌痉挛。</p>
+                </div>
+
+                <div class="node-card p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 hover:border-teal-500/30 transition cursor-pointer" data-model="nerve" data-id="tmj-nerve">
+                    <span class="text-xs bg-pink-500/10 text-pink-300 font-semibold px-2 py-0.5 rounded border border-pink-500/20">神经</span>
+                    <h4 class="font-bold text-sm text-white mt-2">TMJ 神经支配（V3）</h4>
+                    <p class="text-xs text-slate-400 mt-1 leading-relaxed">关节感觉主要来自三叉神经下颌支分支（如耳颞神经等）。关节区放射痛、耳前痛需与耳部、神经卡压鉴别。</p>
+                </div>
+
+                <div class="node-card p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 hover:border-teal-500/30 transition cursor-pointer" data-model="muscle" data-id="mouth-breathing">
+                    <span class="text-xs bg-cyan-500/10 text-cyan-300 font-semibold px-2 py-0.5 rounded border border-cyan-500/20">口呼吸</span>
+                    <h4 class="font-bold text-sm text-white mt-2">口呼吸 · 低舌位 · 开颌习惯</h4>
+                    <p class="text-xs text-slate-400 mt-1 leading-relaxed">长期口呼吸常伴休息位<strong class="text-slate-300">开唇、舌低位</strong>，可改变下颌姿势与咀嚼肌张力，加重磨牙与 TMJ 症状。对照：闭唇用鼻呼吸时，咬肌/关节是否更放松？</p>
+                </div>
+
+                <div class="node-card p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 hover:border-teal-500/30 transition cursor-pointer" data-model="muscle" data-id="bruxism">
+                    <span class="text-xs bg-amber-500/10 text-amber-300 font-semibold px-2 py-0.5 rounded border border-amber-500/20">磨牙</span>
+                    <h4 class="font-bold text-sm text-white mt-2">磨牙（Bruxism）自查要点</h4>
+                    <p class="text-xs text-slate-400 mt-1 leading-relaxed">晨起咬肌酸胀、牙面磨损、配偶闻及夜磨声；白天无意识紧咬。与压力、睡眠呼吸暂停、口呼吸相关。记录：弹响出现在<strong>张口初/中/末</strong>？是否伴痛？</p>
+                </div>
+            </div>
+
+            <div class="p-4 bg-slate-950 border-t border-slate-800 text-center text-[11px] text-slate-500">
+                <p id="model-label">当前：关节盘 · TMJ</p>
+                <p class="mt-0.5">左键旋转 · 右键平移 · 滚轮缩放</p>
+            </div>
+        </section>
+
+        <section class="flex-1 flex flex-col relative order-1 lg:order-2 bg-slate-950 min-h-[450px]">
+            <div class="absolute top-4 left-4 z-10 flex gap-2 flex-wrap max-w-[95%]">
+                <button class="view-preset-btn bg-slate-900/90 hover:bg-slate-800 text-slate-200 text-xs font-semibold px-3 py-2 rounded-xl border border-slate-700/80 transition flex items-center gap-1.5 shadow-lg" data-view="front">
+                    <i class="fa-solid fa-user"></i> 正面
+                </button>
+                <button class="view-preset-btn bg-teal-900/90 hover:bg-teal-800 text-teal-100 text-xs font-semibold px-3 py-2 rounded-xl border border-teal-600/50 transition flex items-center gap-1.5 shadow-lg" data-view="left">
+                    <i class="fa-solid fa-arrow-left"></i> 左侧面
+                </button>
+                <button class="view-preset-btn bg-slate-900/90 hover:bg-slate-800 text-slate-200 text-xs font-semibold px-3 py-2 rounded-xl border border-slate-700/80 transition flex items-center gap-1.5 shadow-lg" data-view="right">
+                    <i class="fa-solid fa-arrow-right"></i> 右侧面
+                </button>
+                <button class="view-preset-btn bg-slate-900/90 hover:bg-slate-800 text-slate-200 text-xs font-semibold px-3 py-2 rounded-xl border border-slate-700/80 transition flex items-center gap-1.5 shadow-lg" data-view="top">
+                    <i class="fa-solid fa-arrow-up"></i> 俯视
+                </button>
+            </div>
+
+            <div class="flex-1 w-full h-full relative" id="iframe-wrapper">
+                <iframe class="viewer-frame active" id="iframe-disc" data-model="disc" src=""
+                    allow="autoplay; fullscreen; xr-spatial-tracking" allowfullscreen
+                    execution-while-out-of-viewport execution-while-not-rendered web-share></iframe>
+                <iframe class="viewer-frame" id="iframe-muscle" data-model="muscle" src=""
+                    allow="autoplay; fullscreen; xr-spatial-tracking" allowfullscreen
+                    execution-while-out-of-viewport execution-while-not-rendered web-share></iframe>
+                <iframe class="viewer-frame" id="iframe-nerve" data-model="nerve" src=""
+                    allow="autoplay; fullscreen; xr-spatial-tracking" allowfullscreen
+                    execution-while-out-of-viewport execution-while-not-rendered web-share></iframe>
+                <div id="loading-overlay" class="hidden absolute inset-0 z-20 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm">
+                    <div class="text-center">
+                        <i class="fa-solid fa-spinner fa-spin text-teal-400 text-2xl mb-2"></i>
+                        <p class="text-sm text-slate-300" id="loading-text">模型加载中…</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="absolute bottom-4 left-4 right-4 lg:left-auto lg:w-[28rem] bg-slate-900/90 border border-slate-800 p-4 rounded-2xl backdrop-blur-md shadow-2xl z-10">
+                <div class="flex gap-3 items-start">
+                    <div class="bg-teal-500/10 text-teal-400 p-2 rounded-lg border border-teal-500/20 shrink-0">
+                        <i class="fa-solid fa-clipboard-list"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-xs text-slate-200">记录给医生看的信息</h4>
+                        <ul class="text-[11px] text-slate-400 mt-1 space-y-1 list-disc list-inside">
+                            <li>弹响在张口<strong>哪一段</strong>？单声还是连续？</li>
+                            <li>是否<strong>疼痛、锁定、张口受限</strong>或下颌偏斜？</li>
+                            <li>是否有<strong>口呼吸、打鼾、夜磨牙</strong>？</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="https://static.sketchfab.com/api/sketchfab-viewer-1.12.1.js"></script>
+    <script>
+        const MODEL_META = {
+            disc: { uid: 'a2c3d9bd82274fa187ee482bbe750d78', label: '关节盘 · TMJ', defaultView: 'left' },
+            muscle: { uid: '64c9d893d46c4a92a82051c0173c38c3', label: '咀嚼肌（咬肌 · 颞肌 · 翼肌）', defaultView: 'left' },
+            nerve: { uid: '6715a094e266404b8c57d2515a7a12ff', label: 'TMJ 神经支配', defaultView: 'left' }
+        };
+
+        const INIT_OPTS = {
+            autostart: 1,
+            preload: 0,
+            max_texture_size: 512,
+            camera: 0,
+            ui_controls: 0, ui_infos: 0, ui_inspector: 0, ui_watermark: 0,
+            ui_help: 0, ui_settings: 0, ui_vr: 0, transparent: 0, dnt: 1
+        };
+
+        const preloadQueue = [];
+        let preloadRunning = false;
+
+        const viewers = {};
+        let currentModelKey = 'disc';
+        let pendingRegionId = null;
+        let isPlainBackground = false;
+
+        ['disc', 'muscle', 'nerve'].forEach(key => {
+            viewers[key] = {
+                iframe: document.getElementById('iframe-' + key),
+                api: null,
+                ready: false,
+                loading: false,
+                presets: {}
+            };
+        });
+
+        function cloneVec(v) { return [v[0], v[1], v[2]]; }
+        function vecSub(a, b) { return [a[0] - b[0], a[1] - b[1], a[2] - b[2]]; }
+        function vecAdd(a, b) { return [a[0] + b[0], a[1] + b[1], a[2] + b[2]]; }
+        function vecScale(v, s) { return [v[0] * s, v[1] * s, v[2] * s]; }
+        function vecLen(v) { return Math.hypot(v[0], v[1], v[2]); }
+
+        function rotateZ(v, angle) {
+            const c = Math.cos(angle), s = Math.sin(angle);
+            return [v[0] * c - v[1] * s, v[0] * s + v[1] * c, v[2]];
+        }
+
+        function buildViewPresets(camera) {
+            const target = cloneVec(camera.target);
+            const offset = vecSub(camera.position, target);
+            const dist = vecLen(offset) || 80;
+            return {
+                front: { eye: cloneVec(camera.position), target },
+                left: { eye: vecAdd(target, rotateZ(offset, -Math.PI / 2)), target },
+                right: { eye: vecAdd(target, rotateZ(offset, Math.PI / 2)), target },
+                top: { eye: vecAdd(target, [offset[0] * 0.06, offset[1] * 0.06, dist]), target }
+            };
+        }
+
+        function zoomFromPreset(preset, distFactor, targetNudge) {
+            const target = vecAdd(cloneVec(preset.target), targetNudge || [0, 0, 0]);
+            const offset = vecSub(preset.eye, preset.target);
+            return { eye: vecAdd(target, vecScale(offset, distFactor)), target };
+        }
+
+        function getRegionView(key, id) {
+            const presets = viewers[key].presets;
+            const lat = presets.left || presets.front;
+            const front = presets.front;
+            if (!lat) return null;
+            const views = {
+                'articular-disc': () => zoomFromPreset(lat, 0.48, [0, 0, 0]),
+                'condyle': () => zoomFromPreset(lat, 0.42, [0, -1, 0]),
+                'masseter': () => zoomFromPreset(lat, 0.50, [0, 0, 1]),
+                'temporalis': () => zoomFromPreset(lat, 0.52, [0, 2, 1]),
+                'pterygoid': () => zoomFromPreset(lat, 0.46, [0, -1, 0]),
+                'tmj-nerve': () => zoomFromPreset(lat, 0.48, [0, 0, 0]),
+                'mouth-breathing': () => front ? zoomFromPreset(front, 0.55, [0, 0, 0]) : null,
+                'bruxism': () => zoomFromPreset(lat, 0.45, [0, 0, 2])
+            };
+            return views[id] ? views[id]() : null;
+        }
+
+        function moveCamera(key, eye, target, duration = 1.5) {
+            const v = viewers[key];
+            if (!v.ready || !v.api) return;
+            v.api.setCameraLookAt(eye, target, duration, function(err) {
+                if (err) console.error('setCameraLookAt failed:', err);
+            });
+        }
+
+        function applyDefaultView(key) {
+            key = key || currentModelKey;
+            const v = viewers[key];
+            if (!v.ready) return;
+            const viewKey = MODEL_META[key].defaultView || 'left';
+            const preset = v.presets[viewKey] || v.presets.front;
+            if (!preset) return;
+            moveCamera(key, preset.eye, preset.target, 0.01);
+        }
+
+        function showLoading(text) {
+            document.getElementById('loading-text').textContent = text || '模型加载中…';
+            document.getElementById('loading-overlay').classList.remove('hidden');
+        }
+
+        function hideLoading() {
+            document.getElementById('loading-overlay').classList.add('hidden');
+        }
+
+        function showViewer(key) {
+            Object.keys(viewers).forEach(k => {
+                viewers[k].iframe.classList.toggle('active', k === key);
+            });
+        }
+
+        function updateModelTabs() {
+            document.querySelectorAll('.model-tab').forEach(btn => {
+                const key = btn.dataset.model;
+                const active = key === currentModelKey;
+                const ready = viewers[key].ready;
+                const suffix = ready ? '' : (viewers[key].loading ? ' …' : '');
+                btn.className = active
+                    ? 'model-tab active px-3 py-1.5 rounded-lg text-xs font-semibold border transition bg-teal-500/20 text-teal-200 border-teal-500/40'
+                    : 'model-tab px-3 py-1.5 rounded-lg text-xs font-semibold border transition bg-slate-800/60 text-slate-400 border-slate-700 hover:border-slate-600';
+                btn.textContent = btn.dataset.label + suffix;
+            });
+            document.getElementById('model-label').textContent = '当前：' + MODEL_META[currentModelKey].label;
+        }
+
+        document.querySelectorAll('.model-tab').forEach(btn => {
+            btn.dataset.label = btn.textContent.trim();
+        });
+
+        function focusRegion(key, regionId) {
+            if (regionId) {
+                const view = getRegionView(key, regionId);
+                if (view) moveCamera(key, view.eye, view.target);
+            } else {
+                applyDefaultView(key);
+            }
+        }
+
+        function switchModel(key, regionId) {
+            currentModelKey = key;
+            updateModelTabs();
+
+            if (viewers[key].ready) {
+                hideLoading();
+                showViewer(key);
+                focusRegion(key, regionId);
+                return;
+            }
+
+            showLoading('正在加载：' + MODEL_META[key].label);
+            pendingRegionId = regionId || null;
+            if (!viewers[key].loading) initViewer(key);
+        }
+
+        function enqueuePreload(key) {
+            if (viewers[key].ready || viewers[key].loading || preloadQueue.includes(key)) return;
+            preloadQueue.push(key);
+            runPreloadQueue();
+        }
+
+        function runPreloadQueue() {
+            if (preloadRunning || !preloadQueue.length) return;
+            const key = preloadQueue.shift();
+            if (viewers[key].ready || viewers[key].loading) {
+                runPreloadQueue();
+                return;
+            }
+            preloadRunning = true;
+            initViewer(key, function() {
+                preloadRunning = false;
+                runPreloadQueue();
+            });
+        }
+
+        function scheduleIdlePreload() {
+            const schedule = window.requestIdleCallback || function(cb) { setTimeout(cb, 1500); };
+            schedule(function() {
+                enqueuePreload('muscle');
+                enqueuePreload('nerve');
+            });
+        }
+
+        function onViewerReady(key, done) {
+            const v = viewers[key];
+            v.ready = true;
+            v.loading = false;
+            v.api.setTextureQuality('ld', function() {});
+            v.api.getCameraLookAt(function(err, camera) {
+                if (err) { console.error(err); if (done) done(); return; }
+                v.presets = buildViewPresets(camera);
+                updateModelTabs();
+
+                if (key === currentModelKey) {
+                    hideLoading();
+                    showViewer(key);
+                    applyDefaultView(key);
+                    if (pendingRegionId) {
+                        focusRegion(key, pendingRegionId);
+                        pendingRegionId = null;
+                    }
+                }
+
+                if (key === 'disc') scheduleIdlePreload();
+                if (done) done();
+            });
+        }
+
+        function initViewer(key, done) {
+            const v = viewers[key];
+            if (v.ready) { if (done) done(); return; }
+            if (v.loading) return;
+            v.loading = true;
+            updateModelTabs();
+
+            const client = new Sketchfab(v.iframe);
+            client.init(MODEL_META[key].uid, {
+                success: function(api) {
+                    v.api = api;
+                    api.start();
+                    api.addEventListener('viewerready', function() {
+                        onViewerReady(key, done);
+                    });
+                },
+                error: function() {
+                    v.loading = false;
+                    console.error('Sketchfab init failed:', key);
+                    if (key === currentModelKey) hideLoading();
+                    if (done) done();
+                },
+                ...INIT_OPTS
+            });
+        }
+
+        function prefetchModel(key) {
+            enqueuePreload(key);
+        }
+
+        showLoading('正在加载：' + MODEL_META.disc.label);
+        initViewer('disc');
+        updateModelTabs();
+
+        document.querySelectorAll('.model-tab').forEach(btn => {
+            btn.addEventListener('click', () => switchModel(btn.dataset.model));
+            btn.addEventListener('mouseenter', () => prefetchModel(btn.dataset.model));
+        });
+
+        document.getElementById('btn-theme').addEventListener('click', () => {
+            isPlainBackground = !isPlainBackground;
+            document.getElementById('iframe-wrapper').style.filter =
+                isPlainBackground ? 'contrast(1.05) brightness(0.95)' : 'none';
+            document.getElementById('theme-icon').className =
+                isPlainBackground ? 'fa-solid fa-moon text-amber-400' : 'fa-solid fa-palette text-slate-400';
+        });
+
+        document.querySelectorAll('.view-preset-btn').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const preset = viewers[currentModelKey].presets[e.currentTarget.getAttribute('data-view')];
+                if (preset) moveCamera(currentModelKey, preset.eye, preset.target);
+            });
+        });
+
+        document.getElementById('btn-reset').addEventListener('click', () => applyDefaultView(currentModelKey));
+
+        document.querySelectorAll('.node-card').forEach(card => {
+            card.addEventListener('mouseenter', () => prefetchModel(card.dataset.model));
+            card.addEventListener('click', function() {
+                document.querySelectorAll('.node-card').forEach(c => c.classList.remove('border-teal-500', 'bg-teal-950/20'));
+                this.classList.add('border-teal-500', 'bg-teal-950/20');
+                switchModel(this.dataset.model, this.dataset.id);
+            });
+        });
+    </script>
+</body>
+</html>

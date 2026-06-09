@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>肩部骨骼 3D 解剖探索</title>
+    <link rel="dns-prefetch" href="https://static.sketchfab.com">
+    <link rel="dns-prefetch" href="https://media.sketchfab.com">
+    <link rel="preconnect" href="https://static.sketchfab.com" crossorigin>
+    <link rel="preconnect" href="https://media.sketchfab.com" crossorigin>
+    <link rel="preload" href="https://static.sketchfab.com/api/sketchfab-viewer-1.12.1.js" as="script">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col overflow-x-hidden">
+
+    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md px-6 py-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 z-10 shrink-0">
+        <div class="flex items-center gap-3">
+            <div class="bg-amber-500/10 text-amber-400 p-2.5 rounded-xl border border-amber-500/20">
+                <i class="fa-solid fa-bone text-xl"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-lg md:text-xl tracking-tight text-white flex items-center gap-2">
+                    肩部骨骼
+                    <span class="text-xs bg-amber-500/20 text-amber-300 font-medium px-2.5 py-0.5 rounded-full border border-amber-500/30">解剖 3D 图谱</span>
+                </h1>
+                <p class="text-xs text-slate-400 mt-0.5">学术模型来源：邓迪大学 CAHID</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2 self-stretch md:self-auto justify-end">
+            <button id="btn-reset" class="bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white px-4 py-2 rounded-xl text-sm font-medium transition duration-200 flex items-center gap-2 border border-slate-700">
+                <i class="fa-solid fa-arrows-spin"></i> 重置视角
+            </button>
+            <button id="btn-theme" class="bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white px-4 py-2 rounded-xl text-sm font-medium transition duration-200 flex items-center gap-2 border border-slate-700">
+                <i id="theme-icon" class="fa-solid fa-palette"></i> 切换纯色背景
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-1 flex flex-col lg:flex-row min-h-0 relative">
+
+        <section class="w-full lg:w-[400px] bg-slate-900 border-b lg:border-b-0 lg:border-r border-slate-800 flex flex-col shrink-0 order-2 lg:order-1">
+            <div class="p-6 border-b border-slate-800">
+                <h2 class="text-xs font-semibold text-amber-400 uppercase tracking-widest mb-1">交互索引</h2>
+                <h3 class="text-base font-bold text-slate-200">主要骨性结构</h3>
+                <p class="text-xs text-slate-400 mt-1">点击下方结构查看说明，并在右侧 3D 画布中旋转 360° 观察肩胛骨与肱骨近端的形态及关节关系。</p>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-4 space-y-3" id="nodes-container">
+                <div class="node-card p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 hover:border-amber-500/30 transition-all duration-200 cursor-pointer" data-id="scapula">
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="text-xs bg-amber-500/10 text-amber-300 font-semibold px-2 py-0.5 rounded border border-amber-500/20">肩胛骨</span>
+                        <i class="fa-solid fa-location-dot text-slate-500"></i>
+                    </div>
+                    <h4 class="font-bold text-sm text-white">肩胛骨体与肩胛冈</h4>
+                    <p class="text-xs text-slate-400 mt-1 leading-relaxed">
+                        肩胛骨为三角形扁骨，背侧有肩胛冈；冈上、冈下窝为对应肌群提供附着面，是理解肩部运动的重要骨性标志。
+                    </p>
+                </div>
+
+                <div class="node-card p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 hover:border-amber-500/30 transition-all duration-200 cursor-pointer" data-id="acromion">
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="text-xs bg-orange-500/10 text-orange-300 font-semibold px-2 py-0.5 rounded border border-orange-500/20">肩峰 · 喙突</span>
+                        <i class="fa-solid fa-location-dot text-slate-500"></i>
+                    </div>
+                    <h4 class="font-bold text-sm text-white">肩峰与喙突</h4>
+                    <p class="text-xs text-slate-400 mt-1 leading-relaxed">
+                        肩峰为肩胛冈外侧端，与锁骨构成肩锁关节；喙突向前外突出，是喙肱肌、胸小肌及喙肩韧带的附着点。
+                    </p>
+                </div>
+
+                <div class="node-card p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 hover:border-amber-500/30 transition-all duration-200 cursor-pointer" data-id="glenoid">
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="text-xs bg-emerald-500/10 text-emerald-300 font-semibold px-2 py-0.5 rounded border border-emerald-500/20">关节面</span>
+                        <i class="fa-solid fa-location-dot text-slate-500"></i>
+                    </div>
+                    <h4 class="font-bold text-sm text-white">关节盂</h4>
+                    <p class="text-xs text-slate-400 mt-1 leading-relaxed">
+                        关节盂位于肩胛骨外侧面，浅而略凹，与肱骨头构成盂肱关节，是肩关节活动度最大的骨性基础。
+                    </p>
+                </div>
+
+                <div class="node-card p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 hover:border-amber-500/30 transition-all duration-200 cursor-pointer" data-id="humeral-head">
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="text-xs bg-sky-500/10 text-sky-300 font-semibold px-2 py-0.5 rounded border border-sky-500/20">肱骨近端</span>
+                        <i class="fa-solid fa-location-dot text-slate-500"></i>
+                    </div>
+                    <h4 class="font-bold text-sm text-white">肱骨头</h4>
+                    <p class="text-xs text-slate-400 mt-1 leading-relaxed">
+                        肱骨头近似半球形，与关节盂对合；解剖颈位于头与结节之间，是关节囊附着的重要界线。
+                    </p>
+                </div>
+
+                <div class="node-card p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 hover:border-amber-500/30 transition-all duration-200 cursor-pointer" data-id="tubercles">
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="text-xs bg-purple-500/10 text-purple-300 font-semibold px-2 py-0.5 rounded border border-purple-500/20">结节 · 沟</span>
+                        <i class="fa-solid fa-location-dot text-slate-500"></i>
+                    </div>
+                    <h4 class="font-bold text-sm text-white">大、小结节与结节间沟</h4>
+                    <p class="text-xs text-slate-400 mt-1 leading-relaxed">
+                        大结节为旋转肌袖（冈上、下肌及小圆肌）主要附着处；小结节为肩胛下肌附着处；结节间沟内有二头肌长头腱通过。
+                    </p>
+                </div>
+            </div>
+
+            <div class="p-4 bg-slate-950 border-t border-slate-800 text-center text-[11px] text-slate-500">
+                <p>3D 界面由 Sketchfab API 驱动</p>
+                <p class="mt-0.5">左键拖拽旋转，右键平移，滚轮缩放。</p>
+            </div>
+        </section>
+
+        <section class="flex-1 flex flex-col relative order-1 lg:order-2 bg-slate-950 min-h-[450px]">
+            <div class="absolute top-4 left-4 z-10 flex gap-2 flex-wrap max-w-[90%]">
+                <button class="view-preset-btn bg-slate-900/90 hover:bg-slate-800 text-slate-200 text-xs font-semibold px-3.5 py-2 rounded-xl backdrop-blur-sm border border-slate-700/80 transition duration-200 flex items-center gap-1.5 shadow-lg shadow-black/40" data-view="front">
+                    <i class="fa-solid fa-user"></i> 正面
+                </button>
+                <button class="view-preset-btn bg-slate-900/90 hover:bg-slate-800 text-slate-200 text-xs font-semibold px-3.5 py-2 rounded-xl backdrop-blur-sm border border-slate-700/80 transition duration-200 flex items-center gap-1.5 shadow-lg shadow-black/40" data-view="left">
+                    <i class="fa-solid fa-arrow-left"></i> 左侧
+                </button>
+                <button class="view-preset-btn bg-slate-900/90 hover:bg-slate-800 text-slate-200 text-xs font-semibold px-3.5 py-2 rounded-xl backdrop-blur-sm border border-slate-700/80 transition duration-200 flex items-center gap-1.5 shadow-lg shadow-black/40" data-view="right">
+                    <i class="fa-solid fa-arrow-right"></i> 右侧
+                </button>
+                <button class="view-preset-btn bg-slate-900/90 hover:bg-slate-800 text-slate-200 text-xs font-semibold px-3.5 py-2 rounded-xl backdrop-blur-sm border border-slate-700/80 transition duration-200 flex items-center gap-1.5 shadow-lg shadow-black/40" data-view="top">
+                    <i class="fa-solid fa-arrow-up"></i> 俯视
+                </button>
+            </div>
+
+            <div class="flex-1 w-full h-full relative" id="iframe-wrapper">
+                <iframe
+                    class="w-full h-full border-0 absolute inset-0"
+                    id="sketchfab-iframe"
+                    src=""
+                    allow="autoplay; fullscreen; xr-spatial-tracking"
+                    allowfullscreen
+                    execution-while-out-of-viewport
+                    execution-while-not-rendered
+                    web-share>
+                </iframe>
+            </div>
+
+            <div class="absolute bottom-4 left-4 right-4 lg:left-auto lg:w-96 bg-slate-900/90 border border-slate-800 p-4 rounded-2xl backdrop-blur-md shadow-2xl z-10">
+                <div class="flex gap-3 items-start">
+                    <div class="bg-blue-500/10 text-blue-400 p-2 rounded-lg border border-blue-500/20 shrink-0">
+                        <i class="fa-solid fa-circle-info"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-xs text-slate-200">操作说明</h4>
+                        <ul class="text-[11px] text-slate-400 mt-1 space-y-1 list-disc list-inside">
+                            <li>按住<strong>左键</strong>拖拽，可 360° 旋转模型。</li>
+                            <li>按住<strong>右键</strong>或 Shift 键平移视角。</li>
+                            <li>使用<strong>滚轮</strong>缩放，观察盂肱关节与骨性标志。</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="https://static.sketchfab.com/api/sketchfab-viewer-1.12.1.js"></script>
+    <script>
+        const iframe = document.getElementById('sketchfab-iframe');
+        const uid = '0200cf2280c24031b4608fbd9a3e605b';
+        let apiObject = null;
+        let apiReady = false;
+        let isPlainBackground = false;
+        let viewPresets = {};
+
+        function cloneVec(v) { return [v[0], v[1], v[2]]; }
+        function vecSub(a, b) { return [a[0] - b[0], a[1] - b[1], a[2] - b[2]]; }
+        function vecAdd(a, b) { return [a[0] + b[0], a[1] + b[1], a[2] + b[2]]; }
+        function vecScale(v, s) { return [v[0] * s, v[1] * s, v[2] * s]; }
+        function vecLen(v) { return Math.hypot(v[0], v[1], v[2]); }
+
+        function rotateZ(v, angle) {
+            const c = Math.cos(angle), s = Math.sin(angle);
+            return [v[0] * c - v[1] * s, v[0] * s + v[1] * c, v[2]];
+        }
+
+        function buildViewPresets(camera) {
+            const target = cloneVec(camera.target);
+            const offset = vecSub(camera.position, target);
+            const dist = vecLen(offset) || 150;
+            return {
+                front: { eye: cloneVec(camera.position), target },
+                left: { eye: vecAdd(target, rotateZ(offset, -Math.PI / 2)), target },
+                right: { eye: vecAdd(target, rotateZ(offset, Math.PI / 2)), target },
+                top: { eye: vecAdd(target, [offset[0] * 0.06, offset[1] * 0.06, dist]), target }
+            };
+        }
+
+        function zoomFromPreset(preset, distFactor, targetNudge) {
+            const target = vecAdd(cloneVec(preset.target), targetNudge || [0, 0, 0]);
+            const offset = vecSub(preset.eye, preset.target);
+            return { eye: vecAdd(target, vecScale(offset, distFactor)), target };
+        }
+
+        function backZoomFromFront(distFactor, targetNudge) {
+            const preset = viewPresets.front;
+            if (!preset) return null;
+            const target = vecAdd(cloneVec(preset.target), targetNudge || [0, 0, 0]);
+            const offset = vecSub(preset.eye, preset.target);
+            const backOffset = [offset[0], -offset[1], offset[2]];
+            return { eye: vecAdd(target, vecScale(backOffset, distFactor)), target };
+        }
+
+        function getRegionView(id) {
+            if (!viewPresets.front) return null;
+            const views = {
+                scapula: () => backZoomFromFront(0.58, [0, 2, 0]),
+                acromion: () => viewPresets.top ? zoomFromPreset(viewPresets.top, 0.62, [0, -2, 0]) : null,
+                glenoid: () => viewPresets.left ? zoomFromPreset(viewPresets.left, 0.55, [0, 0, 0]) : null,
+                'humeral-head': () => zoomFromPreset(viewPresets.front, 0.52, [0, -2, 1]),
+                tubercles: () => zoomFromPreset(viewPresets.front, 0.48, [0, -3, 2])
+            };
+            return views[id] ? views[id]() : null;
+        }
+
+        function moveCamera(eye, target, duration = 1.5) {
+            if (!apiReady || !apiObject) return;
+            apiObject.setCameraLookAt(eye, target, duration, function(err) {
+                if (err) console.error('setCameraLookAt failed:', err);
+            });
+        }
+
+        function applyFrontView() {
+            const front = viewPresets.front;
+            if (!front) return;
+            moveCamera(front.eye, front.target, 0.01);
+            setTimeout(() => moveCamera(front.eye, front.target, 0.01), 400);
+        }
+
+        const INIT_OPTS = {
+            autostart: 1,
+            preload: 0,
+            max_texture_size: 512,
+            camera: 0,
+            ui_controls: 0,
+            ui_infos: 0,
+            ui_inspector: 0,
+            ui_watermark: 0,
+            ui_help: 0,
+            ui_settings: 0,
+            ui_vr: 0,
+            transparent: 0,
+            dnt: 1
+        };
+
+        const client = new Sketchfab(iframe);
+        client.init(uid, {
+            success: function(api) {
+                apiObject = api;
+                api.start();
+                api.addEventListener('viewerready', function() {
+                    apiReady = true;
+                    api.setTextureQuality('ld', function() {});
+                    api.getCameraLookAt(function(err, camera) {
+                        if (err) {
+                            console.error('getCameraLookAt failed:', err);
+                            return;
+                        }
+                        viewPresets = buildViewPresets(camera);
+                        applyFrontView();
+                    });
+                });
+            },
+            error: function() { console.error('Sketchfab API failed to initialize.'); },
+            ...INIT_OPTS
+        });
+
+        document.getElementById('btn-theme').addEventListener('click', () => {
+            isPlainBackground = !isPlainBackground;
+            const wrapper = document.getElementById('iframe-wrapper');
+            const themeIcon = document.getElementById('theme-icon');
+            if (isPlainBackground) {
+                wrapper.style.filter = 'contrast(1.05) brightness(0.95)';
+                themeIcon.className = 'fa-solid fa-moon text-amber-400';
+            } else {
+                wrapper.style.filter = 'none';
+                themeIcon.className = 'fa-solid fa-palette text-slate-400';
+            }
+        });
+
+        document.querySelectorAll('.view-preset-btn').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const preset = viewPresets[e.currentTarget.getAttribute('data-view')];
+                if (preset) moveCamera(preset.eye, preset.target);
+            });
+        });
+
+        document.getElementById('btn-reset').addEventListener('click', applyFrontView);
+
+        document.querySelectorAll('.node-card').forEach(card => {
+            card.addEventListener('click', function() {
+                document.querySelectorAll('.node-card').forEach(c => c.classList.remove('border-amber-500', 'bg-amber-950/20'));
+                this.classList.add('border-amber-500', 'bg-amber-950/20');
+                const view = getRegionView(this.getAttribute('data-id'));
+                if (view) moveCamera(view.eye, view.target);
+            });
+        });
+    </script>
+</body>
+</html>

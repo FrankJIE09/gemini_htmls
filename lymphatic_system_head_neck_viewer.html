@@ -1,9 +1,14 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Anatomically Accurate Head & Neck Lymphatic System 3D Explorer</title>
+    <title>头颈淋巴系统 3D 解剖探索</title>
+    <link rel="dns-prefetch" href="https://static.sketchfab.com">
+    <link rel="dns-prefetch" href="https://media.sketchfab.com">
+    <link rel="preconnect" href="https://static.sketchfab.com" crossorigin>
+    <link rel="preconnect" href="https://media.sketchfab.com" crossorigin>
+    <link rel="preload" href="https://static.sketchfab.com/api/sketchfab-viewer-1.12.1.js" as="script">
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts for premium UI look -->
@@ -41,19 +46,19 @@
             </div>
             <div>
                 <h1 class="font-bold text-lg md:text-xl tracking-tight text-white flex items-center gap-2">
-                    Lymphatics of the Head & Neck 
-                    <span class="text-xs bg-emerald-500/20 text-emerald-300 font-medium px-2.5 py-0.5 rounded-full border border-emerald-500/30">Anatomical 3D Atlas</span>
+                    头颈淋巴系统
+                    <span class="text-xs bg-emerald-500/20 text-emerald-300 font-medium px-2.5 py-0.5 rounded-full border border-emerald-500/30">解剖 3D 图谱</span>
                 </h1>
-                <p class="text-xs text-slate-400 mt-0.5">Academic model courtesy of University of Dundee, School of Dentistry</p>
+                <p class="text-xs text-slate-400 mt-0.5">学术模型来源：邓迪大学牙科学院</p>
             </div>
         </div>
         
         <div class="flex items-center gap-2 self-stretch md:self-auto justify-end">
             <button id="btn-reset" class="bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white px-4 py-2 rounded-xl text-sm font-medium transition duration-200 flex items-center gap-2 border border-slate-700">
-                <i class="fa-solid fa-arrows-spin"></i> Reset View
+                <i class="fa-solid fa-arrows-spin"></i> 重置视角
             </button>
             <button id="btn-theme" class="bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white px-4 py-2 rounded-xl text-sm font-medium transition duration-200 flex items-center gap-2 border border-slate-700">
-                <i id="theme-icon" class="fa-solid fa-palette"></i> Toggle Plain Background
+                <i id="theme-icon" class="fa-solid fa-palette"></i> 切换纯色背景
             </button>
         </div>
     </header>
@@ -64,9 +69,9 @@
         <!-- Sidebar - Interactive Anatomy Glossary & Info (Left) -->
         <section class="w-full lg:w-[400px] bg-slate-900 border-b lg:border-b-0 lg:border-r border-slate-800 flex flex-col shrink-0 order-2 lg:order-1">
             <div class="p-6 border-b border-slate-800">
-                <h2 class="text-xs font-semibold text-emerald-400 uppercase tracking-widest mb-1">Interactive Index</h2>
-                <h3 class="text-base font-bold text-slate-200">Major Lymph Node Regions</h3>
-                <p class="text-xs text-slate-400 mt-1">Select a group below to highlight or read structural details. Use the 3D canvas on the right to rotate $360^\circ$ and examine deep/superficial channels.</p>
+                <h2 class="text-xs font-semibold text-emerald-400 uppercase tracking-widest mb-1">交互索引</h2>
+                <h3 class="text-base font-bold text-slate-200">主要淋巴结区域</h3>
+                <p class="text-xs text-slate-400 mt-1">点击下方分组查看结构细节，并在右侧 3D 画布中旋转 360° 观察深/浅淋巴通道。</p>
             </div>
             
             <!-- Nodes list with details -->
@@ -74,68 +79,68 @@
                 <!-- Group 1 -->
                 <div class="node-card p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 hover:border-emerald-500/30 transition-all duration-200 cursor-pointer" data-id="parotid">
                     <div class="flex justify-between items-start mb-2">
-                        <span class="text-xs bg-amber-500/10 text-amber-300 font-semibold px-2 py-0.5 rounded border border-amber-500/20">Superficial Group</span>
+                        <span class="text-xs bg-amber-500/10 text-amber-300 font-semibold px-2 py-0.5 rounded border border-amber-500/20">浅表组</span>
                         <i class="fa-solid fa-location-dot text-slate-500"></i>
                     </div>
-                    <h4 class="font-bold text-sm text-white">Parotid Lymph Nodes</h4>
+                    <h4 class="font-bold text-sm text-white">腮腺淋巴结</h4>
                     <p class="text-xs text-slate-400 mt-1 leading-relaxed">
-                        Situated in and around the parotid salivary gland. They receive afferent lymphatic vessels from the temporal region, upper eyelids, external acoustic meatus, and posterior cheek.
+                        位于腮腺内及周围，接收来自颞区、上眼睑、外耳道及面颊后部的淋巴输入。
                     </p>
                 </div>
 
                 <!-- Group 2 -->
                 <div class="node-card p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 hover:border-emerald-500/30 transition-all duration-200 cursor-pointer" data-id="submandibular">
                     <div class="flex justify-between items-start mb-2">
-                        <span class="text-xs bg-emerald-500/10 text-emerald-300 font-semibold px-2 py-0.5 rounded border border-emerald-500/20">Submandibular Group</span>
+                        <span class="text-xs bg-emerald-500/10 text-emerald-300 font-semibold px-2 py-0.5 rounded border border-emerald-500/20">颌下组</span>
                         <i class="fa-solid fa-location-dot text-slate-500"></i>
                     </div>
-                    <h4 class="font-bold text-sm text-white">Submandibular Nodes</h4>
+                    <h4 class="font-bold text-sm text-white">颌下淋巴结</h4>
                     <p class="text-xs text-slate-400 mt-1 leading-relaxed">
-                        Nestled along the inferior border of the mandible. Crucial in dentistry as they drain the medial palpebral commissure, cheek, nose side, upper lip, and lateral lower lip.
+                        沿下颌骨下缘分布，在口腔医学中尤为重要，引流内眦、面颊、鼻翼、上唇及下唇外侧的淋巴。
                     </p>
                 </div>
 
                 <!-- Group 3 -->
                 <div class="node-card p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 hover:border-emerald-500/30 transition-all duration-200 cursor-pointer" data-id="submental">
                     <div class="flex justify-between items-start mb-2">
-                        <span class="text-xs bg-emerald-500/10 text-emerald-300 font-semibold px-2 py-0.5 rounded border border-emerald-500/20">Submandibular Group</span>
+                        <span class="text-xs bg-emerald-500/10 text-emerald-300 font-semibold px-2 py-0.5 rounded border border-emerald-500/20">颏下组</span>
                         <i class="fa-solid fa-location-dot text-slate-500"></i>
                     </div>
-                    <h4 class="font-bold text-sm text-white">Submental Nodes</h4>
+                    <h4 class="font-bold text-sm text-white">颏下淋巴结</h4>
                     <p class="text-xs text-slate-400 mt-1 leading-relaxed">
-                        Located between the anterior bellies of the digastric muscles. They receive lymph from the central lower lip, tip of the tongue, and floor of the mouth.
+                        位于二腹肌前腹之间，接收下唇中央、舌尖及口底区域的淋巴。
                     </p>
                 </div>
 
                 <!-- Group 4 -->
                 <div class="node-card p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 hover:border-emerald-500/30 transition-all duration-200 cursor-pointer" data-id="occipital">
                     <div class="flex justify-between items-start mb-2">
-                        <span class="text-xs bg-purple-500/10 text-purple-300 font-semibold px-2 py-0.5 rounded border border-purple-500/20">Occipital & Mastoid</span>
+                        <span class="text-xs bg-purple-500/10 text-purple-300 font-semibold px-2 py-0.5 rounded border border-purple-500/20">枕部与乳突</span>
                         <i class="fa-solid fa-location-dot text-slate-500"></i>
                     </div>
-                    <h4 class="font-bold text-sm text-white">Occipital & Retroauricular</h4>
+                    <h4 class="font-bold text-sm text-white">枕部与耳后淋巴结</h4>
                     <p class="text-xs text-slate-400 mt-1 leading-relaxed">
-                        Drains the scalp area behind the crown and lateral scalp regions. Vessels cascade directly downwards into deep cervical chains.
+                        引流顶枕部及侧方头皮区域，淋巴管向下汇入颈深淋巴链。
                     </p>
                 </div>
 
                 <!-- Group 5 -->
                 <div class="node-card p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 hover:border-emerald-500/30 transition-all duration-200 cursor-pointer" data-id="deep-cervical">
                     <div class="flex justify-between items-start mb-2">
-                        <span class="text-xs bg-red-500/10 text-red-300 font-semibold px-2 py-0.5 rounded border border-red-500/20">Deep Cervical Chain</span>
+                        <span class="text-xs bg-red-500/10 text-red-300 font-semibold px-2 py-0.5 rounded border border-red-500/20">颈深淋巴链</span>
                         <i class="fa-solid fa-location-dot text-slate-500"></i>
                     </div>
-                    <h4 class="font-bold text-sm text-white">Deep Cervical Nodes</h4>
+                    <h4 class="font-bold text-sm text-white">颈深淋巴结</h4>
                     <p class="text-xs text-slate-400 mt-1 leading-relaxed">
-                        Clustered along the internal jugular vein. They form the final drainage gateway for all lymphatic fluid of the head and neck before reaching the thoracic duct.
+                        沿颈内静脉分布，是头颈部淋巴液汇入胸导管前的最终引流通道。
                     </p>
                 </div>
             </div>
 
             <!-- Footer Meta Info -->
             <div class="p-4 bg-slate-950 border-t border-slate-800 text-center text-[11px] text-slate-500">
-                <p>3D Interface Powered by Sketchfab API</p>
-                <p class="mt-0.5">Use mouse left-click to drag/rotate, right-click to pan, scroll to zoom.</p>
+                <p>3D 界面由 Sketchfab API 驱动</p>
+                <p class="mt-0.5">左键拖拽旋转，右键平移，滚轮缩放。</p>
             </div>
         </section>
 
@@ -145,16 +150,16 @@
             <!-- Quick View Control Toolbar -->
             <div class="absolute top-4 left-4 z-10 flex gap-2 flex-wrap max-w-[90%]">
                 <button class="view-preset-btn bg-slate-900/90 hover:bg-slate-800 text-slate-200 text-xs font-semibold px-3.5 py-2 rounded-xl backdrop-blur-sm border border-slate-700/80 transition duration-200 flex items-center gap-1.5 shadow-lg shadow-black/40" data-view="front">
-                    <i class="fa-solid fa-user"></i> Front View
+                    <i class="fa-solid fa-user"></i> 正面
                 </button>
                 <button class="view-preset-btn bg-slate-900/90 hover:bg-slate-800 text-slate-200 text-xs font-semibold px-3.5 py-2 rounded-xl backdrop-blur-sm border border-slate-700/80 transition duration-200 flex items-center gap-1.5 shadow-lg shadow-black/40" data-view="left">
-                    <i class="fa-solid fa-arrow-left"></i> Left Profile
+                    <i class="fa-solid fa-arrow-left"></i> 左侧
                 </button>
                 <button class="view-preset-btn bg-slate-900/90 hover:bg-slate-800 text-slate-200 text-xs font-semibold px-3.5 py-2 rounded-xl backdrop-blur-sm border border-slate-700/80 transition duration-200 flex items-center gap-1.5 shadow-lg shadow-black/40" data-view="right">
-                    <i class="fa-solid fa-arrow-right"></i> Right Profile
+                    <i class="fa-solid fa-arrow-right"></i> 右侧
                 </button>
                 <button class="view-preset-btn bg-slate-900/90 hover:bg-slate-800 text-slate-200 text-xs font-semibold px-3.5 py-2 rounded-xl backdrop-blur-sm border border-slate-700/80 transition duration-200 flex items-center gap-1.5 shadow-lg shadow-black/40" data-view="top">
-                    <i class="fa-solid fa-arrow-up"></i> Top down
+                    <i class="fa-solid fa-arrow-up"></i> 俯视
                 </button>
             </div>
 
@@ -163,8 +168,9 @@
                 <iframe 
                     class="w-full h-full border-0 absolute inset-0"
                     id="sketchfab-iframe"
-                    src="https://sketchfab.com/models/5abcaca1574248c0860ae1d81b06998d/embed?autostart=1&camera=0&preload=1&ui_controls=0&ui_infos=0&ui_inspector=1&ui_watermark=0&ui_help=0&ui_settings=0&ui_vr=0&transparent=0&dnt=1" 
-                    allow="autoplay; fullscreen; xr-spatial-tracking" 
+                    src=""
+                    allow="autoplay; fullscreen; xr-spatial-tracking"
+                    allowfullscreen
                     execution-while-out-of-viewport 
                     execution-while-not-rendered 
                     web-share>
@@ -178,11 +184,11 @@
                         <i class="fa-solid fa-circle-info"></i>
                     </div>
                     <div>
-                        <h4 class="font-bold text-xs text-slate-200">How to explore:</h4>
+                        <h4 class="font-bold text-xs text-slate-200">操作说明</h4>
                         <ul class="text-[11px] text-slate-400 mt-1 space-y-1 list-disc list-inside">
-                            <li>Hold <strong>Left Click</strong> and drag to rotate the model $360^\circ$.</li>
-                            <li>Hold <strong>Right Click</strong> or Shift key to pan camera.</li>
-                            <li>Use <strong>Mouse Scroll</strong> to zoom into deep lymph channels.</li>
+                            <li>按住<strong>左键</strong>拖拽，可 360° 旋转模型。</li>
+                            <li>按住<strong>右键</strong>或 Shift 键平移视角。</li>
+                            <li>使用<strong>滚轮</strong>缩放，深入观察淋巴通道。</li>
                         </ul>
                     </div>
                 </div>
@@ -197,18 +203,87 @@
         const iframe = document.getElementById('sketchfab-iframe');
         const uid = '5abcaca1574248c0860ae1d81b06998d';
         let apiObject = null;
+        let apiReady = false;
         let isPlainBackground = false;
+        let cameras = {};
 
-        // Custom camera view targets on Sketchfab models
-        const cameras = {
-            front: { eye: [0.03, -158.46, 21.03], target: [0.03, 10.51, 10.37] },
-            left: { eye: [-162.33, -17.43, 21.14], target: [0.03, 10.51, 10.37] },
-            right: { eye: [162.33, -17.43, 21.14], target: [0.03, 10.51, 10.37] },
-            top: { eye: [0.03, -1.05, 172.54], target: [0.03, 10.51, 10.37] },
-            initial: { eye: [0.03, -158.46, 21.03], target: [0.03, 10.51, 10.37] }
+        function cloneVec(v) {
+            return [v[0], v[1], v[2]];
+        }
+
+        function vecSub(a, b) {
+            return [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+        }
+
+        function vecAdd(a, b) {
+            return [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
+        }
+
+        function vecScale(v, s) {
+            return [v[0] * s, v[1] * s, v[2] * s];
+        }
+
+        function vecLen(v) {
+            return Math.hypot(v[0], v[1], v[2]);
+        }
+
+        function vecNormalize(v) {
+            const len = vecLen(v) || 1;
+            return [v[0] / len, v[1] / len, v[2] / len];
+        }
+
+        function rotateZ(v, angle) {
+            const c = Math.cos(angle);
+            const s = Math.sin(angle);
+            return [v[0] * c - v[1] * s, v[0] * s + v[1] * c, v[2]];
+        }
+
+        function buildCameraPresets(initial) {
+            const target = cloneVec(initial.target);
+            const offset = vecSub(initial.position, target);
+            const dist = vecLen(offset) || 150;
+            const dir = vecNormalize(offset);
+
+            return {
+                initial: { eye: cloneVec(initial.position), target, baseDist: dist, baseDir: dir },
+                front: { eye: cloneVec(initial.position), target },
+                left: { eye: vecAdd(target, vecScale(rotateZ(dir, Math.PI / 2), dist)), target },
+                right: { eye: vecAdd(target, vecScale(rotateZ(dir, -Math.PI / 2), dist)), target },
+                top: { eye: [target[0], target[1], target[2] + dist], target }
+            };
+        }
+
+        function focusOnRegion(base, direction, distFactor, targetOffset) {
+            const baseDist = base.baseDist || vecLen(vecSub(base.eye, base.target)) || 150;
+            const target = vecAdd(cloneVec(base.target), targetOffset || [0, 0, 0]);
+            const eye = vecAdd(target, vecScale(vecNormalize(direction), baseDist * distFactor));
+            return { eye, target };
+        }
+
+        function moveCamera(eye, target, duration = 1.5) {
+            if (!apiReady || !apiObject) return;
+            apiObject.setCameraLookAt(eye, target, duration, function(err) {
+                if (err) console.error('setCameraLookAt failed:', err);
+            });
+        }
+
+        const INIT_OPTS = {
+            autostart: 1,
+            preload: 0,
+            max_texture_size: 512,
+            camera: 0,
+            ui_controls: 0,
+            ui_infos: 0,
+            ui_inspector: 0,
+            ui_watermark: 0,
+            ui_help: 0,
+            ui_settings: 0,
+            ui_vr: 0,
+            transparent: 0,
+            dnt: 1
         };
 
-        // Initialize Sketchfab Client API
+        // Viewer API requires an empty iframe; model is loaded via client.init()
         const client = new Sketchfab(iframe);
 
         client.init(uid, {
@@ -216,25 +291,21 @@
                 apiObject = api;
                 api.start();
                 api.addEventListener('viewerready', function() {
-                    console.log('Sketchfab Anatomical 3D Model API Ready');
-                    // Fetch starting camera placement if needed
-                    api.getCamera(function(err, camera) {
-                        if (!err) {
-                            cameras.initial = camera;
+                    apiReady = true;
+                    api.setTextureQuality('ld', function() {});
+                    api.getCameraLookAt(function(err, camera) {
+                        if (err) {
+                            console.error('getCameraLookAt failed:', err);
+                            return;
                         }
+                        cameras = buildCameraPresets(camera);
                     });
                 });
             },
             error: function onError() {
                 console.error('Sketchfab API failed to initialize.');
             },
-            autostart: 1,
-            preload: 1,
-            ui_controls: 0,
-            ui_infos: 0,
-            ui_inspector: 0,
-            ui_watermark: 0,
-            transparent: 0
+            ...INIT_OPTS
         });
 
         // Toggle solid background color (Simulated via overlay or direct Sketchfab option)
@@ -257,19 +328,21 @@
         document.querySelectorAll('.view-preset-btn').forEach(button => {
             button.addEventListener('click', (e) => {
                 const view = e.currentTarget.getAttribute('data-view');
-                if (apiObject && cameras[view]) {
-                    apiObject.setCameraLookAt(cameras[view].eye, cameras[view].target, 1.5, function(err) {
-                        if (err) console.log(err);
-                    });
+                const preset = cameras[view];
+                if (preset) {
+                    moveCamera(preset.eye, preset.target);
                 }
             });
         });
 
         // Reset button behavior
         document.getElementById('btn-reset').addEventListener('click', () => {
-            if (apiObject) {
+            const preset = cameras.initial;
+            if (preset) {
+                moveCamera(preset.eye, preset.target);
+            } else if (apiReady && apiObject) {
                 apiObject.recenterCamera(function(err) {
-                    if (err) console.log(err);
+                    if (err) console.error('recenterCamera failed:', err);
                 });
             }
         });
@@ -282,16 +355,21 @@
                 
                 // Focus camera perspective depending on anatomical region clicked
                 const id = this.getAttribute('data-id');
-                if (apiObject) {
-                    if (id === 'parotid') {
-                        apiObject.setCameraLookAt([-70, -70, 40], [0, 10, 10], 1.5);
-                    } else if (id === 'submandibular' || id === 'submental') {
-                        apiObject.setCameraLookAt([-40, -100, -20], [0, 10, 0], 1.5);
-                    } else if (id === 'occipital') {
-                        apiObject.setCameraLookAt([100, 40, 20], [0, 10, 10], 1.5);
-                    } else if (id === 'deep-cervical') {
-                        apiObject.setCameraLookAt([-100, -80, -30], [0, -15, 0], 1.5);
-                    }
+                const base = cameras.initial;
+                if (!base) return;
+
+                const baseDir = base.baseDir || vecNormalize(vecSub(base.eye, base.target));
+                const baseDist = base.baseDist || vecLen(vecSub(base.eye, base.target)) || 150;
+                const regionViews = {
+                    parotid: focusOnRegion(base, rotateZ(baseDir, Math.PI / 5), 0.32, [0, baseDist * 0.04, baseDist * 0.06]),
+                    submandibular: focusOnRegion(base, rotateZ(baseDir, Math.PI / 10), 0.28, [0, -baseDist * 0.05, -baseDist * 0.04]),
+                    submental: focusOnRegion(base, rotateZ(baseDir, Math.PI / 10), 0.26, [0, -baseDist * 0.06, -baseDist * 0.06]),
+                    occipital: focusOnRegion(base, vecScale(baseDir, -1), 0.30, [0, baseDist * 0.05, baseDist * 0.04]),
+                    'deep-cervical': focusOnRegion(base, rotateZ(baseDir, Math.PI / 8), 0.28, [0, -baseDist * 0.07, -baseDist * 0.08])
+                };
+                const view = regionViews[id];
+                if (view) {
+                    moveCamera(view.eye, view.target);
                 }
             });
         });

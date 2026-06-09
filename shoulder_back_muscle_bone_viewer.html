@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>肩背肌骨 3D · 弹响自查参考</title>
+    <link rel="dns-prefetch" href="https://static.sketchfab.com">
+    <link rel="dns-prefetch" href="https://media.sketchfab.com">
+    <link rel="preconnect" href="https://static.sketchfab.com" crossorigin>
+    <link rel="preconnect" href="https://media.sketchfab.com" crossorigin>
+    <link rel="preload" href="https://static.sketchfab.com/api/sketchfab-viewer-1.12.1.js" as="script">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col overflow-x-hidden">
+
+    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md px-6 py-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 z-10 shrink-0">
+        <div class="flex items-center gap-3">
+            <div class="bg-violet-500/10 text-violet-400 p-2.5 rounded-xl border border-violet-500/20">
+                <i class="fa-solid fa-dumbbell text-xl"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-lg md:text-xl tracking-tight text-white flex items-center gap-2 flex-wrap">
+                    肩背肌骨图谱
+                    <span class="text-xs bg-violet-500/20 text-violet-300 font-medium px-2.5 py-0.5 rounded-full border border-violet-500/30">弹响自查参考</span>
+                </h1>
+                <p class="text-xs text-slate-400 mt-0.5">模型：左侧肩部肌肉 · 含旋转肌袖、肩胛骨与肱骨</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2 self-stretch md:self-auto justify-end">
+            <button id="btn-reset" class="bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white px-4 py-2 rounded-xl text-sm font-medium transition duration-200 flex items-center gap-2 border border-slate-700">
+                <i class="fa-solid fa-arrows-spin"></i> 重置视角
+            </button>
+            <button id="btn-theme" class="bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white px-4 py-2 rounded-xl text-sm font-medium transition duration-200 flex items-center gap-2 border border-slate-700">
+                <i id="theme-icon" class="fa-solid fa-palette"></i> 切换纯色背景
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-1 flex flex-col lg:flex-row min-h-0 relative">
+
+        <section class="w-full lg:w-[420px] bg-slate-900 border-b lg:border-b-0 lg:border-r border-slate-800 flex flex-col shrink-0 order-2 lg:order-1">
+            <div class="p-6 border-b border-slate-800">
+                <h2 class="text-xs font-semibold text-violet-400 uppercase tracking-widest mb-1">交互索引</h2>
+                <h3 class="text-base font-bold text-slate-200">与肩部弹响相关的结构</h3>
+                <p class="text-xs text-slate-400 mt-1">点击条目切换视角并阅读说明。建议重点用<strong class="text-slate-300">背面</strong>观察冈下肌、小圆肌及肩胛骨运动。</p>
+                <div class="mt-3 p-3 rounded-lg bg-amber-500/5 border border-amber-500/20 text-[11px] text-amber-200/90 leading-relaxed">
+                    <i class="fa-solid fa-triangle-exclamation mr-1"></i>
+                    常见弹响：肩峰下撞击（抬臂 60°–120°）、二头肌腱鞘炎（结节间沟）、肩胛骨运动异常。本页仅供解剖学习，<strong>不能替代</strong>医生面诊与影像检查。
+                </div>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-4 space-y-3" id="nodes-container">
+                <div class="node-card p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 hover:border-violet-500/30 transition-all duration-200 cursor-pointer" data-id="supraspinatus">
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="text-xs bg-red-500/10 text-red-300 font-semibold px-2 py-0.5 rounded border border-red-500/20">旋转肌袖</span>
+                        <i class="fa-solid fa-location-dot text-slate-500"></i>
+                    </div>
+                    <h4 class="font-bold text-sm text-white">冈上肌 · 肩峰下间隙</h4>
+                    <p class="text-xs text-slate-400 mt-1 leading-relaxed">
+                        肌腱经肩峰与肱骨头之间。抬臂时最易受挤压，是<strong class="text-slate-300">撞击性弹响/疼痛</strong>最高发区；可对比健侧活动范围与夜间痛。
+                    </p>
+                </div>
+
+                <div class="node-card p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 hover:border-violet-500/30 transition-all duration-200 cursor-pointer" data-id="infraspinatus">
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="text-xs bg-purple-500/10 text-purple-300 font-semibold px-2 py-0.5 rounded border border-purple-500/20">背侧 · 外旋</span>
+                        <i class="fa-solid fa-location-dot text-slate-500"></i>
+                    </div>
+                    <h4 class="font-bold text-sm text-white">冈下肌 · 小圆肌</h4>
+                    <p class="text-xs text-slate-400 mt-1 leading-relaxed">
+                        位于肩胛骨<strong class="text-slate-300">背面</strong>冈下窝，负责外旋与稳定肱骨头。背侧触诊时留意是否与弹响同步；常与冈上肌一并受累。
+                    </p>
+                </div>
+
+                <div class="node-card p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 hover:border-violet-500/30 transition-all duration-200 cursor-pointer" data-id="subscapularis">
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="text-xs bg-sky-500/10 text-sky-300 font-semibold px-2 py-0.5 rounded border border-sky-500/20">前侧 · 内旋</span>
+                        <i class="fa-solid fa-location-dot text-slate-500"></i>
+                    </div>
+                    <h4 class="font-bold text-sm text-white">肩胛下肌</h4>
+                    <p class="text-xs text-slate-400 mt-1 leading-relaxed">
+                        贴肩胛骨前面，主力内旋。内旋抗阻痛或「卡住感」时需考虑；与前方关节囊稳定性密切相关。
+                    </p>
+                </div>
+
+                <div class="node-card p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 hover:border-violet-500/30 transition-all duration-200 cursor-pointer" data-id="biceps-long">
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="text-xs bg-emerald-500/10 text-emerald-300 font-semibold px-2 py-0.5 rounded border border-emerald-500/20">肌腱 · 沟槽</span>
+                        <i class="fa-solid fa-location-dot text-slate-500"></i>
+                    </div>
+                    <h4 class="font-bold text-sm text-white">二头肌长头腱 · 结节间沟</h4>
+                    <p class="text-xs text-slate-400 mt-1 leading-relaxed">
+                        长头腱在肱骨结节间沟内滑动。腱鞘炎或不稳定时可出现<strong class="text-slate-300">「啪」一声弹响</strong>，前上方压痛、Speed/Yergason 试验阳性时需怀疑。
+                    </p>
+                </div>
+
+                <div class="node-card p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 hover:border-violet-500/30 transition-all duration-200 cursor-pointer" data-id="acromion">
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="text-xs bg-orange-500/10 text-orange-300 font-semibold px-2 py-0.5 rounded border border-orange-500/20">骨性标志</span>
+                        <i class="fa-solid fa-location-dot text-slate-500"></i>
+                    </div>
+                    <h4 class="font-bold text-sm text-white">肩峰 · 喙肩弓</h4>
+                    <p class="text-xs text-slate-400 mt-1 leading-relaxed">
+                        肩峰构成肩峰下弓，决定冈上肌隧道空间。肩峰形态（尤其钩状肩峰）或骨赘可加重摩擦；肩锁关节增生亦会限制上举。
+                    </p>
+                </div>
+
+                <div class="node-card p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 hover:border-violet-500/30 transition-all duration-200 cursor-pointer" data-id="scapula-back">
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="text-xs bg-amber-500/10 text-amber-300 font-semibold px-2 py-0.5 rounded border border-amber-500/20">肩胛动力学</span>
+                        <i class="fa-solid fa-location-dot text-slate-500"></i>
+                    </div>
+                    <h4 class="font-bold text-sm text-white">肩胛骨背面 · 肩胛冈</h4>
+                    <p class="text-xs text-slate-400 mt-1 leading-relaxed">
+                        弹响未必来自盂肱关节：<strong class="text-slate-300">肩胛骨翼状突出、运动不同步</strong>（肩胛节律异常）可在背侧看到或摸到「咔哒」。对镜做上举/外旋观察两侧是否对称。
+                    </p>
+                </div>
+            </div>
+
+            <div class="p-4 bg-slate-950 border-t border-slate-800 text-center text-[11px] text-slate-500 space-y-1">
+                <p>3D 模型来源：Sketchfab · cetra_physio</p>
+                <p>左键旋转 · 右键平移 · 滚轮缩放</p>
+            </div>
+        </section>
+
+        <section class="flex-1 flex flex-col relative order-1 lg:order-2 bg-slate-950 min-h-[450px]">
+            <div class="absolute top-4 left-4 z-10 flex gap-2 flex-wrap max-w-[95%]">
+                <button class="view-preset-btn bg-slate-900/90 hover:bg-slate-800 text-slate-200 text-xs font-semibold px-3 py-2 rounded-xl backdrop-blur-sm border border-slate-700/80 transition duration-200 flex items-center gap-1.5 shadow-lg shadow-black/40" data-view="front">
+                    <i class="fa-solid fa-user"></i> 正面
+                </button>
+                <button class="view-preset-btn bg-violet-900/90 hover:bg-violet-800 text-violet-100 text-xs font-semibold px-3 py-2 rounded-xl backdrop-blur-sm border border-violet-600/50 transition duration-200 flex items-center gap-1.5 shadow-lg shadow-black/40" data-view="back">
+                    <i class="fa-solid fa-person-walking-arrow-loop-left"></i> 背面
+                </button>
+                <button class="view-preset-btn bg-slate-900/90 hover:bg-slate-800 text-slate-200 text-xs font-semibold px-3 py-2 rounded-xl backdrop-blur-sm border border-slate-700/80 transition duration-200 flex items-center gap-1.5 shadow-lg shadow-black/40" data-view="left">
+                    <i class="fa-solid fa-arrow-left"></i> 左侧
+                </button>
+                <button class="view-preset-btn bg-slate-900/90 hover:bg-slate-800 text-slate-200 text-xs font-semibold px-3 py-2 rounded-xl backdrop-blur-sm border border-slate-700/80 transition duration-200 flex items-center gap-1.5 shadow-lg shadow-black/40" data-view="right">
+                    <i class="fa-solid fa-arrow-right"></i> 右侧
+                </button>
+                <button class="view-preset-btn bg-slate-900/90 hover:bg-slate-800 text-slate-200 text-xs font-semibold px-3 py-2 rounded-xl backdrop-blur-sm border border-slate-700/80 transition duration-200 flex items-center gap-1.5 shadow-lg shadow-black/40" data-view="top">
+                    <i class="fa-solid fa-arrow-up"></i> 俯视
+                </button>
+            </div>
+
+            <div class="flex-1 w-full h-full relative" id="iframe-wrapper">
+                <iframe class="w-full h-full border-0 absolute inset-0" id="sketchfab-iframe" src=""
+                    allow="autoplay; fullscreen; xr-spatial-tracking" allowfullscreen
+                    execution-while-out-of-viewport execution-while-not-rendered web-share></iframe>
+            </div>
+
+            <div class="absolute bottom-4 left-4 right-4 lg:left-auto lg:w-[28rem] bg-slate-900/90 border border-slate-800 p-4 rounded-2xl backdrop-blur-md shadow-2xl z-10">
+                <div class="flex gap-3 items-start">
+                    <div class="bg-violet-500/10 text-violet-400 p-2 rounded-lg border border-violet-500/20 shrink-0">
+                        <i class="fa-solid fa-stethoscope"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-xs text-slate-200">自查时可对照的问题</h4>
+                        <ul class="text-[11px] text-slate-400 mt-1 space-y-1 list-disc list-inside">
+                            <li>弹响出现在<strong>哪个动作</strong>（上举、外旋、背后摸背）？</li>
+                            <li>是否伴随<strong>疼痛、无力、夜间痛</strong>或活动受限？</li>
+                            <li>背对镜子：肩胛骨是否<strong>翼状抬起</strong>或两侧不对称？</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="https://static.sketchfab.com/api/sketchfab-viewer-1.12.1.js"></script>
+    <script>
+        const iframe = document.getElementById('sketchfab-iframe');
+        const uid = 'ac22f1038e1a479d86f3853934c7a617';
+        let apiObject = null;
+        let apiReady = false;
+        let isPlainBackground = false;
+        let viewPresets = {};
+
+        function cloneVec(v) { return [v[0], v[1], v[2]]; }
+        function vecSub(a, b) { return [a[0] - b[0], a[1] - b[1], a[2] - b[2]]; }
+        function vecAdd(a, b) { return [a[0] + b[0], a[1] + b[1], a[2] + b[2]]; }
+        function vecScale(v, s) { return [v[0] * s, v[1] * s, v[2] * s]; }
+        function vecLen(v) { return Math.hypot(v[0], v[1], v[2]); }
+
+        function rotateZ(v, angle) {
+            const c = Math.cos(angle), s = Math.sin(angle);
+            return [v[0] * c - v[1] * s, v[0] * s + v[1] * c, v[2]];
+        }
+
+        function buildViewPresets(camera) {
+            const target = cloneVec(camera.target);
+            const offset = vecSub(camera.position, target);
+            const dist = vecLen(offset) || 150;
+            const backOffset = [offset[0], -offset[1], offset[2]];
+            return {
+                front: { eye: cloneVec(camera.position), target },
+                back: { eye: vecAdd(target, backOffset), target },
+                left: { eye: vecAdd(target, rotateZ(offset, -Math.PI / 2)), target },
+                right: { eye: vecAdd(target, rotateZ(offset, Math.PI / 2)), target },
+                top: { eye: vecAdd(target, [offset[0] * 0.06, offset[1] * 0.06, dist]), target }
+            };
+        }
+
+        function zoomFromPreset(preset, distFactor, targetNudge) {
+            const target = vecAdd(cloneVec(preset.target), targetNudge || [0, 0, 0]);
+            const offset = vecSub(preset.eye, preset.target);
+            return { eye: vecAdd(target, vecScale(offset, distFactor)), target };
+        }
+
+        function getRegionView(id) {
+            if (!viewPresets.front) return null;
+            const views = {
+                supraspinatus: () => viewPresets.top ? zoomFromPreset(viewPresets.top, 0.55, [0, -2, 0]) : null,
+                infraspinatus: () => viewPresets.back ? zoomFromPreset(viewPresets.back, 0.56, [0, 2, 0]) : null,
+                subscapularis: () => zoomFromPreset(viewPresets.front, 0.50, [0, -2, 1]),
+                'biceps-long': () => viewPresets.left ? zoomFromPreset(viewPresets.left, 0.54, [0, 0, 0]) : null,
+                acromion: () => viewPresets.top ? zoomFromPreset(viewPresets.top, 0.58, [0, -1, 0]) : null,
+                'scapula-back': () => viewPresets.back ? zoomFromPreset(viewPresets.back, 0.50, [0, 0, 0]) : null
+            };
+            return views[id] ? views[id]() : null;
+        }
+
+        function moveCamera(eye, target, duration = 1.5) {
+            if (!apiReady || !apiObject) return;
+            apiObject.setCameraLookAt(eye, target, duration, function(err) {
+                if (err) console.error('setCameraLookAt failed:', err);
+            });
+        }
+
+        function applyDefaultView() {
+            const preset = viewPresets.back || viewPresets.front;
+            if (!preset) return;
+            moveCamera(preset.eye, preset.target, 0.01);
+            setTimeout(() => moveCamera(preset.eye, preset.target, 0.01), 400);
+        }
+
+        const INIT_OPTS = {
+            autostart: 1,
+            preload: 0,
+            max_texture_size: 512,
+            camera: 0,
+            ui_controls: 0,
+            ui_infos: 0,
+            ui_inspector: 0,
+            ui_watermark: 0,
+            ui_help: 0,
+            ui_settings: 0,
+            ui_vr: 0,
+            transparent: 0,
+            dnt: 1
+        };
+
+        const client = new Sketchfab(iframe);
+        client.init(uid, {
+            success: function(api) {
+                apiObject = api;
+                api.start();
+                api.addEventListener('viewerready', function() {
+                    apiReady = true;
+                    api.setTextureQuality('ld', function() {});
+                    api.getCameraLookAt(function(err, camera) {
+                        if (err) { console.error('getCameraLookAt failed:', err); return; }
+                        viewPresets = buildViewPresets(camera);
+                        applyDefaultView();
+                    });
+                });
+            },
+            error: function() { console.error('Sketchfab API failed to initialize.'); },
+            ...INIT_OPTS
+        });
+
+        document.getElementById('btn-theme').addEventListener('click', () => {
+            isPlainBackground = !isPlainBackground;
+            const wrapper = document.getElementById('iframe-wrapper');
+            const themeIcon = document.getElementById('theme-icon');
+            if (isPlainBackground) {
+                wrapper.style.filter = 'contrast(1.05) brightness(0.95)';
+                themeIcon.className = 'fa-solid fa-moon text-amber-400';
+            } else {
+                wrapper.style.filter = 'none';
+                themeIcon.className = 'fa-solid fa-palette text-slate-400';
+            }
+        });
+
+        document.querySelectorAll('.view-preset-btn').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const preset = viewPresets[e.currentTarget.getAttribute('data-view')];
+                if (preset) moveCamera(preset.eye, preset.target);
+            });
+        });
+
+        document.getElementById('btn-reset').addEventListener('click', applyDefaultView);
+
+        document.querySelectorAll('.node-card').forEach(card => {
+            card.addEventListener('click', function() {
+                document.querySelectorAll('.node-card').forEach(c => c.classList.remove('border-violet-500', 'bg-violet-950/20'));
+                this.classList.add('border-violet-500', 'bg-violet-950/20');
+                const view = getRegionView(this.getAttribute('data-id'));
+                if (view) moveCamera(view.eye, view.target);
+            });
+        });
+    </script>
+</body>
+</html>
