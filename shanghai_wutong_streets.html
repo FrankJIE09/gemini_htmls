@@ -97,6 +97,7 @@
         .landmark-cat-sports { border-color: #059669 !important; }
         .landmark-cat-culture { border-color: #1F402B !important; }
         .landmark-cat-heritage { border-color: #92400E !important; }
+        .landmark-cat-school { border-color: #DC2626 !important; }
         .landmark-filter-btn.active {
             background-color: #1F402B !important;
             color: #FAF5EB !important;
@@ -133,7 +134,7 @@
                 </h1>
             </div>
             <p class="text-xs md:text-sm opacity-90 mt-2 font-light leading-relaxed max-w-4xl">
-                共<b>852条</b>道路 + <b>45个</b>可筛选地标（商超·剧院·音乐厅·话剧·体育等）。路名：<b>14级</b>精品/主干，<b>15级</b>支路。悬停地标可看名称。
+                共<b>852条</b>道路 + <b>51个</b>可筛选地标（商超·剧院·音乐厅·话剧·体育·高校等）。路名：<b>14级</b>精品/主干，<b>15级</b>支路。悬停地标可看名称。
             </p>
         </div>
         <div class="flex gap-2 shrink-0">
@@ -191,6 +192,7 @@
                 <button type="button" data-lm-cat="sports" onclick="filterLandmarks('sports')" class="landmark-filter-btn px-2 py-1 text-[10px] font-semibold rounded border border-emerald-300 bg-emerald-50 text-emerald-900">⚽ 体育</button>
                 <button type="button" data-lm-cat="culture" onclick="filterLandmarks('culture')" class="landmark-filter-btn px-2 py-1 text-[10px] font-semibold rounded border border-gray-400 bg-gray-50 text-gray-800">📚 文化</button>
                 <button type="button" data-lm-cat="heritage" onclick="filterLandmarks('heritage')" class="landmark-filter-btn px-2 py-1 text-[10px] font-semibold rounded border border-yellow-700 bg-yellow-50 text-yellow-900">🏛 历史</button>
+                <button type="button" data-lm-cat="school" onclick="filterLandmarks('school')" class="landmark-filter-btn px-2 py-1 text-[10px] font-semibold rounded border border-red-300 bg-red-50 text-red-900">🏫 高校</button>
             </div>
         </div>
 
@@ -362,7 +364,7 @@
                 </div>
                 <div class="p-2.5 bg-amber-50 rounded-lg border border-amber-200">
                     <span class="font-bold text-[#1F402B]">衡复风貌区（核心）</span>
-                    <p class="text-gray-600 mt-1">地图上可点选 <b>45+</b> 个地标（商超、剧院、音乐厅、话剧、体育等），支持分类筛选；点击图标查看地址与认路口诀。</p>
+                    <p class="text-gray-600 mt-1">地图上可点选 <b>51+</b> 个地标（商超、剧院、音乐厅、话剧、体育、高校等），支持分类筛选；点击图标查看地址与认路口诀。</p>
                 </div>
             </div>
         </div>
@@ -20601,10 +20603,34 @@
             mnemonic: '宝庆路3号，复兴中路北侧。',
             icon: '🎼'
         },
+        heluting_hall: {
+            name: '贺绿汀音乐厅',
+            category: 'concert',
+            coords: [31.215325, 121.449398],
+            desc: '上音校内主音乐厅，学术演出与公开音乐会常用。',
+            mnemonic: '汾阳路20号，上海音乐学院校园内。',
+            icon: '🎻'
+        },
+        shcm_opera_house: {
+            name: '上音歌剧院',
+            category: 'concert',
+            coords: [31.217358, 121.451423],
+            desc: '汾阳路6号，1200座歌剧厅，淮海中路与汾阳路交界。',
+            mnemonic: '淮海中路×汾阳路路口，上音东北角主入口。',
+            icon: '🎶'
+        },
+        oriental_art_center: {
+            name: '东方艺术中心',
+            category: 'concert',
+            coords: [31.224877, 121.536905],
+            desc: '丁香路425号，浦东旗舰级古典音乐与交响演出场馆。',
+            mnemonic: '世纪大道与丁香路，浦东花木板块。',
+            icon: '🎹'
+        },
         sh_music: {
             name: '上海音乐学院',
-            category: 'concert',
-            coords: [31.21375, 121.45385],
+            category: 'school',
+            coords: [31.215529, 121.450189],
             desc: '汾阳路20号，音乐学府。',
             mnemonic: '汾阳路20号，淮海中路与东湖路。',
             icon: '🎵'
@@ -20857,6 +20883,46 @@
             mnemonic: '南京西路758号，江宁路。',
             icon: '🤸'
         },
+        sch_afa67d2012: {
+            name: '上海复旦大学医学院',
+            category: 'school',
+            coords: [31.198897, 121.447726],
+            desc: '复旦大学医学院，衡复风貌区/梧桐区周边学校（OSM 坐标）。',
+            mnemonic: '上海复旦大学医学院，地图坐标 [31.198897, 121.447726]。',
+            icon: '🏫'
+        },
+        sch_c6ac5de72f: {
+            name: '上海市逸夫职业技术学校',
+            category: 'school',
+            coords: [31.222994, 121.448060],
+            desc: '逸夫职业技术学校，衡复风貌区/梧桐区周边学校（OSM 坐标）。',
+            mnemonic: '上海市逸夫职业技术学校，地图坐标 [31.222994, 121.448060]。',
+            icon: '🏫'
+        },
+        sch_41d36f8c74: {
+            name: '上海戏剧学院(华山路校区)',
+            category: 'school',
+            coords: [31.219105, 121.435679],
+            desc: '戏剧学院(华山路校区)，衡复风貌区/梧桐区周边学校（OSM 坐标）。',
+            mnemonic: '上海戏剧学院(华山路校区)，地图坐标 [31.219105, 121.435679]。',
+            icon: '🏫'
+        },
+        sch_8cfaf2f097: {
+            name: '上海理工大学复兴路校区',
+            category: 'school',
+            coords: [31.213855, 121.455963],
+            desc: '理工大学复兴路校区，衡复风貌区/梧桐区周边学校（OSM 坐标）。',
+            mnemonic: '上海理工大学复兴路校区，地图坐标 [31.213855, 121.455963]。',
+            icon: '🏫'
+        },
+        sch_4ad1f094bc: {
+            name: '中华职业学校',
+            category: 'school',
+            coords: [31.203297, 121.468495],
+            desc: '中华职业学校，衡复风貌区/梧桐区周边学校（OSM 坐标）。',
+            mnemonic: '中华职业学校，地图坐标 [31.203297, 121.468495]。',
+            icon: '🏫'
+        },
     };
 
     // 经典漫步路线定义
@@ -20875,7 +20941,8 @@
         drama: '话剧',
         sports: '体育场馆',
         culture: '文化场馆',
-        heritage: '历史地标'
+        heritage: '历史地标',
+        school: '高等院校'
     };
 
     let map;
