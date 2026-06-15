@@ -91,6 +91,11 @@
                 <input type="number" id="ssBase" class="input-style" min="0" step="1" placeholder="留空则按上海标准自动计算">
                 <p class="text-xs text-gray-500 mt-1">手动填写时按输入值计算（不限上海上下限，适用于其他城市）；留空时取月工资并在上海 <span id="ssLimitsHint">7,460～37,302</span> 元范围内封顶</p>
             </div>
+            <div>
+                <label for="hfBase" class="block text-sm font-medium text-gray-700 mb-1">公积金基数 RMB</label>
+                <input type="number" id="hfBase" class="input-style" min="0" step="1" placeholder="留空则按上海标准自动计算">
+                <p class="text-xs text-gray-500 mt-1">手动填写时按输入值计算（不限上海上下限）；留空时取月工资并在上海 <span id="hfLimitsHint">2,690～37,302</span> 元范围内封顶</p>
+            </div>
         </div>
         
         <div class="text-center mb-6">
@@ -286,8 +291,9 @@
                 <ul class="list-disc list-inside space-y-0.5">
                     <li>**费率说明：** 社保费率采用了上海市常见的费率（个人养老 8%，医保 2%，失业 0.5%；单位养老 16%，医保 8%，失业 0.5%，工伤 0.26%）。实际费率可能因行业和地区而异。</li>
                     <li>**年度总净收入 + 公积金双边总计：** 衡量个人所有现金流入和长期储蓄（公积金）的总金额。</li>
-                    <li>**社保基数：** 留空时按上海标准自动封顶（<span id="ssLimitsNote">7,460 - 37,302</span> 元/月，2025.7 起）；手动填写则直接使用输入值，不限制在上海范围内，便于其他城市。公积金 2,690 - 37,302 元/月，仍按工资计算。</li>
-                    <li id="actualSsBaseNote" class="hidden">**本次计算社保基数：** <span id="actualSsBaseDisplay">0</span> 元/月。</li>
+                    <li>**社保基数：** 留空时按上海标准自动封顶（<span id="ssLimitsNote">7,460 - 37,302</span> 元/月，2025.7 起）；手动填写则直接使用输入值，不限制在上海范围内。</li>
+                    <li>**公积金基数：** 留空时按上海标准自动封顶（<span id="hfLimitsNote">2,690 - 37,302</span> 元/月，2025.7 起）；手动填写则直接使用输入值，不限制在上海范围内。</li>
+                    <li id="actualBaseNote" class="hidden">**本次计算基数：** 社保 <span id="actualSsBaseDisplay">0</span> 元/月，公积金 <span id="actualHfBaseDisplay">0</span> 元/月。</li>
                     <li>**个税计算：** 严格采用**累计预扣法**，因此个税扣除金额会随着月份的累积而变化，尤其是在年初。</li>
                     <li>**年终奖税：** 采用**单独计税**的优惠方式计算。</li>
                 </ul>
@@ -338,9 +344,10 @@
          * @param {number} monthlySalary - 月度税前工资
          * @param {number} hfRateEmployee - 住房公积金个人/单位缴纳比例 (0.05 - 0.12)
          * @param {number|null} ssBaseOverride - 自定义社保基数，null 时按工资自动计算
+         * @param {number|null} hfBaseOverride - 自定义公积金基数，null 时按工资自动计算
          * @returns {object} 包含各项扣除额和总额
          */
-        function calculateDeductions(monthlySalary, hfRateEmployee, ssBaseOverride = null) {
+        function calculateDeductions(monthlySalary, hfRateEmployee, ssBaseOverride = null, hfBaseOverride = null) {
             // 确定社保基数 (养老, 医疗, 失业, 工伤)
             let ssBase;
             if (ssBaseOverride != null && ssBaseOverride > 0) {
@@ -349,7 +356,12 @@
                 ssBase = Math.min(Math.max(monthlySalary, LIMITS.SS_LOWER), LIMITS.SS_UPPER);
             }
             // 确定公积金基数
-            let hfBase = Math.min(Math.max(monthlySalary, LIMITS.HF_LOWER), LIMITS.HF_UPPER);
+            let hfBase;
+            if (hfBaseOverride != null && hfBaseOverride > 0) {
+                hfBase = hfBaseOverride;
+            } else {
+                hfBase = Math.min(Math.max(monthlySalary, LIMITS.HF_LOWER), LIMITS.HF_UPPER);
+            }
 
             // 1. 个人缴纳 (Employee - E)
             const pension_e = ssBase * RATES.PENSION_E;
@@ -438,6 +450,8 @@
 
                 const ssBaseRaw = parseFloat(document.getElementById('ssBase').value);
                 const ssBaseOverride = (isNaN(ssBaseRaw) || ssBaseRaw <= 0) ? null : ssBaseRaw;
+                const hfBaseRaw = parseFloat(document.getElementById('hfBase').value);
+                const hfBaseOverride = (isNaN(hfBaseRaw) || hfBaseRaw <= 0) ? null : hfBaseRaw;
 
                 const monthlyResults = [];
                 let cumulativeTaxPaid = 0; // 累计已缴纳个税
@@ -447,7 +461,7 @@
                 let totalAnnualHousingFund = 0; // 双边存入总额
                 
                 // 预先计算固定的月度五险一金扣除额和单位缴纳额
-                const deductions = calculateDeductions(monthlySalary, hfRateEmployee, ssBaseOverride);
+                const deductions = calculateDeductions(monthlySalary, hfRateEmployee, ssBaseOverride, hfBaseOverride);
                 const totalMonthlyDeductionWuxianYijin = deductions.individualTotal; // 个人五险一金总扣除
 
                 // 2. 循环计算12个月 (累计预扣法核心逻辑)
@@ -673,7 +687,8 @@
                 document.getElementById('netBonusResultDisplay').textContent = formatRMB(bonusResult.net);
 
                 document.getElementById('actualSsBaseDisplay').textContent = formatRMB(deductions.ssBase);
-                document.getElementById('actualSsBaseNote').classList.remove('hidden');
+                document.getElementById('actualHfBaseDisplay').textContent = formatRMB(deductions.hfBase);
+                document.getElementById('actualBaseNote').classList.remove('hidden');
 
                 document.getElementById('results').classList.remove('hidden');
 
@@ -692,17 +707,23 @@
             btn.textContent = show ? '隐藏公司相关列' : '显示公司相关列';
         }
 
-        function syncSsLimitHints() {
-            const text = `${formatRMB(LIMITS.SS_LOWER).replace(/\.00$/, '')}～${formatRMB(LIMITS.SS_UPPER).replace(/\.00$/, '')}`;
-            const hint = document.getElementById('ssLimitsHint');
-            const note = document.getElementById('ssLimitsNote');
-            if (hint) hint.textContent = text;
-            if (note) note.textContent = `${formatRMB(LIMITS.SS_LOWER).replace(/\.00$/, '')} - ${formatRMB(LIMITS.SS_UPPER).replace(/\.00$/, '')}`;
+        function syncBaseLimitHints() {
+            const fmt = (n) => formatRMB(n).replace(/\.00$/, '');
+            const ssText = `${fmt(LIMITS.SS_LOWER)}～${fmt(LIMITS.SS_UPPER)}`;
+            const hfText = `${fmt(LIMITS.HF_LOWER)}～${fmt(LIMITS.HF_UPPER)}`;
+            const ssHint = document.getElementById('ssLimitsHint');
+            const ssNote = document.getElementById('ssLimitsNote');
+            const hfHint = document.getElementById('hfLimitsHint');
+            const hfNote = document.getElementById('hfLimitsNote');
+            if (ssHint) ssHint.textContent = ssText;
+            if (ssNote) ssNote.textContent = `${fmt(LIMITS.SS_LOWER)} - ${fmt(LIMITS.SS_UPPER)}`;
+            if (hfHint) hfHint.textContent = hfText;
+            if (hfNote) hfNote.textContent = `${fmt(LIMITS.HF_LOWER)} - ${fmt(LIMITS.HF_UPPER)}`;
         }
 
         // 初始化计算，加载默认值
         window.onload = function() {
-            syncSsLimitHints();
+            syncBaseLimitHints();
             calculateSalary();
         };
 
