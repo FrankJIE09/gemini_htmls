@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>跳槽薪资对比与财富测算</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        .input-style {
+            width: 100%; padding: 0.5rem 0.75rem; border-radius: 0.375rem;
+            border: 1px solid #d1d5db; outline: none; transition: all 0.2s;
+        }
+        .input-style:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3); }
+        .card { background: white; border-radius: 0.75rem; padding: 1.5rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .diff-pos { color: #16a34a; font-weight: 600; } /* green-600 */
+        .diff-neg { color: #dc2626; font-weight: 600; } /* red-600 */
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div class="max-w-6xl mx-auto space-y-6">
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-8">跳槽薪资对比 & N年财富测算</h1>
+
+        <!-- 通用参数 -->
+        <div class="card">
+            <h2 class="text-xl font-semibold mb-4 border-b pb-2 text-gray-800">通用测算参数</h2>
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <div>
+                    <label class="block text-sm text-gray-600 mb-1">每月固定开销 (元)</label>
+                    <input type="number" id="monthlyExpenses" value="10000" class="input-style">
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-600 mb-1">理财年化收益率 (%)</label>
+                    <input type="number" id="roi" value="4.0" step="0.1" class="input-style">
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-600 mb-1">收入每年涨幅 (%)</label>
+                    <input type="number" id="incomeGrowth" value="5.0" step="0.1" class="input-style">
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-600 mb-1">初始本金 (元)</label>
+                    <input type="number" id="initialPrincipal" value="100000" class="input-style">
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-600 mb-1">测算年数 (年)</label>
+                    <input type="number" id="years" value="5" class="input-style">
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- 方案A -->
+            <div class="card border-t-4 border-blue-500">
+                <h2 class="text-xl font-semibold mb-4 border-b pb-2 text-blue-600">方案A：跳槽前 (当前)</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">税前月薪 (元)</label>
+                        <input type="number" id="salaryA" value="20000" class="input-style">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">公积金个人/单位比例 (%)</label>
+                        <input type="number" id="hfRateA" value="7" class="input-style">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">每月专项附加扣除 (元)</label>
+                        <input type="number" id="deductionA" value="0" class="input-style">
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="text-sm text-gray-600">年终奖</label>
+                            <div class="text-xs space-x-2">
+                                <label><input type="radio" name="bonusModeA" value="amount" checked> 金额</label>
+                                <label><input type="radio" name="bonusModeA" value="months"> 月薪×N</label>
+                            </div>
+                        </div>
+                        <input type="number" id="bonusAmountA" value="30000" class="input-style" placeholder="年终奖总额">
+                        <input type="number" id="bonusMonthsA" value="1.5" class="input-style hidden" placeholder="N个月">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 方案B -->
+            <div class="card border-t-4 border-green-500">
+                <h2 class="text-xl font-semibold mb-4 border-b pb-2 text-green-600">方案B：跳槽后 (新机会)</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">税前月薪 (元)</label>
+                        <input type="number" id="salaryB" value="26000" class="input-style">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">公积金个人/单位比例 (%)</label>
+                        <input type="number" id="hfRateB" value="7" class="input-style">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">每月专项附加扣除 (元)</label>
+                        <input type="number" id="deductionB" value="0" class="input-style">
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="text-sm text-gray-600">年终奖</label>
+                            <div class="text-xs space-x-2">
+                                <label><input type="radio" name="bonusModeB" value="amount" checked> 金额</label>
+                                <label><input type="radio" name="bonusModeB" value="months"> 月薪×N</label>
+                            </div>
+                        </div>
+                        <input type="number" id="bonusAmountB" value="50000" class="input-style" placeholder="年终奖总额">
+                        <input type="number" id="bonusMonthsB" value="2" class="input-style hidden" placeholder="N个月">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">年终奖自定义扣税比例 (%)</label>
+                        <input type="number" id="bonusTaxRateB" placeholder="留空则按上海规则自动计算" class="input-style">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center">
+            <button onclick="runCalculation()" class="bg-blue-600 hover:bg-blue-700 text-white px-10 py-3 rounded-lg font-bold shadow-lg transition transform hover:scale-105">开始对比测算</button>
+        </div>
+
+        <!-- 结果展示 -->
+        <div id="results" class="hidden space-y-6">
+            <!-- 1. 第一年薪资对比 -->
+            <div class="card">
+                <h2 class="text-xl font-semibold mb-4 border-b pb-2 text-gray-800">第一年薪资对比</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-gray-50 text-gray-700">
+                                <th class="p-3 border-b font-medium">对比项目</th>
+                                <th class="p-3 border-b font-medium text-blue-600">方案A (跳槽前)</th>
+                                <th class="p-3 border-b font-medium text-green-600">方案B (跳槽后)</th>
+                                <th class="p-3 border-b font-medium">差额 (B - A)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="salaryComparisonBody" class="divide-y divide-gray-100">
+                            <!-- JS filled -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 2. N年财富测算结果 -->
+            <div class="card">
+                <h2 class="text-xl font-semibold mb-4 border-b pb-2 text-gray-800" id="wealthTitle">N年财富测算总资产</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="p-5 bg-blue-50 rounded-xl border border-blue-100">
+                        <div class="text-sm text-blue-600 mb-1">方案A N年后总资产</div>
+                        <div class="text-3xl font-bold text-blue-800" id="assetA">0.00</div>
+                        <div class="text-sm text-gray-500 mt-2" id="assetDetailA"></div>
+                    </div>
+                    <div class="p-5 bg-green-50 rounded-xl border border-green-100">
+                        <div class="text-sm text-green-600 mb-1">方案B N年后总资产</div>
+                        <div class="text-3xl font-bold text-green-800" id="assetB">0.00</div>
+                        <div class="text-sm text-gray-500 mt-2" id="assetDetailB"></div>
+                    </div>
+                    <div class="p-5 bg-gray-50 rounded-xl border border-gray-200">
+                        <div class="text-sm text-gray-600 mb-1">总资产差额 (B - A)</div>
+                        <div class="text-3xl font-bold" id="assetDiff">0.00</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 上海个税及五险一金规则
+        const RATES = {
+            PENSION_E: 0.08, MEDICAL_E: 0.02, UNEMPLOYMENT_E: 0.005
+        };
+        const LIMITS = {
+            SS_LOWER: 7460, SS_UPPER: 37302,
+            HF_LOWER: 2690, HF_UPPER: 37302
+        };
+        const TAX_DEDUCTION_ANNUAL_BASIC = 60000;
+        const TAX_BRACKETS = [
+            { threshold: 0, rate: 0.03, quick: 0 },
+            { threshold: 36000, rate: 0.10, quick: 2520 },
+            { threshold: 144000, rate: 0.20, quick: 16920 },
+            { threshold: 300000, rate: 0.25, quick: 31920 },
+            { threshold: 420000, rate: 0.30, quick: 52920 },
+            { threshold: 660000, rate: 0.35, quick: 85920 },
+            { threshold: 960000, rate: 0.45, quick: 181920 },
+        ];
+
+        const formatRMB = (num) => parseFloat(num).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+        // 切换年终奖输入模式
+        function setupBonusToggle(prefix) {
+            document.querySelectorAll(`input[name="bonusMode${prefix}"]`).forEach(radio => {
+                radio.addEventListener('change', (e) => {
+                    const isMonths = e.target.value === 'months';
+                    document.getElementById(`bonusAmount${prefix}`).classList.toggle('hidden', isMonths);
+                    document.getElementById(`bonusMonths${prefix}`).classList.toggle('hidden', !isMonths);
+                });
+            });
+        }
+        setupBonusToggle('A');
+        setupBonusToggle('B');
+
+        function getBonus(prefix) {
+            const mode = document.querySelector(`input[name="bonusMode${prefix}"]:checked`).value;
+            if (mode === 'months') {
+                const salary = parseFloat(document.getElementById(`salary${prefix}`).value) || 0;
+                const months = parseFloat(document.getElementById(`bonusMonths${prefix}`).value) || 0;
+                return salary * months;
+            }
+            return parseFloat(document.getElementById(`bonusAmount${prefix}`).value) || 0;
+        }
+
+        function calculateBonusTax(bonus, customRatePercent = null) {
+            if (bonus <= 0) return { tax: 0, net: 0 };
+            if (customRatePercent !== null && !isNaN(customRatePercent)) {
+                const rate = customRatePercent / 100;
+                const tax = bonus * rate;
+                return { tax, net: bonus - tax };
+            }
+            const monthlyEquivalent = bonus / 12;
+            let rate = 0, quick = 0;
+            for (let i = TAX_BRACKETS.length - 1; i >= 0; i--) {
+                if (monthlyEquivalent * 12 > TAX_BRACKETS[i].threshold) {
+                    rate = TAX_BRACKETS[i].rate;
+                    quick = TAX_BRACKETS[i].quick;
+                    break;
+                }
+            }
+            const tax = bonus * rate - quick;
+            return { tax: Math.max(0, tax), net: Math.max(0, bonus - tax) };
+        }
+
+        function calculateOneYear(monthlySalary, hfRatePercent, specialDeductionMonthly, annualBonus, bonusTaxRateOverride = null) {
+            const hfRate = hfRatePercent / 100;
+            let ssBase = Math.min(Math.max(monthlySalary, LIMITS.SS_LOWER), LIMITS.SS_UPPER);
+            let hfBase = Math.min(Math.max(monthlySalary, LIMITS.HF_LOWER), LIMITS.HF_UPPER);
+            
+            let individualTotal = ssBase * (RATES.PENSION_E + RATES.MEDICAL_E + RATES.UNEMPLOYMENT_E) + hfBase * hfRate;
+            let housingFundDouble = hfBase * hfRate * 2;
+            
+            let cumulativeTaxPaid = 0;
+            let totalAnnualNetSalary = 0;
+            
+            for (let month = 1; month <= 12; month++) {
+                let cumulativeTaxableIncome = (monthlySalary * month) 
+                                            - (individualTotal * month) 
+                                            - (specialDeductionMonthly * month) 
+                                            - (month * (TAX_DEDUCTION_ANNUAL_BASIC / 12));
+                
+                let cumulativeTaxPayable = 0;
+                for (let i = TAX_BRACKETS.length - 1; i >= 0; i--) {
+                    if (cumulativeTaxableIncome > TAX_BRACKETS[i].threshold) {
+                        cumulativeTaxPayable = cumulativeTaxableIncome * TAX_BRACKETS[i].rate - TAX_BRACKETS[i].quick;
+                        break;
+                    }
+                }
+                
+                let monthlyIIT = Math.max(0, cumulativeTaxPayable - cumulativeTaxPaid);
+                cumulativeTaxPaid += monthlyIIT;
+                
+                let netMonthlySalary = monthlySalary - individualTotal - monthlyIIT;
+                totalAnnualNetSalary += netMonthlySalary;
+            }
+            
+            let bonusResult = calculateBonusTax(annualBonus, bonusTaxRateOverride);
+            
+            return {
+                annualGross: monthlySalary * 12 + annualBonus,
+                monthlyGross: monthlySalary,
+                annualBonus: annualBonus,
+                totalNetSalary: totalAnnualNetSalary,
+                netBonus: bonusResult.net,
+                totalNetIncome: totalAnnualNetSalary + bonusResult.net, // 现金到手
+                totalHousingFund: housingFundDouble * 12, // 双边公积金
+                totalCashPlusHF: totalAnnualNetSalary + bonusResult.net + housingFundDouble * 12
+            };
+        }
+
+        function projectWealth(years, principal, roiPercent, incomeGrowthPercent, expenses, jobParams) {
+            const roi = roiPercent / 100;
+            const growth = incomeGrowthPercent / 100;
+            
+            let cashAsset = principal;
+            let hfAsset = 0;
+            
+            let currentMonthlySalary = jobParams.monthlySalary;
+            let currentAnnualBonus = jobParams.annualBonus;
+            
+            for (let y = 1; y <= years; y++) {
+                let yearResult = calculateOneYear(
+                    currentMonthlySalary, 
+                    jobParams.hfRate, 
+                    jobParams.specialDeduction, 
+                    currentAnnualBonus, 
+                    jobParams.bonusTaxRateOverride
+                );
+                
+                let cashSurplus = yearResult.totalNetIncome - (expenses * 12);
+                
+                // 年底结余复利
+                cashAsset = cashAsset * (1 + roi) + cashSurplus;
+                hfAsset += yearResult.totalHousingFund;
+                
+                // 次年涨薪
+                currentMonthlySalary *= (1 + growth);
+                currentAnnualBonus *= (1 + growth);
+            }
+            
+            return { cashAsset, hfAsset, totalAsset: cashAsset + hfAsset };
+        }
+
+        function getDiffHtml(valB, valA) {
+            const diff = valB - valA;
+            if (diff > 0) return `<span class="diff-pos">+${formatRMB(diff)}</span>`;
+            if (diff < 0) return `<span class="diff-neg">${formatRMB(diff)}</span>`;
+            return `<span class="text-gray-500">0.00</span>`;
+        }
+
+        function runCalculation() {
+            // 获取通用参数
+            const expenses = parseFloat(document.getElementById('monthlyExpenses').value) || 0;
+            const roi = parseFloat(document.getElementById('roi').value) || 0;
+            const growth = parseFloat(document.getElementById('incomeGrowth').value) || 0;
+            const principal = parseFloat(document.getElementById('initialPrincipal').value) || 0;
+            const years = parseInt(document.getElementById('years').value) || 1;
+
+            // 获取方案A参数
+            const paramsA = {
+                monthlySalary: parseFloat(document.getElementById('salaryA').value) || 0,
+                hfRate: parseFloat(document.getElementById('hfRateA').value) || 0,
+                specialDeduction: parseFloat(document.getElementById('deductionA').value) || 0,
+                annualBonus: getBonus('A'),
+                bonusTaxRateOverride: null
+            };
+
+            // 获取方案B参数
+            const customTaxB = document.getElementById('bonusTaxRateB').value;
+            const paramsB = {
+                monthlySalary: parseFloat(document.getElementById('salaryB').value) || 0,
+                hfRate: parseFloat(document.getElementById('hfRateB').value) || 0,
+                specialDeduction: parseFloat(document.getElementById('deductionB').value) || 0,
+                annualBonus: getBonus('B'),
+                bonusTaxRateOverride: customTaxB !== '' ? parseFloat(customTaxB) : null
+            };
+
+            // 1. 第一年对比
+            const resA1 = calculateOneYear(paramsA.monthlySalary, paramsA.hfRate, paramsA.specialDeduction, paramsA.annualBonus, paramsA.bonusTaxRateOverride);
+            const resB1 = calculateOneYear(paramsB.monthlySalary, paramsB.hfRate, paramsB.specialDeduction, paramsB.annualBonus, paramsB.bonusTaxRateOverride);
+
+            const rows = [
+                { label: '税前月薪', a: resA1.monthlyGross, b: resB1.monthlyGross },
+                { label: '税前年终奖', a: resA1.annualBonus, b: resB1.annualBonus },
+                { label: '年度税前总包', a: resA1.annualGross, b: resB1.annualGross },
+                { label: '年度现金到手 (税后)', a: resA1.totalNetIncome, b: resB1.totalNetIncome },
+                { label: '年度公积金 (双边)', a: resA1.totalHousingFund, b: resB1.totalHousingFund },
+                { label: '年度综合总收益 (到手+公积金)', a: resA1.totalCashPlusHF, b: resB1.totalCashPlusHF }
+            ];
+
+            const tbody = document.getElementById('salaryComparisonBody');
+            tbody.innerHTML = rows.map(r => `
+                <tr>
+                    <td class="p-3 border-b text-gray-800">${r.label}</td>
+                    <td class="p-3 border-b text-blue-700">${formatRMB(r.a)}</td>
+                    <td class="p-3 border-b text-green-700">${formatRMB(r.b)}</td>
+                    <td class="p-3 border-b">${getDiffHtml(r.b, r.a)}</td>
+                </tr>
+            `).join('');
+
+            // 2. N年测算
+            const wealthA = projectWealth(years, principal, roi, growth, expenses, paramsA);
+            const wealthB = projectWealth(years, principal, roi, growth, expenses, paramsB);
+
+            document.getElementById('wealthTitle').textContent = `${years}年财富测算总资产`;
+            
+            document.getElementById('assetA').textContent = formatRMB(wealthA.totalAsset);
+            document.getElementById('assetDetailA').innerHTML = `现金资产: ${formatRMB(wealthA.cashAsset)}<br>公积金余额: ${formatRMB(wealthA.hfAsset)}`;
+
+            document.getElementById('assetB').textContent = formatRMB(wealthB.totalAsset);
+            document.getElementById('assetDetailB').innerHTML = `现金资产: ${formatRMB(wealthB.cashAsset)}<br>公积金余额: ${formatRMB(wealthB.hfAsset)}`;
+
+            const diff = wealthB.totalAsset - wealthA.totalAsset;
+            const diffEl = document.getElementById('assetDiff');
+            diffEl.innerHTML = getDiffHtml(wealthB.totalAsset, wealthA.totalAsset);
+
+            document.getElementById('results').classList.remove('hidden');
+        }
+
+        // 初始化执行一次
+        window.onload = runCalculation;
+    </script>
+</body>
+</html>
