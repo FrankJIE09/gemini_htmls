@@ -27,23 +27,23 @@
             <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
                 <div>
                     <label class="block text-sm text-gray-600 mb-1">每月固定开销 (元)</label>
-                    <input type="number" id="monthlyExpenses" value="10000" class="input-style">
+                    <input type="number" id="monthlyExpenses" value="11000" class="input-style">
                 </div>
                 <div>
                     <label class="block text-sm text-gray-600 mb-1">理财年化收益率 (%)</label>
-                    <input type="number" id="roi" value="4.0" step="0.1" class="input-style">
+                    <input type="number" id="roi" value="16" step="0.1" class="input-style">
                 </div>
                 <div>
                     <label class="block text-sm text-gray-600 mb-1">收入每年涨幅 (%)</label>
-                    <input type="number" id="incomeGrowth" value="5.0" step="0.1" class="input-style">
+                    <input type="number" id="incomeGrowth" value="0" step="0.1" class="input-style">
                 </div>
                 <div>
                     <label class="block text-sm text-gray-600 mb-1">初始本金 (元)</label>
-                    <input type="number" id="initialPrincipal" value="100000" class="input-style">
+                    <input type="number" id="initialPrincipal" value="500000" class="input-style">
                 </div>
                 <div>
                     <label class="block text-sm text-gray-600 mb-1">测算年数 (年)</label>
-                    <input type="number" id="years" value="5" class="input-style">
+                    <input type="number" id="years" value="8" class="input-style">
                 </div>
             </div>
         </div>
@@ -55,26 +55,26 @@
                 <div class="space-y-4">
                     <div>
                         <label class="block text-sm text-gray-600 mb-1">税前月薪 (元)</label>
-                        <input type="number" id="salaryA" value="20000" class="input-style">
+                        <input type="number" id="salaryA" value="43000" class="input-style">
                     </div>
                     <div>
                         <label class="block text-sm text-gray-600 mb-1">公积金个人/单位比例 (%)</label>
-                        <input type="number" id="hfRateA" value="7" class="input-style">
+                        <input type="number" id="hfRateA" value="12" class="input-style">
                     </div>
                     <div>
                         <label class="block text-sm text-gray-600 mb-1">每月专项附加扣除 (元)</label>
-                        <input type="number" id="deductionA" value="0" class="input-style">
+                        <input type="number" id="deductionA" value="1500" class="input-style">
                     </div>
                     <div>
                         <div class="flex justify-between items-center mb-1">
                             <label class="text-sm text-gray-600">年终奖</label>
                             <div class="text-xs space-x-2">
-                                <label><input type="radio" name="bonusModeA" value="amount" checked> 金额</label>
-                                <label><input type="radio" name="bonusModeA" value="months"> 月薪×N</label>
+                                <label><input type="radio" name="bonusModeA" value="amount"> 金额</label>
+                                <label><input type="radio" name="bonusModeA" value="months" checked> 月薪×N</label>
                             </div>
                         </div>
-                        <input type="number" id="bonusAmountA" value="30000" class="input-style" placeholder="年终奖总额">
-                        <input type="number" id="bonusMonthsA" value="1.5" class="input-style hidden" placeholder="N个月">
+                        <input type="number" id="bonusAmountA" value="129000" class="input-style hidden" placeholder="年终奖总额">
+                        <input type="number" id="bonusMonthsA" value="3" class="input-style" placeholder="N个月">
                     </div>
                 </div>
             </div>
@@ -85,26 +85,26 @@
                 <div class="space-y-4">
                     <div>
                         <label class="block text-sm text-gray-600 mb-1">税前月薪 (元)</label>
-                        <input type="number" id="salaryB" value="26000" class="input-style">
+                        <input type="number" id="salaryB" value="67000" class="input-style">
                     </div>
                     <div>
                         <label class="block text-sm text-gray-600 mb-1">公积金个人/单位比例 (%)</label>
-                        <input type="number" id="hfRateB" value="7" class="input-style">
+                        <input type="number" id="hfRateB" value="12" class="input-style">
                     </div>
                     <div>
                         <label class="block text-sm text-gray-600 mb-1">每月专项附加扣除 (元)</label>
-                        <input type="number" id="deductionB" value="0" class="input-style">
+                        <input type="number" id="deductionB" value="1500" class="input-style">
                     </div>
                     <div>
                         <div class="flex justify-between items-center mb-1">
                             <label class="text-sm text-gray-600">年终奖</label>
                             <div class="text-xs space-x-2">
-                                <label><input type="radio" name="bonusModeB" value="amount" checked> 金额</label>
-                                <label><input type="radio" name="bonusModeB" value="months"> 月薪×N</label>
+                                <label><input type="radio" name="bonusModeB" value="amount"> 金额</label>
+                                <label><input type="radio" name="bonusModeB" value="months" checked> 月薪×N</label>
                             </div>
                         </div>
-                        <input type="number" id="bonusAmountB" value="50000" class="input-style" placeholder="年终奖总额">
-                        <input type="number" id="bonusMonthsB" value="2" class="input-style hidden" placeholder="N个月">
+                        <input type="number" id="bonusAmountB" value="201000" class="input-style hidden" placeholder="年终奖总额">
+                        <input type="number" id="bonusMonthsB" value="3" class="input-style" placeholder="N个月">
                     </div>
                     <div>
                         <label class="block text-sm text-gray-600 mb-1">年终奖自定义扣税比例 (%)</label>
