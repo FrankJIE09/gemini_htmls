@@ -98,6 +98,14 @@
         .cat-btn.active { background-color: #1F402B !important; color: #FAF5EB !important; border-color: #1F402B !important; }
         .chip { transition: all 0.15s ease; }
         .chip.active { background-color: #1F402B !important; color: #FAF5EB !important; border-color: #1F402B !important; }
+        /* 价位 chip：由浅到深的暖色渐层，选满 4 档时形成明显的色阶 */
+        .price-chip { background-color: var(--pc); border-color: var(--pcb); color: var(--pct); }
+        .chip.price-chip.active { background-color: var(--pca) !important; color: #FFFDF9 !important; border-color: var(--pca) !important; }
+        .price-chip[data-tier="1"] { --pc: #FDF8EE; --pcb: #EBD9B4; --pct: #8A6B2E; --pca: #A98A3C; }
+        .price-chip[data-tier="2"] { --pc: #FBEDD3; --pcb: #E2B76A; --pct: #8A6220; --pca: #B8862B; }
+        .price-chip[data-tier="3"] { --pc: #F7DEB0; --pcb: #D2963C; --pct: #7A4F14; --pca: #A96A12; }
+        .price-chip[data-tier="4"] { --pc: #F0C377; --pcb: #BB7C22; --pct: #6B3F0A; --pca: #8A5209; }
+        .price-chip[data-tier="all"] { --pc: #FFFFFF; --pcb: #D1D5DB; --pct: #374151; --pca: #1F402B; }
 
         /* ===== 名录条目 ===== */
         .rest-item { transition: all 0.15s ease; }
@@ -235,6 +243,15 @@
                 <div>
                     <span class="text-[10px] font-bold text-gray-600">行政区:</span>
                     <div id="district-chips" class="flex flex-wrap gap-1 mt-1"></div>
+                </div>
+
+                <!-- 价位（可多选） -->
+                <div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-[10px] font-bold text-gray-600">价位 <span class="font-normal text-gray-400">(可多选)</span>:</span>
+                        <button id="clear-price" class="text-[10px] underline text-gray-500 hover:text-gray-800 hidden">清除</button>
+                    </div>
+                    <div id="price-chips" class="flex flex-wrap gap-1 mt-1"></div>
                 </div>
                 <div class="flex items-center justify-between pt-1 border-t border-gray-100">
                     <label class="flex items-center gap-1.5 text-[11px] text-gray-700 cursor-pointer">
@@ -1871,7 +1888,7 @@
    121.485458
   ],
   "address": "黄浦区中山东一路27号罗斯福公馆5楼",
-  "price": "待核实",
+  "price": "¥¥¥¥ 奢华",
   "note": "蝉联二星",
   "icon": "🍽️",
   "desc": "佛山民宅起家的古法粤菜馆，2021年落户外滩罗斯福公馆5楼，主打按季更换的包席套餐，招牌咕噜肉四季常驻，酱烧乳鸽也值得一试。",
@@ -1890,10 +1907,10 @@
    121.461937
   ],
   "address": "黄浦区思南路36-2号",
-  "price": "待核实",
+  "price": "¥ 负担得起的",
   "note": "",
   "icon": "🥢",
-  "desc": "思南路口的本帮面馆老字号，招牌黄鱼面汤鲜面滑，蟹粉面与辣肉面也很受欢迎，饭点常要排队拼桌。",
+  "desc": "⚠️ 已于 2026-04-10 永久闭店（2026 榜单 4 月 9 日发布，次日结业，至今未重开）。思南路口的本帮面馆老字号，招牌黄鱼面汤鲜面滑，蟹粉面与辣肉面也很受欢迎，饭点常要排队拼桌。",
   "mnemonic": "黄浦区思南路36-2号",
   "isNew": false
  }
@@ -1914,7 +1931,7 @@
     let map;
     let markerMap = {};        // key -> marker
     let activeKey = null;
-    const state = { cat: 'all', cuisine: 'all', district: 'all', q: '', onlyNew: false };
+    const state = { cat: 'all', cuisine: 'all', district: 'all', price: [], q: '', onlyNew: false };
     let labelsPermanent = false;
     let roadsGroup = null;     // 道路线
     let roadLabelsA = null;    // 核心干道路名（z≥13）
@@ -1929,6 +1946,18 @@
     function badgeText(r) { return r.bib ? '必' : (r.stars === 3 ? '★★★' : r.stars === 2 ? '★★' : '★'); }
     const DISTRICTS = [...new Set(RESTAURANTS.map(districtOf))];
     const CUISINES = [...new Set(RESTAURANTS.map(r => r.cuisine))].sort((a, b) => a.localeCompare(b, 'zh'));
+
+    /* 价位：从 "¥¥¥ 优质的" 这类展示字符串里派生档位，不改动原始数据 */
+    function priceTier(r) {
+        const m = /^(¥{1,4})/.exec(r.price || '');
+        return m ? m[1].length : null;      // 无 ¥ 前缀（如「待核实」）返回 null
+    }
+    const PRICE_TIERS = [
+        { tier: 1, sym: '¥',    label: '负担得起的' },
+        { tier: 2, sym: '¥¥',   label: '中档' },
+        { tier: 3, sym: '¥¥¥',  label: '优质的' },
+        { tier: 4, sym: '¥¥¥¥', label: '奢华' }
+    ];
 
     /* ================= 地图 ================= */
     window.onload = function () {
@@ -2111,6 +2140,36 @@
             b.textContent = d;
             dWrap.appendChild(b);
         });
+
+        // 价位（多选）
+        const pWrap = document.getElementById('price-chips');
+        pWrap.innerHTML = '';
+        const pAll = document.createElement('button');
+        pAll.type = 'button';
+        pAll.dataset.tier = 'all';
+        pAll.className = 'chip price-chip px-2 py-0.5 text-[10px] rounded border active';
+        pAll.textContent = '不限';
+        pWrap.appendChild(pAll);
+        PRICE_TIERS.forEach(t => {
+            const n = RESTAURANTS.filter(r => priceTier(r) === t.tier).length;
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.dataset.tier = String(t.tier);
+            b.className = 'chip price-chip px-2 py-0.5 text-[10px] rounded border';
+            b.innerHTML = `<b class="font-bold">${t.sym}</b> ${t.label} <span class="opacity-60">${n}</span>`;
+            pWrap.appendChild(b);
+        });
+    }
+
+    /* 价位 chip 选中态同步（多选） */
+    function syncPriceChips() {
+        const none = state.price.length === 0;
+        document.querySelectorAll('#price-chips .chip').forEach(b => {
+            const t = b.dataset.tier;
+            b.classList.toggle('active', t === 'all' ? none : state.price.includes(Number(t)));
+        });
+        const clr = document.getElementById('clear-price');
+        if (clr) clr.classList.toggle('hidden', none);
     }
 
     document.addEventListener('click', function (e) {
@@ -2131,6 +2190,23 @@
         if (dChip) {
             state.district = dChip.dataset.district;
             document.querySelectorAll('#district-chips .chip').forEach(b => b.classList.toggle('active', b === dChip));
+            renderList(); updateMarkers(); return;
+        }
+        const pChip = e.target.closest('#price-chips .chip');
+        if (pChip) {
+            if (pChip.dataset.tier === 'all') {
+                state.price = [];
+            } else {
+                const t = Number(pChip.dataset.tier);
+                const i = state.price.indexOf(t);
+                if (i >= 0) state.price.splice(i, 1); else state.price.push(t);
+            }
+            syncPriceChips();
+            renderList(); updateMarkers(); return;
+        }
+        if (e.target.id === 'clear-price') {
+            state.price = [];
+            syncPriceChips();
             renderList(); updateMarkers(); return;
         }
         const item = e.target.closest('.rest-item');
@@ -2154,13 +2230,14 @@
     });
 
     function resetFilters() {
-        state.cat = 'all'; state.cuisine = 'all'; state.district = 'all'; state.q = ''; state.onlyNew = false;
+        state.cat = 'all'; state.cuisine = 'all'; state.district = 'all'; state.price = []; state.q = ''; state.onlyNew = false;
         document.getElementById('search-input').value = '';
         document.getElementById('only-new').checked = false;
         document.getElementById('clear-cuisine').classList.add('hidden');
         document.querySelectorAll('.cat-btn').forEach(b => b.classList.toggle('active', b.dataset.cat === 'all'));
         document.querySelectorAll('#cuisine-chips .chip').forEach(b => b.classList.toggle('active', b.dataset.cuisine === 'all'));
         document.querySelectorAll('#district-chips .chip').forEach(b => b.classList.toggle('active', b.dataset.district === 'all'));
+        syncPriceChips();
         renderList(); updateMarkers();
     }
 
@@ -2169,6 +2246,7 @@
         if (state.cat !== 'all' && r.category !== state.cat) return false;
         if (state.cuisine !== 'all' && r.cuisine !== state.cuisine) return false;
         if (state.district !== 'all' && districtOf(r) !== state.district) return false;
+        if (state.price.length && !state.price.includes(priceTier(r))) return false;
         if (state.onlyNew && !r.isNew) return false;
         if (state.q) {
             const hay = (r.name + ' ' + r.cuisine + ' ' + r.address + ' ' + r.desc).toLowerCase();
@@ -2289,8 +2367,9 @@
         const byDist = {};
         RESTAURANTS.forEach(r => { const d = districtOf(r); byDist[d] = (byDist[d] || 0) + 1; });
         const distStr = Object.entries(byDist).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${v}`).join(' · ');
+        const priceStr = PRICE_TIERS.map(t => `${t.sym} ${RESTAURANTS.filter(r => priceTier(r) === t.tier).length}`).join(' · ');
         document.getElementById('stat-line').innerHTML =
-            `星级 <b>${byCat.michelin3 + byCat.michelin2 + byCat.michelin1}</b> 家（三星 ${byCat.michelin3} / 二星 ${byCat.michelin2} / 一星 ${byCat.michelin1}） + 必比登 <b>${byCat.bib}</b> 家，共 <b>${RESTAURANTS.length}</b> 家。<br>行政区分布：${distStr}。菜系 <b>${CUISINES.length}</b> 类。`;
+            `星级 <b>${byCat.michelin3 + byCat.michelin2 + byCat.michelin1}</b> 家（三星 ${byCat.michelin3} / 二星 ${byCat.michelin2} / 一星 ${byCat.michelin1}） + 必比登 <b>${byCat.bib}</b> 家，共 <b>${RESTAURANTS.length}</b> 家。<br>行政区分布：${distStr}。菜系 <b>${CUISINES.length}</b> 类。<br>价位分布（官方档位）：${priceStr}。`;
     }
 </script>
 </body>
