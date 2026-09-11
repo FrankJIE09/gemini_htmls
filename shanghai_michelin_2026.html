@@ -1,0 +1,2175 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>上海米其林指南 2026 · 探店地图</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Leaflet 1.9.4 -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=ZCOOL+XiaoWei&family=Noto+Serif+SC:wght@400;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Serif SC', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #FAF5EB;
+            color: #2E2B27;
+        }
+        .handwritten-title { font-family: 'ZCOOL XiaoWei', serif; }
+        /* 拟真手绘纸张微阴影 */
+        .sketch-card {
+            background: #FCF9F2;
+            border: 2px solid #3E3933;
+            box-shadow: 4px 4px 0px #3E3933;
+            transition: all 0.2s ease;
+        }
+        .sketch-card:hover { transform: translate(-1px, -1px); box-shadow: 5px 5px 0px #3E3933; }
+        /* 宣纸色调底图 */
+        .warm-paper-map .leaflet-tile-pane { filter: sepia(0.45) saturate(1.15) contrast(0.9) brightness(1.02); }
+        .leaflet-tooltip-pane { z-index: 650; }
+
+        /* ===== 地标图标 ===== */
+        .m-icon {
+            position: relative;
+            display: flex; align-items: center; justify-content: center;
+            background: #FFFDF9;
+            border: 2px solid #3E3933;
+            box-shadow: 2px 2px 0px #3E3933;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .m-icon:hover { transform: scale(1.16) rotate(-5deg); }
+        .m-icon.is-active { transform: scale(1.22); box-shadow: 0 0 0 3px #C88A4B, 3px 3px 0px #3E3933; }
+        .m-icon.m-dim { opacity: 0.18; filter: grayscale(0.8); }
+
+        .cat-michelin3 { border-color: #B8860B !important; }
+        .cat-michelin2 { border-color: #C88A4B !important; }
+        .cat-michelin1 { border-color: #D9A05B !important; }
+        .cat-bib       { border-color: #DC2626 !important; }
+
+        /* 星级角标 */
+        .m-badge {
+            position: absolute; top: -7px; right: -7px;
+            min-width: 16px; height: 16px; padding: 0 2px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 10px; line-height: 1; font-weight: 700;
+            color: #FAF5EB; background: #B8860B;
+            border: 1.5px solid #3E3933; border-radius: 9999px;
+            box-shadow: 1px 1px 0px #3E3933;
+            pointer-events: none;
+        }
+        .badge-michelin3 { background: #B8860B; }
+        .badge-michelin2 { background: #C88A4B; }
+        .badge-michelin1 { background: #D9A05B; }
+        .badge-bib       { background: #DC2626; }
+
+        .m-tip {
+            font-size: 10px !important; font-weight: 700;
+            padding: 2px 6px !important;
+            background: #1F402B !important; color: #FAF5EB !important;
+            border: 1.5px solid #3E3933 !important;
+            box-shadow: 2px 2px 0px #3E3933 !important;
+            border-radius: 4px !important;
+        }
+        .m-tip::before { border-top-color: #3E3933 !important; }
+
+        /* ===== 筛选按钮 ===== */
+        .cat-btn { transition: all 0.15s ease; }
+        .cat-btn.active { background-color: #1F402B !important; color: #FAF5EB !important; border-color: #1F402B !important; }
+        .chip { transition: all 0.15s ease; }
+        .chip.active { background-color: #1F402B !important; color: #FAF5EB !important; border-color: #1F402B !important; }
+
+        /* ===== 名录条目 ===== */
+        .rest-item { transition: all 0.15s ease; }
+        .rest-item:hover { background: #FAF5EB; border-color: #1F402B !important; }
+        .rest-item.active { background: #1F402B !important; border-color: #1F402B !important; }
+        .rest-item.active .ri-name { color: #FAF5EB !important; }
+        .rest-item.active .ri-sub { color: #D9C7A8 !important; }
+        .rest-item.active .ri-star { color: #E5C07B !important; }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .thin-scroll::-webkit-scrollbar { width: 7px; }
+        .thin-scroll::-webkit-scrollbar-thumb { background: #C88A4B; border-radius: 4px; }
+        .thin-scroll::-webkit-scrollbar-track { background: #EFE7D8; }
+    </style>
+</head>
+<body class="min-h-screen pb-12">
+
+<header class="w-full bg-[#1F402B] text-[#FAF5EB] py-6 px-4 shadow-md relative overflow-hidden border-b-4 border-[#3E3933]">
+    <div class="absolute right-6 top-2 opacity-10 pointer-events-none">
+        <svg width="130" height="130" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C11.5 4 9 7.5 6 9.5C3 11.5 2 13.5 2 15.5C2 18.5 4.5 21 7.5 21C10.5 21 12 18 12 18C12 18 13.5 21 16.5 21C19.5 21 22 18.5 22 15.5C22 13.5 21 11.5 18 9.5C15 7.5 12.5 4 12 2Z"/>
+        </svg>
+    </div>
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 flex-wrap">
+                <span class="bg-[#D9A05B] text-[#1F402B] text-[10px] font-bold px-2 py-0.5 rounded-sm transform -rotate-1">2026 沪苏浙米其林指南 · 上海</span>
+                <h1 class="text-3xl md:text-4xl font-bold handwritten-title tracking-wider">
+                    🍽️ 上海米其林探店地图 <span class="text-lg md:text-xl font-sans font-light opacity-80">(WGS-84 真实坐标版)</span>
+                </h1>
+            </div>
+            <p class="text-xs md:text-sm opacity-90 mt-2 font-light leading-relaxed max-w-4xl">
+                2026-04-09 于台州发布，上海共 <b>156 家</b>上榜。本图收录全部星级餐厅 <b>51 家</b>（三星 1 · 二星 12 · 一星 38）+ 必比登推介 <b>35 家</b>，共 <b class="text-[#D9A05B]">86 家</b>。点击图标可看菜系、门牌地址、人均档位与简介。
+            </p>
+        </div>
+        <div class="flex gap-2 shrink-0 flex-wrap">
+            <span class="bg-[#FAF5EB] text-[#1F402B] px-3 py-1 rounded-full text-xs font-bold shadow-sm border border-[#3E3933]">⭐ 三星 1</span>
+            <span class="bg-[#C88A4B] text-[#FAF5EB] px-3 py-1 rounded-full text-xs font-bold shadow-sm border border-[#3E3933]">⭐⭐ 二星 12</span>
+            <span class="bg-[#D9A05B] text-[#1F402B] px-3 py-1 rounded-full text-xs font-bold shadow-sm border border-[#3E3933]">⭐ 一星 38</span>
+            <span class="bg-[#DC2626] text-[#FAF5EB] px-3 py-1 rounded-full text-xs font-bold shadow-sm border border-[#3E3933]">🥢 必比登 35</span>
+        </div>
+    </div>
+</header>
+
+<main class="max-w-7xl mx-auto px-4 mt-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <!-- 左栏：地图 + 图例 -->
+    <section class="lg:col-span-7 flex flex-col gap-4">
+        <div class="sketch-card p-2 rounded-2xl relative bg-[#FAF5EB]">
+            <div class="absolute top-4 left-4 flex flex-col items-start gap-1 z-[1000] select-none pointer-events-none">
+                <div class="bg-[#1F402B] text-[#FAF5EB] px-2.5 py-1 rounded text-[11px] font-bold shadow-md">
+                    🗺️ 米其林餐厅分布（上北 ⬆️）
+                </div>
+                <div id="map-hint" class="text-[9px] text-gray-700 bg-white/95 px-2 py-0.5 rounded border border-gray-300 shadow-sm font-semibold">
+                    显示 86 家 · 点击图标查看详情
+                </div>
+            </div>
+            <div id="leaflet-map" class="w-full h-[600px] rounded-xl warm-paper-map z-10 border border-[#3E3933]"></div>
+        </div>
+
+        <!-- 图例 -->
+        <div class="sketch-card p-4 rounded-xl">
+            <h4 class="font-bold text-sm text-[#1F402B] mb-2">🎨 图例 & 统计</h4>
+            <div class="flex flex-wrap gap-x-5 gap-y-2 text-xs text-gray-700">
+                <span class="flex items-center gap-1.5"><span class="inline-block w-3.5 h-3.5 rounded-full border-2" style="border-color:#B8860B;background:#FFFDF9"></span>米其林三星</span>
+                <span class="flex items-center gap-1.5"><span class="inline-block w-3.5 h-3.5 rounded-full border-2" style="border-color:#C88A4B;background:#FFFDF9"></span>米其林二星</span>
+                <span class="flex items-center gap-1.5"><span class="inline-block w-3.5 h-3.5 rounded-full border-2" style="border-color:#D9A05B;background:#FFFDF9"></span>米其林一星</span>
+                <span class="flex items-center gap-1.5"><span class="inline-block w-3.5 h-3.5 rounded-full border-2" style="border-color:#DC2626;background:#FFFDF9"></span>必比登推介</span>
+                <span class="flex items-center gap-1.5"><span class="inline-block px-1.5 rounded-full text-[9px] font-bold text-[#FAF5EB]" style="background:#B8860B">★★★</span>图标右上角为主题星级</span>
+            </div>
+            <div id="stat-line" class="text-[11px] text-gray-500 mt-3 leading-relaxed"></div>
+        </div>
+    </section>
+
+    <!-- 右栏：详情 + 筛选 + 名录 -->
+    <section class="lg:col-span-5 flex flex-col gap-4">
+
+        <!-- 详情卡 -->
+        <div id="detail-card" class="sketch-card p-5 rounded-2xl bg-white border-2 border-[#1F402B] min-h-[190px] relative">
+            <div class="absolute top-2 right-2 text-4xl opacity-15" id="detail-icon">🍽️</div>
+            <div>
+                <span id="detail-type" class="text-[9px] font-bold tracking-widest uppercase bg-[#1F402B] text-[#FAF5EB] px-2 py-0.5 rounded">
+                    请在地图或右侧名录点选餐厅
+                </span>
+                <h3 id="detail-title" class="text-2xl font-bold mt-2 text-[#2E2B27] handwritten-title">
+                    上海米其林 2026
+                </h3>
+                <div id="detail-meta" class="mt-2"></div>
+                <p id="detail-desc" class="text-xs text-gray-600 mt-2 leading-relaxed">
+                    收录 2026 沪苏浙《米其林指南》上海榜单全部 <b>51 家星级餐厅</b>与 <b>35 家必比登推介</b>。坐标来自米其林官方数据（WGS-84）。
+                </p>
+                <div id="detail-addr-box" class="hidden mt-3 p-2.5 bg-emerald-50 rounded-lg border border-emerald-200">
+                    <span class="text-xs font-bold text-emerald-900 block">📍 门店地址:</span>
+                    <p id="detail-addr" class="text-xs text-emerald-950 font-medium mt-1 leading-relaxed"></p>
+                </div>
+                <div id="detail-tip-box" class="hidden mt-3 p-2.5 bg-amber-50 rounded-lg border border-amber-200">
+                    <span class="text-xs font-bold text-amber-900 block">🧠 认路落脚点:</span>
+                    <p id="detail-tip" class="text-xs text-amber-950 font-medium mt-1 leading-relaxed"></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 筛选 + 名录 -->
+        <div class="sketch-card rounded-2xl overflow-hidden bg-white">
+            <div class="p-3 bg-gray-50 border-b border-gray-200 flex flex-col gap-2.5">
+
+                <!-- 星级筛选 -->
+                <div class="flex flex-wrap items-center gap-1.5">
+                    <button type="button" data-cat="all" class="cat-btn active px-2 py-1 text-[10px] font-semibold rounded border border-gray-300 bg-white text-gray-700">全部 86</button>
+                    <button type="button" data-cat="michelin3" class="cat-btn px-2 py-1 text-[10px] font-semibold rounded border border-yellow-600 bg-yellow-50 text-yellow-900">⭐⭐⭐ 三星 1</button>
+                    <button type="button" data-cat="michelin2" class="cat-btn px-2 py-1 text-[10px] font-semibold rounded border border-amber-400 bg-amber-50 text-amber-900">⭐⭐ 二星 12</button>
+                    <button type="button" data-cat="michelin1" class="cat-btn px-2 py-1 text-[10px] font-semibold rounded border border-yellow-400 bg-yellow-50 text-yellow-900">⭐ 一星 38</button>
+                    <button type="button" data-cat="bib" class="cat-btn px-2 py-1 text-[10px] font-semibold rounded border border-red-300 bg-red-50 text-red-900">🥢 必比登 35</button>
+                </div>
+
+                <!-- 搜索 -->
+                <input type="text" id="search-input" placeholder="🔍 输入店名 / 菜系 / 地址（如：粤菜、外滩、泰安门）..."
+                       class="w-full text-xs px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1F402B]">
+
+                <!-- 菜系 -->
+                <div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-[10px] font-bold text-gray-600">菜系筛选:</span>
+                        <button id="clear-cuisine" class="text-[10px] underline text-gray-500 hover:text-gray-800 hidden">清除</button>
+                    </div>
+                    <div id="cuisine-chips" class="flex flex-wrap gap-1 mt-1 max-h-[84px] overflow-y-auto thin-scroll"></div>
+                </div>
+
+                <!-- 行政区 + 只看新 -->
+                <div>
+                    <span class="text-[10px] font-bold text-gray-600">行政区:</span>
+                    <div id="district-chips" class="flex flex-wrap gap-1 mt-1"></div>
+                </div>
+                <div class="flex items-center justify-between pt-1 border-t border-gray-100">
+                    <label class="flex items-center gap-1.5 text-[11px] text-gray-700 cursor-pointer">
+                        <input type="checkbox" id="only-new" class="accent-[#1F402B]">
+                        ✨ 只看 2026 新上榜/新晋星（14 家）
+                    </label>
+                    <button id="reset-btn" class="text-[10px] bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded text-gray-700 font-medium">重置筛选</button>
+                </div>
+            </div>
+
+            <div id="rest-list" class="max-h-[520px] overflow-y-auto thin-scroll p-2 flex flex-col gap-1.5 bg-white"></div>
+            <div id="empty-tip" class="hidden text-center text-xs text-gray-400 py-8">没有符合条件的餐厅，试试放宽筛选 🙂</div>
+        </div>
+
+        <p class="text-[10px] text-gray-400 leading-relaxed px-1">
+            数据来源：米其林指南官方 2026 沪苏浙榜单（michelin.com / guide.michelin.com）。星级、菜系、地址取自官方；坐标为官方 WGS-84 点位。人均为官方价位档（¥ / ¥¥ / ¥¥¥ / ¥¥¥¥）换算参考，非实际账单。
+        </p>
+    </section>
+</main>
+
+<footer class="max-w-7xl mx-auto px-4 mt-10 text-center text-[11px] text-gray-500 border-t border-gray-200 pt-4">
+    🍃 数据整理自 2026 沪苏浙《米其林指南》上海榜单 · 仅供认路与探店参考 🍃
+</footer>
+
+<script>
+    /* ================= 数据（由 shanghai_wutong_streets.html 抽取） ================= */
+    const RESTAURANTS = [
+ {
+  "key": "michelin_tang_court",
+  "name": "唐阁",
+  "category": "michelin2",
+  "coords": [
+   31.208949,
+   121.445604
+  ],
+  "desc": "唐阁主营经典粤菜，团队由行政总厨苏师傅带领，以优质食材呈现粤式珍馐百味。菜单选择繁多，融入季节元素的时令菜单是最大亮点。推介菜式包括肉质爽口的虾籽葱爆大虾球，以及外皮酥脆、咸香鲜嫩的招牌脆皮鸡。…",
+  "mnemonic": "黄浦区新天地马当路99号朗廷酒店5楼",
+  "icon": "🍽️",
+  "stars": 2,
+  "bib": false,
+  "cuisine": "粤菜",
+  "address": "黄浦区新天地马当路99号朗廷酒店5楼",
+  "price": "¥¥¥¥ 奢华",
+  "note": "新晋二星",
+  "isNew": true
+ },
+ {
+  "key": "ji_pin_court",
+  "name": "吉品轩",
+  "category": "michelin2",
+  "coords": [
+   31.208252,
+   121.444143
+  ],
+  "desc": "位于法式古建筑内，让食客在优雅环境中享用粤式美馔。厨师致力呈现粤菜精髓，从餐前小食、小菜到汤羹都力求色香味俱全。推荐皮脆肉嫩的茶皇烟熏鸽，另外，砂锅陈皮沙姜煎鸡、马友咸鱼蒸鲜虾肉饼及蜜汁叉烧也值…",
+  "mnemonic": "徐汇区乌鲁木齐南路55号3楼",
+  "icon": "🍽️",
+  "stars": 2,
+  "bib": false,
+  "cuisine": "粤菜",
+  "address": "徐汇区乌鲁木齐南路55号3楼",
+  "price": "¥¥¥ 优质的",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "michelin_8_half_otto_e_mezzo_bombana",
+  "name": "8 ½ Otto e Mezzo Bombana",
+  "category": "michelin2",
+  "coords": [
+   31.244394,
+   121.48346
+  ],
+  "desc": "位于洛克·外滩源，从阳台外望就是黄浦江景色。厨房团队选用世界各地的优质食材，巧妙添加现代元素，重新演绎意大利风味。意大利面和面包都是手工制作，经典的八道菜套餐以海鲜为主，带来完整用餐体验，时令的…",
+  "mnemonic": "黄浦区圆明园路169号协进大楼6-7楼",
+  "icon": "🍽️",
+  "stars": 2,
+  "bib": false,
+  "cuisine": "意大利菜",
+  "address": "黄浦区圆明园路169号协进大楼6-7楼",
+  "price": "¥¥¥¥ 奢华",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "yong_yi_ting",
+  "name": "雍颐庭",
+  "category": "michelin1",
+  "coords": [
+   31.245216,
+   121.50343
+  ],
+  "desc": "室内饰有以苏州园林为灵感的花窗和水墨纱帐，配合悠悠扬扬的古筝琴音，让人仿佛走进江南水乡。提供经典江浙美食，并会随季节推出新菜。午市供应千岛湖米果、四喜饺等江南特色点心。招牌菜杭州翡翠斩鱼圆以千岛…",
+  "mnemonic": "浦东新区浦东南路111号浦东文华东方酒店LG层",
+  "icon": "🍽️",
+  "stars": 1,
+  "bib": false,
+  "cuisine": "江浙菜",
+  "address": "浦东新区浦东南路111号浦东文华东方酒店LG层",
+  "price": "¥¥¥ 优质的",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "moose_pudong",
+  "name": "鹿园 (浦东新区)",
+  "category": "michelin1",
+  "coords": [
+   31.230604,
+   121.51517
+  ],
+  "desc": "位于大型购物中心内，路线较大众化，除了各式淮扬菜式，亦有少量川辣食品选择。多款手工菜式值得品尝，如金牌扣肉和手剥凤尾河虾仁。前者将肥瘦适中的猪肉堆叠成塔，搭配炆煮入味的笋干，教人回味。菜单中不乏…",
+  "mnemonic": "浦东新区浦东南路899号陆家嘴中心9楼",
+  "icon": "🍽️",
+  "stars": 1,
+  "bib": false,
+  "cuisine": "江浙菜",
+  "address": "浦东新区浦东南路899号陆家嘴中心9楼",
+  "price": "¥¥¥ 优质的",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "lu_style_1203592",
+  "name": "鲁采 (黄浦)",
+  "category": "michelin1",
+  "coords": [
+   31.213823,
+   121.472565
+  ],
+  "desc": "厨房团队大多来自山东，深谙当地食材特性，并按季节调整菜式口味。来自胶东的优质渔获每天新鲜送抵，其中以威海活参制作的葱烧海参配乌米菌，酱香与葱香互相交织，层次分明，是这里的招牌菜。渤海湾大虾烧白菜…",
+  "mnemonic": "黄浦区黄陂南路838弄环宇荟2楼207室",
+  "icon": "🍽️",
+  "stars": 1,
+  "bib": false,
+  "cuisine": "鲁菜",
+  "address": "黄浦区黄陂南路838弄环宇荟2楼207室",
+  "price": "¥¥¥ 优质的",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "oriental_sense_palate",
+  "name": "东方景宴",
+  "category": "michelin1",
+  "coords": [
+   31.216671,
+   121.464255
+  ],
+  "desc": "位于思南公馆的独立老洋房内，装潢简洁优雅，想保有私密度可选坐独立包房。厨师团队由辉师傅带领，采用来自广东的食材，创造出摆盘精致的潮州美食。前菜椒酱肉盐田虾干富有潮汕特色，咸香微辣，口感丰富。另有…",
+  "mnemonic": "黄浦区思南路57号",
+  "icon": "🍽️",
+  "stars": 1,
+  "bib": false,
+  "cuisine": "潮州菜",
+  "address": "黄浦区思南路57号",
+  "price": "¥¥¥¥ 奢华",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "obscura",
+  "name": "Obscura",
+  "category": "michelin1",
+  "coords": [
+   31.236314,
+   121.442641
+  ],
+  "desc": "新任主厨钟爱川菜浓郁辛辣的味道，而且擅长在中菜的基础上融入当代元素，为传统风味带来变奏。招牌菜以花椒制成酸辣酱汁，搭配鲜嫩无比的鱼肉，鲜味层层交织，回味无穷。最有趣的，是让客人在盲盒中抽取卡片，…",
+  "mnemonic": "静安区西康路538号唐香文化空间",
+  "icon": "🍽️",
+  "stars": 1,
+  "bib": false,
+  "cuisine": "创新菜",
+  "address": "静安区西康路538号唐香文化空间",
+  "price": "¥¥¥¥ 奢华",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "canton_table",
+  "name": "三号黄浦会",
+  "category": "michelin1",
+  "coords": [
+   31.236336,
+   121.488937
+  ],
+  "desc": "位于外滩大街，落地玻璃尽览醉人的黄浦江景色。室内设计简约，以身穿旗袍的女子画像点缀，呈现老上海风情。有趣的是，餐厅主打粤菜，菜单涵盖烧味、点心等广东美食。建议一尝桂花炒鱼肚，炒蛋形似桂花，金黄漂…",
+  "mnemonic": "黄浦区中山东一路3号外滩三号5楼",
+  "icon": "🍽️",
+  "stars": 1,
+  "bib": false,
+  "cuisine": "粤菜",
+  "address": "黄浦区中山东一路3号外滩三号5楼",
+  "price": "¥¥¥ 优质的",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "ming_court_570629",
+  "name": "明阁 (闵行)",
+  "category": "michelin1",
+  "coords": [
+   31.19512,
+   121.31633
+  ],
+  "desc": "餐室以金色吊灯、旗袍女子壁画等装饰，重现十里洋场的老上海摩登风情，营造出优雅舒适的用餐环境。菜单涵蓋各式经典粤菜，更提供带有上海特色的点心。招牌菜蜜味黑豚叉烧肥瘦适中，入口即化。饭后不妨来一客葛…",
+  "mnemonic": "闵行区申虹路333号康得思酒店B1层",
+  "icon": "🍽️",
+  "stars": 1,
+  "bib": false,
+  "cuisine": "粤菜",
+  "address": "闵行区申虹路333号康得思酒店B1层",
+  "price": "¥¥¥ 优质的",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "cheng_long_hang_huangpu",
+  "name": "成隆行蟹王府 (黄浦)",
+  "category": "michelin1",
+  "coords": [
+   31.239067,
+   121.48161
+  ],
+  "desc": "(餐厅暂时关闭) 为确保大闸蟹的素质，餐厅自设大型养殖场，所供应的大闸蟹肉质鲜甜爽滑，蟹黄入口清香，出油回味。招牌菜醉蟹选用二两重的大闸蟹，在完成最后一次脱壳后用花雕酒腌制一个月而成。雪花蟹斗取…",
+  "mnemonic": "黄浦区九江路216号",
+  "icon": "🍽️",
+  "stars": 1,
+  "bib": false,
+  "cuisine": "沪菜",
+  "address": "黄浦区九江路216号",
+  "price": "¥¥¥ 优质的",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "vivant_by_johnny_pham",
+  "name": "Vivant by Johnny Pham",
+  "category": "michelin1",
+  "coords": [
+   31.232009,
+   121.473307
+  ],
+  "desc": "餐厅所在的建筑拥有百年历史，优雅而现代的室内设计，让人沉浸在轻松热闹的氛围，如同“Vivant”在法语里是生机勃勃的意思。法籍越南裔主厨采用本地时令食材，并将亚洲风味如越南街头小吃与法式烹调相结…",
+  "mnemonic": "黄浦区北海路279号",
+  "icon": "🍽️",
+  "stars": 1,
+  "bib": false,
+  "cuisine": "时尚法国菜",
+  "address": "黄浦区北海路279号",
+  "price": "¥¥¥¥ 奢华",
+  "note": "新上榜",
+  "isNew": true
+ },
+ {
+  "key": "maison_lameloise_563686",
+  "name": "莱美露滋",
+  "category": "michelin1",
+  "coords": [
+   31.235783,
+   121.501024
+  ],
+  "desc": "高踞商厦第六十八层，可在外滩美景的环抱下品尝美食。新任主厨曾在法籍厨师Éric Pras麾下工作，并作为开业团队在上海分店服务多年，菜品风格与法国总店一致。店家自制的面包品种多样，口感绝佳。部分…",
+  "mnemonic": "浦东新区银城中路501号上海中心68楼",
+  "icon": "🍽️",
+  "stars": 1,
+  "bib": false,
+  "cuisine": "时尚法国菜",
+  "address": "浦东新区银城中路501号上海中心68楼",
+  "price": "¥¥¥¥ 奢华",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "narisawa_1209925",
+  "name": "Narisawa",
+  "category": "michelin1",
+  "coords": [
+   31.250903,
+   121.44139
+  ],
+  "desc": "由日本主厨Narisawa监督，并委任共事十余年的厨师为驻店主厨。菜单内容依时令变更，大量采用本土新鲜食材，菜式巧妙融合东西方的烹饪技巧。森林面包是这里的招牌菜，于席前发酵再以高温石锅烤制，做法…",
+  "mnemonic": "普陀区莫干山路600号千树L7-05",
+  "icon": "🍽️",
+  "stars": 1,
+  "bib": false,
+  "cuisine": "创新菜",
+  "address": "普陀区莫干山路600号千树L7-05",
+  "price": "¥¥¥¥ 奢华",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "wang_lu",
+  "name": "望庐 (浦东)",
+  "category": "bib",
+  "coords": [
+   31.528648,
+   121.479627
+  ],
+  "desc": "装潢以中式风格融合时尚元素，用上景德镇手绘釉下彩青花瓷餐具，甚有特色。菜单精巧，处处尽显江西风情。招牌菜常寿甲鱼炖花胶酱汁鲜味，十分下饭。当这道菜上桌，服务员会解说菜式及朗读恭贺对联，仪式感十足…",
+  "mnemonic": "浦东新区海阳西路666弄15号前滩31乐荟3楼01-02",
+  "icon": "🥢",
+  "stars": 0,
+  "bib": true,
+  "cuisine": "中国菜",
+  "address": "浦东新区海阳西路666弄15号前滩31乐荟3楼01-02",
+  "price": "¥¥ 中档",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "taian_table",
+  "name": "泰安门",
+  "category": "michelin3",
+  "coords": [
+   31.223898,
+   121.428178
+  ],
+  "desc": "始创于2016年，城中老饕对这家仅接受网上预约的餐厅都不会陌生。建议选择开放式厨房前的座位，既可感受热络气氛，还可欣赏到德籍主厨Stefan Stiller与团队的烹饪过程。两款套餐的菜式突破国…",
+  "mnemonic": "长宁区镇宁路465弄161号愚园里1号楼101-102号",
+  "icon": "🍽️",
+  "stars": 3,
+  "bib": false,
+  "cuisine": "创新菜",
+  "address": "长宁区镇宁路465弄161号愚园里1号楼101-102号",
+  "price": "¥¥¥¥ 奢华",
+  "note": "上海唯一三星，五度蝉联",
+  "isNew": false
+ },
+ {
+  "key": "imperial_treasure_fine_chinese_cuisine_huangpu",
+  "name": "御宝轩",
+  "category": "michelin2",
+  "coords": [
+   31.242496,
+   121.484555
+  ],
+  "desc": "黑色装潢配合优雅的水晶吊灯，气派十足，与餐厅提供的高级粤菜相得益彰，是宴会和聚餐的理想场所。厨房团队由经验丰富的香港主厨带领，经典菜式都做得正宗而精细，蟹肉桂花炒瑶柱、适合多人共享的糯米黄金脆皮…",
+  "mnemonic": "黄浦区北京东路99号益丰‧外滩源4楼402-403号",
+  "icon": "🍽️",
+  "stars": 2,
+  "bib": false,
+  "cuisine": "粤菜",
+  "address": "黄浦区北京东路99号益丰‧外滩源4楼402-403号",
+  "price": "¥¥¥ 优质的",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "fu_he_hui",
+  "name": "福和慧",
+  "category": "michelin2",
+  "coords": [
+   31.2205,
+   121.425068
+  ],
+  "desc": "福集团在愚园路上有多家餐厅，唯福和慧专门提供素菜。不论餐室装潢或菜式皆满载禅意。餐厅只供应套餐，每道菜都经过精心设计，厨师们搜罗全国各地时令食材，且按四时更替变换内容。菜单中包含不少传统功夫菜，…",
+  "mnemonic": "长宁区愚园路1037号",
+  "icon": "🍽️",
+  "stars": 2,
+  "bib": false,
+  "cuisine": "素食",
+  "address": "长宁区愚园路1037号",
+  "price": "¥¥¥¥ 奢华",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "tou_zao",
+  "name": "头灶",
+  "category": "michelin2",
+  "coords": [
+   31.228632,
+   121.447369
+  ],
+  "desc": "餐厅以“头灶”为名，强调主厨引以为傲的炒锅技巧和火候控制。有别于一般中餐厅，布局采用主厨吧台，除了可近距离欣赏烹饪过程，也缩短上菜时间，让食物呈现最佳状态。菜单包括贵妃脆皮鸡、春卷等自开业以来供…",
+  "mnemonic": "静安区南京西路1376号上海商城东峰211号",
+  "icon": "🍽️",
+  "stars": 2,
+  "bib": false,
+  "cuisine": "粤菜",
+  "address": "静安区南京西路1376号上海商城东峰211号",
+  "price": "¥¥¥¥ 奢华",
+  "note": "新晋二星",
+  "isNew": true
+ },
+ {
+  "key": "da_vittorio_570570",
+  "name": "Da Vittorio",
+  "category": "michelin2",
+  "coords": [
+   31.229109,
+   121.493199
+  ],
+  "desc": "由历史悠久的意大利Da Vittorio家族经营，在新任主厨的带领下，餐厅既延续布鲁萨波尔托地区美食的精髓，也同时融入中国本土食材，创造出别具风味的组合，当中以鱼虾、扇贝等海鲜为特色。套餐包含多…",
+  "mnemonic": "黄浦区中山东二路600号BFC外滩金融中心N3幢3楼",
+  "icon": "🍽️",
+  "stars": 2,
+  "bib": false,
+  "cuisine": "意大利菜",
+  "address": "黄浦区中山东二路600号BFC外滩金融中心N3幢3楼",
+  "price": "¥¥¥¥ 奢华",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "bao_li_xuan",
+  "name": "宝丽轩",
+  "category": "michelin2",
+  "coords": [
+   31.244806,
+   121.477644
+  ],
+  "desc": "餐厅坐落于精心修复的历史建筑中，包厢设计以中国传统文化结合宝格丽珠宝，展现老上海的典雅韵味与现代奢华。在主厨的掌舵下，这里的菜品兼具传统功底和鲜明特色。化皮乳猪件将经典粤菜重新演释，酥脆乳猪皮搭…",
+  "mnemonic": "静安区山西北路108弄上海总商会大楼3楼",
+  "icon": "🍽️",
+  "stars": 2,
+  "bib": false,
+  "cuisine": "粤菜",
+  "address": "静安区山西北路108弄上海总商会大楼3楼",
+  "price": "¥¥¥¥ 奢华",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "amazing_chinese_cuisine_changning",
+  "name": "菁禧荟 (长宁)",
+  "category": "michelin2",
+  "coords": [
+   31.202497,
+   121.3886
+  ],
+  "desc": "位于独栋别墅内，仅提供包间，必须提前订座。主厨来自潮汕，部分食材从当地搜罗而来，以呈现地道滋味。菜单选项多达200道，式式俱备，包括采用三年狮头鹅制作的卤水老鹅头，以及鲜甜多膏的潮式冻花蟹。鸡油…",
+  "mnemonic": "长宁区虹桥路1665号B5别墅",
+  "icon": "🍽️",
+  "stars": 2,
+  "bib": false,
+  "cuisine": "潮州菜",
+  "address": "长宁区虹桥路1665号B5别墅",
+  "price": "¥¥¥¥ 奢华",
+  "note": "新晋二星",
+  "isNew": true
+ },
+ {
+  "key": "the_house_of_rong",
+  "name": "荣府宴",
+  "category": "michelin2",
+  "coords": [
+   31.22789,
+   121.45071
+  ],
+  "desc": "位于贝轩大公馆，不但有江苏风格的亭台楼阁，室內更满是古董和已故建筑师贝聿铭的手绘作，处处透露着历史韵味。作为品牌的上海旗舰店，这里采用全包间形式，提供海鲜为主的客制化菜单。食材经精挑细选，讲究时…",
+  "mnemonic": "静安区南阳路170号",
+  "icon": "🍽️",
+  "stars": 2,
+  "bib": false,
+  "cuisine": "台州菜",
+  "address": "静安区南阳路170号",
+  "price": "¥¥¥¥ 奢华",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "canton_8_runan_street",
+  "name": "喜粤8号 (黄浦）",
+  "category": "michelin2",
+  "coords": [
+   31.204563,
+   121.478806
+  ],
+  "desc": "来自香港的主厨拥有超过四十年粤菜经验，客人在这里可品尝到高素质的广东菜。菜单选择丰富，烧味、小炒、海鲜一应俱全，而且价格亲民。怀旧锅贴明虾夹是别处难寻的传统菜式，炸得干爽且富有蛋香。其手工包制的…",
+  "mnemonic": "黄浦区汝南街63号",
+  "icon": "🍽️",
+  "stars": 2,
+  "bib": false,
+  "cuisine": "粤菜",
+  "address": "黄浦区汝南街63号",
+  "price": "¥¥ 中档",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "fabula",
+  "name": "Fabula",
+  "category": "michelin1",
+  "coords": [
+   31.228126,
+   121.453206
+  ],
+  "desc": "由三位来自不同城市的厨师共同主理，凭着各自的味觉灵感，演绎出一套套富有惊喜的菜单。食材用料上乘，菜品融合中、西餐的风味与技巧，味道细腻而平衡。由酸香宜人的酸种面包揭开序幕，自家晒制的宁波海盐令风…",
+  "mnemonic": "静安区威海路720号2-3楼",
+  "icon": "🍽️",
+  "stars": 1,
+  "bib": false,
+  "cuisine": "创新菜",
+  "address": "静安区威海路720号2-3楼",
+  "price": "¥¥¥¥ 奢华",
+  "note": "新上榜",
+  "isNew": true
+ },
+ {
+  "key": "sheng_yong_xing",
+  "name": "晟永兴 (黄浦)",
+  "category": "michelin1",
+  "coords": [
+   31.236339,
+   121.486184
+  ],
+  "desc": "作为此京菜馆在上海的第一家店，坐落地理位置优越的外滩五号，不仅可以欣赏璀璨江景，室内环境也十分浪漫舒适。招牌烤鸭以45天大的北京填鸭制作，上菜时更可查看其来源证明。鸭只经过枣木烧烤，皮酥肉嫩，肥…",
+  "mnemonic": "黄浦区广东路20号外滩5号5楼",
+  "icon": "🍽️",
+  "stars": 1,
+  "bib": false,
+  "cuisine": "京菜",
+  "address": "黄浦区广东路20号外滩5号5楼",
+  "price": "¥¥¥ 优质的",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "jin_xuan",
+  "name": "金轩",
+  "category": "michelin1",
+  "coords": [
+   31.238441,
+   121.496816
+  ],
+  "desc": "位于浦东丽思卡尔顿五十三楼，邻近东方明珠塔，无论身处餐厅任何角落，皆可俯瞰黄浦江的迷人景致。菜单罗列多款粤菜及点心，当中不乏名贵用料，如澳大利亚冰川犬牙鱼、新西兰龙虾等进口食材。包含三款不同口味…",
+  "mnemonic": "浦东新区世纪大道8号丽思卡尔顿酒店53楼",
+  "icon": "🍽️",
+  "stars": 1,
+  "bib": false,
+  "cuisine": "粤菜",
+  "address": "浦东新区世纪大道8号丽思卡尔顿酒店53楼",
+  "price": "¥¥¥¥ 奢华",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "xin_rong_ji_west_nanjing_road",
+  "name": "新荣记 (南京西路)",
+  "category": "michelin1",
+  "coords": [
+   31.23138,
+   121.46432
+  ],
+  "desc": "这家新荣记立足上海多年，以供应台州菜为主，门外特设海鲜摊位，供客人挑选新鲜海产，选择丰富。黄金脆带鱼表皮炸得酥脆干香，鱼肉细腻，和家烧黄鱼、沙蒜烧豆面都是店内招牌，建议提前预定。个别菜式加入时令…",
+  "mnemonic": "静安区南京西路688号688广场2楼",
+  "icon": "🍽️",
+  "stars": 1,
+  "bib": false,
+  "cuisine": "台州菜",
+  "address": "静安区南京西路688号688广场2楼",
+  "price": "¥¥¥¥ 奢华",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "il_ristorante_niko_romito_563683",
+  "name": "Il Ristorante - Niko Romito",
+  "category": "michelin1",
+  "coords": [
+   31.244997,
+   121.476988
+  ],
+  "desc": "水晶灯衬托着皮制沙发，尽显奢华时尚，配备落地玻璃窗，让人饱览外滩和黄浦江的美景。由意籍主厨主理，并由大厨Niko Romito定期到场指导，菜单富有季节性同时保留传统风格。手工意面选择丰富，尤其…",
+  "mnemonic": "静安区山西北路108弄宝格丽酒店47楼",
+  "icon": "🍽️",
+  "stars": 1,
+  "bib": false,
+  "cuisine": "意大利菜",
+  "address": "静安区山西北路108弄宝格丽酒店47楼",
+  "price": "¥¥¥¥ 奢华",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "yong_fu",
+  "name": "甬府 (黄浦)",
+  "category": "michelin1",
+  "coords": [
+   31.222927,
+   121.456768
+  ],
+  "desc": "为了煮出最传统地道的宁波囗味，餐厅一直选用当地食材，各种时令海产每天新鲜运抵。菜单上的传统菜式琳琅满目，芋乃羹为招牌之选，也有黄鱼鱼籽冻等手工菜。三月到五月期间，更有机会品尝来自宁海的蛏子。菜品…",
+  "mnemonic": "黄浦区茂名南路59号锦江饭店锦北楼11-12楼",
+  "icon": "🍽️",
+  "stars": 1,
+  "bib": false,
+  "cuisine": "宁波菜",
+  "address": "黄浦区茂名南路59号锦江饭店锦北楼11-12楼",
+  "price": "¥¥¥ 优质的",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "seventh_son_jingan",
+  "name": "家全七福",
+  "category": "michelin1",
+  "coords": [
+   31.22914,
+   121.45767
+  ],
+  "desc": "家全七福是来自香港的高级粤菜品牌，由两个大厅组成的宽敞空间，从装潢设计展现出富丽堂皇的气派。供应各式各样的传统手工粤菜，不论是海味、汤品、烧味还是小炒，都蕴含厨师团队卓越细腻的烹饪技巧，当中以蟹…",
+  "mnemonic": "静安区威海路500号丰盛商业中心2楼R2-01",
+  "icon": "🍽️",
+  "stars": 1,
+  "bib": false,
+  "cuisine": "粤菜",
+  "address": "静安区威海路500号丰盛商业中心2楼R2-01",
+  "price": "¥¥¥ 优质的",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "fu_1015",
+  "name": "福一零一五",
+  "category": "michelin1",
+  "coords": [
+   31.218564,
+   121.429009
+  ],
+  "desc": "位于老洋房内，装潢怀旧优雅，让人有时光倒流的感觉。主打上海本帮菜，以套餐形式供应，共设传统经典和季节时令两个主题，部分菜式融入现代元素，充满惊喜。其中炒虾蟹选料新鲜，鲜甜嫩滑，十分出色。除了传统…",
+  "mnemonic": "长宁区愚园路1015号",
+  "icon": "🍽️",
+  "stars": 1,
+  "bib": false,
+  "cuisine": "沪菜",
+  "address": "长宁区愚园路1015号",
+  "price": "¥¥¥¥ 奢华",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "yue_hai_tang",
+  "name": "粤海棠",
+  "category": "michelin1",
+  "coords": [
+   31.161863,
+   121.350884
+  ],
+  "desc": "厨师长曾于上海著名粤菜餐厅工作，后来与共事多年的厨房团队创立此店，并邀得师傅任顾问，班底经验丰富。提供各式广东佳肴，包括时令菜及手工菜式，如龙虾金钱蟹盒等。其烧味十分出色，其中脆皮妙龄鸽皮脆肉嫩…",
+  "mnemonic": "闵行区号文路161号万金中心",
+  "icon": "🍽️",
+  "stars": 1,
+  "bib": false,
+  "cuisine": "粤菜",
+  "address": "闵行区号文路161号万金中心",
+  "price": "¥¥¥ 优质的",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "wu_you_xian",
+  "name": "屋有鲜",
+  "category": "michelin1",
+  "coords": [
+   31.224562,
+   121.456054
+  ],
+  "desc": "这汤包专门店出品均为现点现包，包皮吹弹可破，内馅都是当天现制，数量有限。厨师将蟹分拆成蟹粉、蟹黄、蟹膏等多款馅料，也有搭配海参、鲍鱼等特色组合，其中以纯蟹汤包最受欢迎。“感蟹贵客”可一次尝到三款…",
+  "mnemonic": "黄浦区茂名南路7号1-103室",
+  "icon": "🍽️",
+  "stars": 1,
+  "bib": false,
+  "cuisine": "点心",
+  "address": "黄浦区茂名南路7号1-103室",
+  "price": "¥¥ 中档",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "moose_changning",
+  "name": "鹿园 (长宁)",
+  "category": "michelin1",
+  "coords": [
+   31.20189,
+   121.4297
+  ],
+  "desc": "坐落于百岁洋房中，设有主餐室、包厢和宴会场地。装潢采用欧洲风格，配以古董家具和油画，环境舒适高雅。菜单以北京烤鸭和本帮江浙菜为卖点，同时设季节性菜单。狮子头为招牌菜之一，厨师会根据时令变化，按季…",
+  "mnemonic": "长宁区新华路119弄1号",
+  "icon": "🍽️",
+  "stars": 1,
+  "bib": false,
+  "cuisine": "江浙菜",
+  "address": "长宁区新华路119弄1号",
+  "price": "¥¥¥ 优质的",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "le_comptoir_de_pierre_gagnaire",
+  "name": "le Comptoir de Pierre Gagnaire",
+  "category": "michelin1",
+  "coords": [
+   31.221621,
+   121.459782
+  ],
+  "desc": "这家由法国大厨开设的时尚法式餐厅，位于上海最大的石库门清水红砖建筑群。主餐室灯光和煦，环境恬静，洋溢悠闲的法式氛围。用餐前不妨到入口旁的酒吧浅酌一杯，享受安谧时光。食物方面，不论是经典菜式布列塔…",
+  "mnemonic": "徐汇区建国西路480号建业里嘉佩乐酒店",
+  "icon": "🍽️",
+  "stars": 1,
+  "bib": false,
+  "cuisine": "时尚法国菜",
+  "address": "徐汇区建国西路480号建业里嘉佩乐酒店",
+  "price": "¥¥¥¥ 奢华",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "lao_zheng_xing_huangpu",
+  "name": "老正兴",
+  "category": "michelin1",
+  "coords": [
+   31.235045,
+   121.475617
+  ],
+  "desc": "老正兴是上海历史最悠久的本帮菜馆，由1862年开业至今享誉海内外。作为不少经典名菜的起始之处，这里是探索正宗本帮菜的不二之选。糟溜黄鱼片鲜嫩如脂，芡汁结合糟香与酸香，恰到好处地衬托出鱼的鲜味。招…",
+  "mnemonic": "黄浦区福州路556号",
+  "icon": "🍽️",
+  "stars": 1,
+  "bib": false,
+  "cuisine": "沪菜",
+  "address": "黄浦区福州路556号",
+  "price": "¥¥ 中档",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "gastro_esthetics_at_dadong",
+  "name": "美 · 大董",
+  "category": "michelin1",
+  "coords": [
+   31.225245,
+   121.44289
+  ],
+  "desc": "室内装修以梵高“盛开的杏花”为主题，令人耳目一新。招牌烤鸭采用北京鸭种，食客可选择45天的填鸭或22天的小雏鸭，两者均皮脆肉嫩。厨师更会在席前将烤至焦糖色的烤鸭慢慢切片。此外，鲍鱼、海参等食材，…",
+  "mnemonic": "静安区南京西路1601号越洋广场5楼",
+  "icon": "🍽️",
+  "stars": 1,
+  "bib": false,
+  "cuisine": "时尚中国菜",
+  "address": "静安区南京西路1601号越洋广场5楼",
+  "price": "¥¥¥ 优质的",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "fu_1088",
+  "name": "福一零八八",
+  "category": "michelin1",
+  "coords": [
+   31.223456,
+   121.43124
+  ],
+  "desc": "餐厅位于一幢建于上世纪二十年代的洋房，室内的怀旧瓷砖地台、精致雕花木墙、水晶灯和古董摆设都展现出老上海风情。厨师团队经验丰富，必不能错过采用青鱼鱼腩制作的上海熏鱼，外层酥脆而肉质鲜嫩，搭配微甜的…",
+  "mnemonic": "静安区镇宁路375号",
+  "icon": "🍽️",
+  "stars": 1,
+  "bib": false,
+  "cuisine": "沪菜",
+  "address": "静安区镇宁路375号",
+  "price": "¥¥¥ 优质的",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "da_dong_xuhui",
+  "name": "大董 (徐汇)",
+  "category": "michelin1",
+  "coords": [
+   31.230507,
+   121.437471
+  ],
+  "desc": "以烤鸭驰名的大董在上海设有数家分店，这家位处铁路站上的商场内，经常人头涌涌，足证其烤鸭甚具水准——来自北京的填鸭给烤至皮脆肉嫩，并佐以多款精细佐料，同时配上面饼进食。不能错过的还有葱烧海参。餐厅…",
+  "mnemonic": "徐汇区淮海中路999号环贸广场6楼602号",
+  "icon": "🍽️",
+  "stars": 1,
+  "bib": false,
+  "cuisine": "时尚中国菜",
+  "address": "徐汇区淮海中路999号环贸广场6楼602号",
+  "price": "¥¥¥ 优质的",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "huaiyang_delights_jingan",
+  "name": "三月醉淮扬 (静安)",
+  "category": "michelin1",
+  "coords": [
+   31.224954,
+   121.442828
+  ],
+  "desc": "室内空间通透明亮，设计兼具古典韵味与现代简约美感。由淮扬菜大师周晓燕担任顾问，时令菜式丰富。顶汤清炖狮子头圆润饱满、入口柔滑，搭配清亮透彻的顶汤，带来浓郁的鲜味和香气。淮扬盐水乳鸽使用传统盐水白…",
+  "mnemonic": "静安区南京西路1601号越洋广场5楼",
+  "icon": "🍽️",
+  "stars": 1,
+  "bib": false,
+  "cuisine": "淮扬菜",
+  "address": "静安区南京西路1601号越洋广场5楼",
+  "price": "¥¥¥ 优质的",
+  "note": "新上榜",
+  "isNew": true
+ },
+ {
+  "key": "ren_he_guan_zhaojiabang_road",
+  "name": "人和馆 (徐汇)",
+  "category": "michelin1",
+  "coords": [
+   31.20364,
+   121.453582
+  ],
+  "desc": "室内灯光幽暗，饰以怀旧摆设，驻场歌手演唱着老上海金曲，还有穿民国服装的服务员，令人有种时光倒流的错觉。食物同样充满特色，蟹粉捞饭采用老板自家养殖场的螃蟹所制，鲜美丰腴。精品糟拼、青浦练塘茭白炒鳝…",
+  "mnemonic": "徐汇区肇嘉浜路407号",
+  "icon": "🍽️",
+  "stars": 1,
+  "bib": false,
+  "cuisine": "沪菜",
+  "address": "徐汇区肇嘉浜路407号",
+  "price": "¥¥ 中档",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "yi_long_court",
+  "name": "逸龙阁",
+  "category": "michelin1",
+  "coords": [
+   31.243758,
+   121.507579
+  ],
+  "desc": "装潢融合典雅、细致与奢华，呈现1930年代上海菜馆风华。厨房团队坚持采用传统烹调技巧，制作出口味正宗的广东佳肴。菜单包括海鲜、广式烧味、时令老火汤等，每道菜式都显见厨师功架。午市提供样式丰富的点…",
+  "mnemonic": "黄浦区中山东一路32号外滩32号半岛酒店2楼",
+  "icon": "🍽️",
+  "stars": 1,
+  "bib": false,
+  "cuisine": "粤菜",
+  "address": "黄浦区中山东一路32号外滩32号半岛酒店2楼",
+  "price": "¥¥¥¥ 奢华",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "sole",
+  "name": "景煊",
+  "category": "michelin1",
+  "coords": [
+   31.228041,
+   121.446848
+  ],
+  "desc": "由大厨卢怿明担任顾问，带领全是广东人的厨房团队。菜单选择丰富，涵盖传统粤菜以至潮汕美馔，除了点心、烧味、海鲜、炖汤和小炒，还有鸡子戈渣、炸酿鲜蟹盖等传统手工菜。蟛蜞膏带子饺的外皮晶莹剔透，蟛蜞膏…",
+  "mnemonic": "静安区南京西路1376号上海商城109号商铺",
+  "icon": "🍽️",
+  "stars": 1,
+  "bib": false,
+  "cuisine": "粤菜",
+  "address": "静安区南京西路1376号上海商城109号商铺",
+  "price": "¥¥¥ 优质的",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "meet_the_bund",
+  "name": "遇外滩 (中山东二路)",
+  "category": "michelin1",
+  "coords": [
+   31.228818,
+   121.493593
+  ],
+  "desc": "口味正宗，不仅厨师团队全为福建人，菜单亦以福建话作分类，充满特色。招牌菜盐酒干蒸闽西河田鸡，使用龙岩河田镇的名鸡烹调而成，肉质新鲜带嚼劲。此外，也建议预订原汁滴露鸭，遵循福建传统烹饪技法，炖煮过…",
+  "mnemonic": "黄浦区中山东二路600号BFC外滩金融中心南区商场3楼S301",
+  "icon": "🍽️",
+  "stars": 1,
+  "bib": false,
+  "cuisine": "闽菜",
+  "address": "黄浦区中山东二路600号BFC外滩金融中心南区商场3楼S301",
+  "price": "¥¥¥ 优质的",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "lei_garden_xuhui",
+  "name": "利苑 (徐汇)",
+  "category": "michelin1",
+  "coords": [
+   31.218123,
+   121.454125
+  ],
+  "desc": "源自香港的利苑，业务遍布亚洲，提供高素质的正宗粤菜。无论是点心、烧味还是炖汤，厨师团队每日都严格把控出品水准。以熬煮超过六小时海鲜汤即席泡煮的过桥象拔蚌，或即点即做的腊味煲仔饭皆值得一试。新鲜海…",
+  "mnemonic": "徐汇区淮海中路999号环贸广场4楼401号",
+  "icon": "🍽️",
+  "stars": 1,
+  "bib": false,
+  "cuisine": "粤菜",
+  "address": "徐汇区淮海中路999号环贸广场4楼401号",
+  "price": "¥¥ 中档",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "lei_garden_pudong",
+  "name": "利苑 (浦东新区)",
+  "category": "michelin1",
+  "coords": [
+   31.23907,
+   121.497922
+  ],
+  "desc": "国金中心内的利苑总是人头涌涌，可见餐厅出品的粤菜素质有相当水准。老火汤和精制广东点心是午饭时段上班族的最爱。晚饭时间，可以从主菜单点选海鲜、鲍鱼等高级食品，亦可从每天更新的菜单中点选时令小炒或煲…",
+  "mnemonic": "浦东新区世纪大道8号国金中心商场3楼17-18号",
+  "icon": "🍽️",
+  "stars": 1,
+  "bib": false,
+  "cuisine": "粤菜",
+  "address": "浦东新区世纪大道8号国金中心商场3楼17-18号",
+  "price": "¥¥¥ 优质的",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "fu_1039",
+  "name": "福一零三九",
+  "category": "michelin1",
+  "coords": [
+   31.220368,
+   121.425019
+  ],
+  "desc": "这是福集团首家食府，位于1921年兴建的古宅之中。室内的古董摆设、灯饰、旧照片等洋溢着怀旧味道，亦设有面向花园的阳台座位及厢房。菜单中除了经典沪菜，也有不少手工菜肴。当中河鲜品质极高，尤其是河鳗…",
+  "mnemonic": "长宁区愚园路1039号",
+  "icon": "🍽️",
+  "stars": 1,
+  "bib": false,
+  "cuisine": "沪菜",
+  "address": "长宁区愚园路1039号",
+  "price": "¥¥¥ 优质的",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "ling_long_1209951",
+  "name": "凌珑",
+  "category": "michelin1",
+  "coords": [
+   31.235596,
+   121.485324
+  ],
+  "desc": "餐厅位于古典主义风格的百年建筑内，装修以红和黑为主色调，别具现代中式韵味。仅提供套餐，年轻主厨Jason带领团队以西方烹调技法结合中餐调味，将本土食材制作成创意菜式。例如招牌菜蚝与牛选用山东和牛…",
+  "mnemonic": "黄浦区中山东一路2号外滩华尔道夫酒店1楼105",
+  "icon": "🍽️",
+  "stars": 1,
+  "bib": false,
+  "cuisine": "创新菜",
+  "address": "黄浦区中山东一路2号外滩华尔道夫酒店1楼105",
+  "price": "¥¥¥¥ 奢华",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "zhou_she_minhang",
+  "name": "周舍 (闵行)",
+  "category": "michelin1",
+  "coords": [
+   31.197135,
+   121.30628
+  ],
+  "desc": "设有精致包间，位置接近机场和火车站，适合商务宴请。菜单既传承沪菜的烹饪技法，也融合各地风味，除了海派菜肴，兼有粤菜及淮扬菜等。特别推荐青麻老卤鸽和韭芽滑鱼丝，前者将乳鸽放入陈年老卤中低温浸泡，鸽…",
+  "mnemonic": "闵行区苏虹路318弄16-101号虹桥丽宝广场116号铺",
+  "icon": "🍽️",
+  "stars": 1,
+  "bib": false,
+  "cuisine": "沪菜",
+  "address": "闵行区苏虹路318弄16-101号虹桥丽宝广场116号铺",
+  "price": "¥¥¥ 优质的",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "yong_fu_hongkou",
+  "name": "甬府 (虹口)",
+  "category": "michelin1",
+  "coords": [
+   31.254583,
+   121.503711
+  ],
+  "desc": "餐厅位处高楼，装潢端庄华贵，大厅直面浦东景致，包间更拥有绝佳江景，开放式厨房则呈现出厨师烹调的过程。菜单主打宁波菜与创新融合菜，厨师特别注重海鲜品质，黄鱼、白蟹等每天从浙江东海直接引入。渔家白蟹…",
+  "mnemonic": "虹口区东大名路1089号北外滩来福士东塔56楼",
+  "icon": "🍽️",
+  "stars": 1,
+  "bib": false,
+  "cuisine": "宁波菜",
+  "address": "虹口区东大名路1089号北外滩来福士东塔56楼",
+  "price": "¥¥¥¥ 奢华",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "the_taste_of_huzhou",
+  "name": "菰城宴",
+  "category": "bib",
+  "coords": [
+   31.199659,
+   121.456996
+  ],
+  "desc": "以湖州的古称为名，不难想像这里以羊肉料理为特色。新鲜绵羊每天从当地直送到店，由来自湖州的厨师以红烧方式焖煮入味，羊腿、羊腰、羊肠等多个部位一应俱全。此外，店内也提供多种面食，其中羊排面和羊腿面限…",
+  "mnemonic": "徐汇区斜土路1422弄12号",
+  "icon": "🥢",
+  "stars": 0,
+  "bib": true,
+  "cuisine": "面食",
+  "address": "徐汇区斜土路1422弄12号",
+  "price": "¥ 负担得起的",
+  "note": "新上榜",
+  "isNew": true
+ },
+ {
+  "key": "ning_hai_shi_fu",
+  "name": "宁海食府",
+  "category": "bib",
+  "coords": [
+   31.197748,
+   121.310414
+  ],
+  "desc": "宁海食府始创于1992年，此店是品牌登陆上海的首作。餐室的落地窗引入自然光和绿植景观，环境舒适宜人。主打地道宁波家常菜式，尤以小海鲜见长，无实体菜单，由食客于现场自选食材。推荐菜式包括秘制十八斩…",
+  "mnemonic": "闵行区申长路988号虹桥万科中心5号楼LG2-15D",
+  "icon": "🥢",
+  "stars": 0,
+  "bib": true,
+  "cuisine": "宁波菜",
+  "address": "闵行区申长路988号虹桥万科中心5号楼LG2-15D",
+  "price": "¥¥ 中档",
+  "note": "新上榜",
+  "isNew": true
+ },
+ {
+  "key": "he_shan_mian_jia",
+  "name": "和膳面家",
+  "category": "bib",
+  "coords": [
+   31.25516,
+   121.47471
+  ],
+  "desc": "主打上海本帮风味面食，老板兼主厨对做面十分讲究，无论汤面或干拌都是现点现做，确保面条爽弹可口。尤其推荐招牌拆骨鲫鱼汤面，店家每天将鲫鱼剔骨去刺，以嫩滑鱼肉搭配细幼筋道的面条，加上鲜甜浓郁的鱼汤，…",
+  "mnemonic": "静安区沪太路1190号",
+  "icon": "🥢",
+  "stars": 0,
+  "bib": true,
+  "cuisine": "面食",
+  "address": "静安区沪太路1190号",
+  "price": "¥ 负担得起的",
+  "note": "新上榜",
+  "isNew": true
+ },
+ {
+  "key": "lao_di_fang_mian_guan",
+  "name": "老地方面馆",
+  "category": "bib",
+  "coords": [
+   31.215643,
+   121.477384
+  ],
+  "desc": "三十年老店择址重开，继续是街坊品尝传统家常面食和小吃的“老地方”。现炒浇头的选择丰富，并随时令变化，是店内最大特色。推荐青咸菜目鱼面，有汤面和拌面选择，浅渍一夜的青咸菜与目鱼同炒，清脆鲜爽，配上…",
+  "mnemonic": "黄浦区思南路107号",
+  "icon": "🥢",
+  "stars": 0,
+  "bib": true,
+  "cuisine": "面食",
+  "address": "黄浦区思南路107号",
+  "price": "¥ 负担得起的",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "yongfu_mini",
+  "name": "甬府小鲜 (浦东新区)",
+  "category": "bib",
+  "coords": [
+   31.23317,
+   121.511324
+  ],
+  "desc": "和甬府属同一集团，同样采用当天送抵的东海鲜货，但甬府小鲜走亲民路线，提供大众化的传统宁波菜。独有菜式包括咸米鱼生焗饭、火焰花雕鸡等皆十分出众。招牌十八斩则根据宁波咸蟹改良，佐以十八种酱汁，味道鲜…",
+  "mnemonic": "浦东新区浦东南路899号陆家嘴中心9楼910号",
+  "icon": "🥢",
+  "stars": 0,
+  "bib": true,
+  "cuisine": "宁波菜",
+  "address": "浦东新区浦东南路899号陆家嘴中心9楼910号",
+  "price": "¥¥ 中档",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "rongjia_noodle_soup_with_yellow_croaker",
+  "name": "荣家黄鱼面 (静安)",
+  "category": "bib",
+  "coords": [
+   31.233848,
+   121.459711
+  ],
+  "desc": "用餐区墙上大大小小的黄鱼图案，正好点出餐厅特色：这家新荣记集团旗下的面食店，主打的黄鱼面采用东海黄鱼，每天新鲜熬制呈奶白色的鱼汤，鲜甜味美。手工面为每天现造，同时亦聘用潮汕师傅监控卤水的制作。除…",
+  "mnemonic": "静安区南京西路688号688广场L105A-1",
+  "icon": "🥢",
+  "stars": 0,
+  "bib": true,
+  "cuisine": "面食",
+  "address": "静安区南京西路688号688广场L105A-1",
+  "price": "¥¥ 中档",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "ho_hung_kee_570572",
+  "name": "何洪记",
+  "category": "bib",
+  "coords": [
+   31.231354,
+   121.458521
+  ],
+  "desc": "为源自香港的老字号品牌，装潢设计新颖，充满中式元素但不老气。菜单包括港式面食、粥品和点心等，与香港本店几近相同。云吞面的汤头以大地鱼、红虾皮熬煮，配上鲜虾云吞和自制竹升面，鲜味可口。斗门靓虾籽捞…",
+  "mnemonic": "静安区石门一路288号兴业太古汇南楼L324",
+  "icon": "🥢",
+  "stars": 0,
+  "bib": true,
+  "cuisine": "粥面",
+  "address": "静安区石门一路288号兴业太古汇南楼L324",
+  "price": "¥¥ 中档",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "mi_thai_an_fu_road",
+  "name": "米泰",
+  "category": "bib",
+  "coords": [
+   31.215748,
+   121.439242
+  ],
+  "desc": "登上两层木楼梯，穿过隐密的入口，便会到达这家装潢摩登而富个性的泰国餐厅。餐室分成两部分，一面因着开放式厨房而显得生气盎然；另一面以木制檐顶装饰，却是雅致舒适。厨房由泰籍厨师执掌，确保每道菜都味道…",
+  "mnemonic": "徐汇区安福路195号2楼",
+  "icon": "🥢",
+  "stars": 0,
+  "bib": true,
+  "cuisine": "泰国菜",
+  "address": "徐汇区安福路195号2楼",
+  "price": "¥¥ 中档",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "lu_bo_lang",
+  "name": "绿波廊",
+  "category": "bib",
+  "coords": [
+   31.22843,
+   121.487434
+  ],
+  "desc": "邻近城隍庙和豫园等宝贵古迹，绿波廊位于九曲桥旁依水而建的明朝旧建筑内。经修缮后店面更具现代感，玲珑浮凸的银色金属天花配合绿色灯光，营造出波浪感觉，与园林建筑古今汇聚。各式地道传统上海点心美味依然…",
+  "mnemonic": "黄浦区城隍庙豫园老街115号",
+  "icon": "🥢",
+  "stars": 0,
+  "bib": true,
+  "cuisine": "沪菜",
+  "address": "黄浦区城隍庙豫园老街115号",
+  "price": "¥¥ 中档",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "lan_xin_jinxian_road",
+  "name": "兰心 (进贤路)",
+  "category": "bib",
+  "coords": [
+   31.223621,
+   121.455265
+  ],
+  "desc": "业务扩展至大型商场的兰心早于八十年代开业，位于进贤路的为本店。店面朴实无华，但无碍人气高涨，纵然附近餐厅林立，其门外常常满是排队候座的客人。餐室由旧民居改装而成，装潢简朴，充满怀旧气息。耳熟能详…",
+  "mnemonic": "黄浦区进贤路130号",
+  "icon": "🥢",
+  "stars": 0,
+  "bib": true,
+  "cuisine": "沪菜",
+  "address": "黄浦区进贤路130号",
+  "price": "¥ 负担得起的",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "chun",
+  "name": "春",
+  "category": "bib",
+  "coords": [
+   31.223589,
+   121.455395
+  ],
+  "desc": "餐厅早于1989年开业，后曾一度歇业，如今在原址重开，吸引不少老顾客再临。老板娘友善健谈，能提供最合适的推荐。她每天都亲自到市场采购食材，盼以最新鲜、合时的材料制作传统本帮菜。招牌菜田螺塞肉味浓…",
+  "mnemonic": "黄浦区进贤路124号",
+  "icon": "🥢",
+  "stars": 0,
+  "bib": true,
+  "cuisine": "沪菜",
+  "address": "黄浦区进贤路124号",
+  "price": "¥ 负担得起的",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "tan_1246400",
+  "name": "坛",
+  "category": "bib",
+  "coords": [
+   31.228336,
+   121.487345
+  ],
+  "desc": "由古建筑改造而成，融合中式风格与现代装潢，在闹市中带来舒适的用餐空间。店名源于四川泡菜坛，点明这里主打传统川菜，大部分的调味料和辣椒也从当地直送，还原地道风味精髓。藿香鳝鱼现点现剐，肉质爽弹，香…",
+  "mnemonic": "黄浦区豫园商城九曲桥广场松运楼106号1-2楼",
+  "icon": "🥢",
+  "stars": 0,
+  "bib": true,
+  "cuisine": "川菜",
+  "address": "黄浦区豫园商城九曲桥广场松运楼106号1-2楼",
+  "price": "¥¥ 中档",
+  "note": "新上榜",
+  "isNew": true
+ },
+ {
+  "key": "cong_s_kitchen",
+  "name": "聪菜馆",
+  "category": "bib",
+  "coords": [
+   31.239208,
+   121.470064
+  ],
+  "desc": "年过七旬的老板因为对烹饪的热爱，退休后回到上海，开设了这家餐厅。主打上海佳肴，但菜式带有老板的个人风格，部分在外间不常见，例如以魔鬼鱼制作的熏鱼、配上姜醋汁伴吃的鱼肝酱等。招牌菜虾仁虾膏将河虾与…",
+  "mnemonic": "黄浦区六合路158号",
+  "icon": "🥢",
+  "stars": 0,
+  "bib": true,
+  "cuisine": "沪菜",
+  "address": "黄浦区六合路158号",
+  "price": "¥¥ 中档",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "polux",
+  "name": "Polux",
+  "category": "bib",
+  "coords": [
+   31.223003,
+   121.47053
+  ],
+  "desc": "名字既是法国著名卡通角色，也是东主兼主厨Paul Pairet的法文䁥称。餐室以吊扇、阶砖地和皮椅营造欧陆气氛，散发巴黎咖啡室的格调。除了早午餐轻食，也有海鲜和肉类等主菜可选，当中包括集团其他餐…",
+  "mnemonic": "黄浦区太仓路181弄新天地北里5号",
+  "icon": "🥢",
+  "stars": 0,
+  "bib": true,
+  "cuisine": "法国菜",
+  "address": "黄浦区太仓路181弄新天地北里5号",
+  "price": "¥¥ 中档",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "nanxiang_steamed_bun_city_god_temple",
+  "name": "南翔馒头店",
+  "category": "bib",
+  "coords": [
+   31.228583,
+   121.487006
+  ],
+  "desc": "拥有过百年历史的老店，以皮薄馅足的南翔小笼馒头而闻名。除了大受欢迎的鲜肉小笼和蟹黄小笼，还有需要用吸管享用的蟹黄灌汤包，以及上海本帮菜，满足客人的多样化需求。联合百年茶楼推出配茶套餐，重现“一笼…",
+  "mnemonic": "黄浦区城隍庙豫园路85号",
+  "icon": "🥢",
+  "stars": 0,
+  "bib": true,
+  "cuisine": "点心",
+  "address": "黄浦区城隍庙豫园路85号",
+  "price": "¥ 负担得起的",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "rong_cuisine_huangpu",
+  "name": "荣小馆 (黄浦)",
+  "category": "bib",
+  "coords": [
+   31.223832,
+   121.471163
+  ],
+  "desc": "荣小馆是新荣记旗下定位年轻客群的品牌，故即使货源相同，价格相对较大众化，并着重给予顾客更多空间。菜单以海鲜为主，厨师每天自东海引入大部分海鲜，并置于门外的鱼市场供客人挑选。海鲜仅以矿泉水和生抽烹…",
+  "mnemonic": "黄浦区太仓路128号1-2楼",
+  "icon": "🥢",
+  "stars": 0,
+  "bib": true,
+  "cuisine": "台州菜",
+  "address": "黄浦区太仓路128号1-2楼",
+  "price": "¥¥ 中档",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "yangzhou_fan_dian_huangpu",
+  "name": "扬州饭店 (黄浦)",
+  "category": "bib",
+  "coords": [
+   31.237972,
+   121.475334
+  ],
+  "desc": "这家老字号饭店主理淮扬风味小菜，风味正宗、做工精细，收取的是平民价钱，因此深受上海人欢迎。福建中路的这家分店占地三层，2017年完成翻新后餐室缀以山水和动物画作，二楼更放有大型金色雕刻画，更添中…",
+  "mnemonic": "黄浦区福建中路345号",
+  "icon": "🥢",
+  "stars": 0,
+  "bib": true,
+  "cuisine": "淮扬菜",
+  "address": "黄浦区福建中路345号",
+  "price": "¥¥ 中档",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "mao_long",
+  "name": "茂隆",
+  "category": "bib",
+  "coords": [
+   31.223547,
+   121.455253
+  ],
+  "desc": "餐室由民居改装而成，为家族式经营，只有二十个座位，繁忙时段要有拼桌的心理准备。由1989年开业至今，店东坚持不开分店，也不增加座位，希望保持最好的食物素质和传统味道。因此，在这里能够品尝地道的本…",
+  "mnemonic": "黄浦区进贤路134号",
+  "icon": "🥢",
+  "stars": 0,
+  "bib": true,
+  "cuisine": "沪菜",
+  "address": "黄浦区进贤路134号",
+  "price": "¥¥ 中档",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "qiao_ai_lai_lai_xiao_long_huangpu",
+  "name": "乔艾莱莱小笼 (黄浦)",
+  "category": "bib",
+  "coords": [
+   31.238112,
+   121.472547
+  ],
+  "desc": "置身老区的小巷内，店面干净整齐，可以透过明档厨房看到师傅手工包制各类小笼。招牌纯蟹膏小笼包含满满的蟹膏，搭配店家特调的姜丝醋，浓郁鲜香。蟹粉馄饨、蟹粉荠菜羹、蟹粉春卷也各有特色。也有供应经济实惠…",
+  "mnemonic": "黄浦区天津路506号",
+  "icon": "🥢",
+  "stars": 0,
+  "bib": true,
+  "cuisine": "点心",
+  "address": "黄浦区天津路506号",
+  "price": "¥ 负担得起的",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "jing_mei_wu_xi_si_fang_mian_guan",
+  "name": "井梅无锡面馆 (延平路)",
+  "category": "bib",
+  "coords": [
+   31.231049,
+   121.436471
+  ],
+  "desc": "老板来自无锡，这里的面条、点心和菜肴皆饶富当地特色。无锡酱排骨面是必点菜式，排骨炖得酥烂入味，入口即化，可选配汤面或葱油拌面，前者搭配经典无锡红汤，甚是开胃。太湖三白大馄饨以白鱼、白虾、银鱼和荠…",
+  "mnemonic": "静安区延平路128号",
+  "icon": "🥢",
+  "stars": 0,
+  "bib": true,
+  "cuisine": "面食",
+  "address": "静安区延平路128号",
+  "price": "¥ 负担得起的",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "xiao_tao_mian_guan",
+  "name": "小陶面馆",
+  "category": "bib",
+  "coords": [
+   31.210845,
+   121.455011
+  ],
+  "desc": "这家老小店供应汤面和拌面，后者更受欢迎，采用传统上海葱油拌面为基底，加入大量炸得酥脆的小葱，香气四溢。浇头可任意搭配，其中鳝背肉口感弹牙，咸香中透出微甜，让人饱尝老上海风味。辣肉则味鲜汁浓，十分…",
+  "mnemonic": "徐汇区嘉善路222号",
+  "icon": "🥢",
+  "stars": 0,
+  "bib": true,
+  "cuisine": "面食",
+  "address": "徐汇区嘉善路222号",
+  "price": "¥ 负担得起的",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "the_lakeside_veggie",
+  "name": "临湖素食",
+  "category": "bib",
+  "coords": [
+   31.183976,
+   121.451012
+  ],
+  "desc": "品牌起源于杭州西湖边，故名为临湖素食。上海店则在龙华寺附近，每月初一、十五格外热闹，建议提前订位。餐厅的手工点心种类繁多，推荐松茸汤包，其表皮吹弹可破，内馅饱满多汁，热辣可口。招牌菜则有炝烧豆腐…",
+  "mnemonic": "徐汇区瑞平路230号保利时光里L2层016-017号",
+  "icon": "🥢",
+  "stars": 0,
+  "bib": true,
+  "cuisine": "素食",
+  "address": "徐汇区瑞平路230号保利时光里L2层016-017号",
+  "price": "¥¥ 中档",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "a_yong_mian_guan_dongshufang_road",
+  "name": "阿勇面馆 (东书房路)",
+  "category": "bib",
+  "coords": [
+   31.168636,
+   121.5308
+  ],
+  "desc": "售卖多种羊肉菜式，老板从凌晨开始焖煮山羊肉，肉质嫩滑，羊皮软糯带胶质。提供白切和红烧两种做法，前者带浓郁肉香和油香，蘸上店家调制的酱油，更添鲜味。羊肉面是此店招牌，汤底以羊骨每天现熬，入口鲜甜温…",
+  "mnemonic": "浦东新区东书房路309号",
+  "icon": "🥢",
+  "stars": 0,
+  "bib": true,
+  "cuisine": "面食",
+  "address": "浦东新区东书房路309号",
+  "price": "¥ 负担得起的",
+  "note": "新上榜",
+  "isNew": true
+ },
+ {
+  "key": "blossom_1246455",
+  "name": "瑰禧",
+  "category": "bib",
+  "coords": [
+   31.229263,
+   121.448848
+  ],
+  "desc": "为菁禧荟旗下的品牌，室内采用简约现代风格，以木餐桌搭配暖色灯光，用餐环境温馨舒适。主打传统潮州菜，来自潮汕的厨师团队选取新鲜食材，呈现地道家乡风味。卤水猪蹄肉质软糯，胶质丰富，结合带有甜香的卤水…",
+  "mnemonic": "静安区南京西路1266号恒隆广场501号铺",
+  "icon": "🥢",
+  "stars": 0,
+  "bib": true,
+  "cuisine": "潮州菜",
+  "address": "静安区南京西路1266号恒隆广场501号铺",
+  "price": "¥¥ 中档",
+  "note": "新上榜",
+  "isNew": true
+ },
+ {
+  "key": "157_shi_fang",
+  "name": "157食坊",
+  "category": "bib",
+  "coords": [
+   31.201478,
+   121.416691
+  ],
+  "desc": "这家为本地人熟知的老菜馆，主打传统本帮菜，菜品分量颇丰，宜与亲友分享。招牌鳝鱼饭几乎是每桌必点，砂锅上桌时香气扑鼻，鳝鱼鲜美肥嫩，珍珠米粒粒饱满，伴随香脆的锅巴，更添层次。油爆虾外脆内嫩，锅气十…",
+  "mnemonic": "长宁区凯旋路1398号长宁国际T10栋101-102单元",
+  "icon": "🥢",
+  "stars": 0,
+  "bib": true,
+  "cuisine": "沪菜",
+  "address": "长宁区凯旋路1398号长宁国际T10栋101-102单元",
+  "price": "¥¥ 中档",
+  "note": "新上榜",
+  "isNew": true
+ },
+ {
+  "key": "ou_yue_zun_xian",
+  "name": "瓯越尊鲜",
+  "category": "bib",
+  "coords": [
+   31.227602,
+   121.442379
+  ],
+  "desc": "老板经营海鲜生意起家，种类繁多的时令海鲜每日到店，并提供多种烹调方式。菜式以地道温州口味为主，朴实无华，风味传统。雪菜海钓鱼饭配上香而不辣的酱汁，咸鲜微酸的雪菜结合鱼肉香气，层次丰富。敲馄饨是温…",
+  "mnemonic": "静安区愚园路68号晶品6楼605号",
+  "icon": "🥢",
+  "stars": 0,
+  "bib": true,
+  "cuisine": "浙江菜",
+  "address": "静安区愚园路68号晶品6楼605号",
+  "price": "¥¥ 中档",
+  "note": "新上榜",
+  "isNew": true
+ },
+ {
+  "key": "easeful_cuisine",
+  "name": "逸采 (静安)",
+  "category": "bib",
+  "coords": [
+   31.223137,
+   121.452217
+  ],
+  "desc": "餐厅主营江浙私房菜。老板兼主厨经验丰富，从浙江一带购入海鲜，以返朴归真的烹饪手法，彰显食材原味，炮制出家常的地道风味。其中以鳕鱼制作的爆汁无刺熏鱼现点现炸，皮脆肉嫩，口感细腻，是其中一道招牌菜。…",
+  "mnemonic": "静安区陕西南路90号2楼",
+  "icon": "🥢",
+  "stars": 0,
+  "bib": true,
+  "cuisine": "江浙菜",
+  "address": "静安区陕西南路90号2楼",
+  "price": "¥¥ 中档",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "hao_sheng",
+  "name": "豪生酒家",
+  "category": "bib",
+  "coords": [
+   31.233217,
+   121.488596
+  ],
+  "desc": "小店装潢朴实，开业近三十年，凭借上海家常好菜，以及友善亲切的服务，掳获一众老顾客的心。菜式根据季节变化，包括醉鸡、白切猪肝、炒河虾仁等，食材新鲜且做法传统。醉鸡尤其出色，滑嫩多汁，鸡油丰富，黄酒…",
+  "mnemonic": "徐汇区广元路156号",
+  "icon": "🥢",
+  "stars": 0,
+  "bib": true,
+  "cuisine": "沪菜",
+  "address": "徐汇区广元路156号",
+  "price": "¥¥ 中档",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "gong_de_lin_jingan",
+  "name": "功德林 (南京西路)",
+  "category": "bib",
+  "coords": [
+   31.238362,
+   121.489489
+  ],
+  "desc": "功德林作为上海知名的老字号菜馆，多年来追随者众。可别看招牌菜名为糖醋排骨、油爆鳝丝，其实全都是不折不扣的素菜。厨师以巧手将豆腐和菇菌等食材造成不同形状、外型吸引的菜式，上桌的餐点有的像鱼、有的像…",
+  "mnemonic": "黄浦区南京西路445号",
+  "icon": "🥢",
+  "stars": 0,
+  "bib": true,
+  "cuisine": "素食",
+  "address": "黄浦区南京西路445号",
+  "price": "¥¥ 中档",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "da_hu_chun_middle_sichuan_road",
+  "name": "大壶春 (四川中路)",
+  "category": "bib",
+  "coords": [
+   31.236734,
+   121.484831
+  ],
+  "desc": "这家生煎包老字号早于1932年开业，食客络绎不绝，都是慕着现做的生煎包和小云吞之名而来。生煎包包底香脆可口，内馅鲜美丰膄，有别于坊间汤汁四溢的生煎包，但足以令人齿颊回香，尤其在刚上碟时品尝最佳，…",
+  "mnemonic": "黄浦区四川中路136号",
+  "icon": "🥢",
+  "stars": 0,
+  "bib": true,
+  "cuisine": "点心",
+  "address": "黄浦区四川中路136号",
+  "price": "¥ 负担得起的",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "yu_du_lao_wei_mian_huangpu",
+  "name": "渔都老味面",
+  "category": "bib",
+  "coords": [
+   31.209859,
+   121.477205
+  ],
+  "desc": "这海鲜面馆源自舟山沈家门，老板的母亲擅长做面，现由老板承袭其手艺。店内的海鲜品种丰富，全都来自舟山，尤以黄鱼和带鱼为特色。私房酱烧黄鱼面风味浓郁，真材实料，亦推荐味道鲜甜的黄鱼春卷。在十月至十二…",
+  "mnemonic": "黄浦区丽园路501号",
+  "icon": "🥢",
+  "stars": 0,
+  "bib": true,
+  "cuisine": "面食",
+  "address": "黄浦区丽园路501号",
+  "price": "¥ 负担得起的",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "yu_ge_zhan_jiang_jingan",
+  "name": "渔哥 · 湛江 (静安)",
+  "category": "bib",
+  "coords": [
+   31.220634,
+   121.434548
+  ],
+  "desc": "主营广东湛江菜，其中鸡肴有白切和脆皮两种，均选用湛江散养土鸡烹煮，其肉味浓郁，汁水充盈。另外，也推荐香煎白鲳鱼，虽只是简单香煎，但其面衣薄脆，鱼肉油润鲜甜，尽显厨师功力。菜单还有多款手工农家小点…",
+  "mnemonic": "静安区延安西路358号",
+  "icon": "🥢",
+  "stars": 0,
+  "bib": true,
+  "cuisine": "粤菜",
+  "address": "静安区延安西路358号",
+  "price": "¥¥ 中档",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "yunhe_noodle_huangpu",
+  "name": "云和面馆 (黄浦)",
+  "category": "bib",
+  "coords": [
+   31.222156,
+   121.453369
+  ],
+  "desc": "藏身在老式民宅之中，室内尽是霓虹灯和涂鸦墙，风格时尚。提供传统口味的狮子头面、大排面，也有松茸、蛤蜊等选择，可组合出创新的面食搭配。以现剥蟹粉和三虾做成的浇头，是这里的招牌，而三虾只在时令季节供…",
+  "mnemonic": "黄浦区长乐路344号",
+  "icon": "🥢",
+  "stars": 0,
+  "bib": true,
+  "cuisine": "面食",
+  "address": "黄浦区长乐路344号",
+  "price": "¥¥ 中档",
+  "note": "",
+  "isNew": false
+ },
+ {
+  "key": "michelin_102_house",
+  "name": "壹零贰小馆",
+  "category": "michelin2",
+  "stars": 2,
+  "bib": false,
+  "cuisine": "粤菜",
+  "coords": [
+   31.242384,
+   121.485458
+  ],
+  "address": "黄浦区中山东一路27号罗斯福公馆5楼",
+  "price": "待核实",
+  "note": "蝉联二星",
+  "icon": "🍽️",
+  "desc": "佛山民宅起家的古法粤菜馆，2021年落户外滩罗斯福公馆5楼，主打按季更换的包席套餐，招牌咕噜肉四季常驻，酱烧乳鸽也值得一试。",
+  "mnemonic": "黄浦区中山东一路27号罗斯福公馆5楼",
+  "isNew": false
+ },
+ {
+  "key": "bib_a_niang_mian",
+  "name": "阿娘面",
+  "category": "bib",
+  "stars": 0,
+  "bib": true,
+  "cuisine": "面食",
+  "coords": [
+   31.219711,
+   121.461937
+  ],
+  "address": "黄浦区思南路36-2号",
+  "price": "待核实",
+  "note": "",
+  "icon": "🥢",
+  "desc": "思南路口的本帮面馆老字号，招牌黄鱼面汤鲜面滑，蟹粉面与辣肉面也很受欢迎，饭点常要排队拼桌。",
+  "mnemonic": "黄浦区思南路36-2号",
+  "isNew": false
+ }
+];
+
+    const CAT_META = {
+        michelin3: { label: '米其林三星', badge: '★★★', color: '#B8860B', bg: 'bg-yellow-100',  text: 'text-yellow-900', border: 'border-yellow-600' },
+        michelin2: { label: '米其林二星', badge: '★★',  color: '#C88A4B', bg: 'bg-amber-100',   text: 'text-amber-900',  border: 'border-amber-400' },
+        michelin1: { label: '米其林一星', badge: '★',   color: '#D9A05B', bg: 'bg-yellow-50',   text: 'text-yellow-900', border: 'border-yellow-400' },
+        bib:       { label: '必比登推介', badge: '必',  color: '#DC2626', bg: 'bg-red-50',      text: 'text-red-900',    border: 'border-red-300' }
+    };
+    const CAT_ORDER = ['michelin3', 'michelin2', 'michelin1', 'bib'];
+
+    /* ================= 状态 ================= */
+    let map;
+    let markerMap = {};        // key -> marker
+    let activeKey = null;
+    const state = { cat: 'all', cuisine: 'all', district: 'all', q: '', onlyNew: false };
+    let labelsPermanent = false;
+
+    /* ================= 工具 ================= */
+    function districtOf(r) {
+        const m = /^([\u4e00-\u9fa5]{2,3}区)/.exec(r.address || '');
+        return m ? m[1] : '其他';
+    }
+    function badgeText(r) { return r.bib ? '必' : (r.stars === 3 ? '★★★' : r.stars === 2 ? '★★' : '★'); }
+    const DISTRICTS = [...new Set(RESTAURANTS.map(districtOf))];
+    const CUISINES = [...new Set(RESTAURANTS.map(r => r.cuisine))].sort((a, b) => a.localeCompare(b, 'zh'));
+
+    /* ================= 地图 ================= */
+    window.onload = function () {
+        map = L.map('leaflet-map', {
+            center: [31.2304, 121.4737],
+            zoom: 12,
+            minZoom: 10,
+            maxZoom: 18,
+            zoomControl: true
+        });
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; CartoDB No-Labels Map Projection',
+            subdomains: 'abcd',
+            maxZoom: 20
+        }).addTo(map);
+
+        RESTAURANTS.forEach(r => {
+            const meta = CAT_META[r.category];
+            const icon = L.divIcon({
+                html: `<div class="m-icon cat-${r.category}" data-key="${r.key}" style="width:32px;height:32px;font-size:15px;" title="${r.name}">${r.icon}<span class="m-badge badge-${r.category}">${badgeText(r)}</span></div>`,
+                className: '',
+                iconSize: [32, 32],
+                iconAnchor: [16, 16]
+            });
+            const mk = L.marker(r.coords, { icon: icon, zIndexOffset: 600 }).addTo(map);
+            mk.on('click', () => selectRestaurant(r.key, true));
+            markerMap[r.key] = mk;
+        });
+
+        bindLabels();
+
+        const bounds = L.latLngBounds(RESTAURANTS.map(r => r.coords));
+        map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
+
+        buildChips();
+        renderStat();
+        renderList();
+        updateMarkers();
+    };
+
+    function bindLabels() {
+        RESTAURANTS.forEach(r => {
+            const mk = markerMap[r.key];
+            if (mk.getTooltip && mk.getTooltip()) mk.unbindTooltip();
+            mk.bindTooltip(r.name, {
+                permanent: labelsPermanent,
+                direction: 'top',
+                offset: [0, -12],
+                className: 'm-tip'
+            });
+        });
+    }
+
+    /* ================= 动态生成筛选 chip ================= */
+    function buildChips() {
+        const cWrap = document.getElementById('cuisine-chips');
+        cWrap.innerHTML = '';
+        const allBtn = document.createElement('button');
+        allBtn.type = 'button';
+        allBtn.dataset.cuisine = 'all';
+        allBtn.className = 'chip active px-2 py-0.5 text-[10px] rounded border border-gray-300 bg-white text-gray-700';
+        allBtn.textContent = '不限';
+        cWrap.appendChild(allBtn);
+        CUISINES.forEach(c => {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.dataset.cuisine = c;
+            b.className = 'chip px-2 py-0.5 text-[10px] rounded border border-gray-300 bg-white text-gray-700';
+            b.textContent = c;
+            cWrap.appendChild(b);
+        });
+
+        const dWrap = document.getElementById('district-chips');
+        dWrap.innerHTML = '';
+        const dAll = document.createElement('button');
+        dAll.type = 'button';
+        dAll.dataset.district = 'all';
+        dAll.className = 'chip active px-2 py-0.5 text-[10px] rounded border border-gray-300 bg-white text-gray-700';
+        dAll.textContent = '全部';
+        dWrap.appendChild(dAll);
+        DISTRICTS.forEach(d => {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.dataset.district = d;
+            b.className = 'chip px-2 py-0.5 text-[10px] rounded border border-gray-300 bg-white text-gray-700';
+            b.textContent = d;
+            dWrap.appendChild(b);
+        });
+    }
+
+    document.addEventListener('click', function (e) {
+        const catBtn = e.target.closest('.cat-btn');
+        if (catBtn) {
+            state.cat = catBtn.dataset.cat;
+            document.querySelectorAll('.cat-btn').forEach(b => b.classList.toggle('active', b === catBtn));
+            renderList(); updateMarkers(); return;
+        }
+        const cChip = e.target.closest('#cuisine-chips .chip');
+        if (cChip) {
+            state.cuisine = cChip.dataset.cuisine;
+            document.querySelectorAll('#cuisine-chips .chip').forEach(b => b.classList.toggle('active', b === cChip));
+            document.getElementById('clear-cuisine').classList.toggle('hidden', state.cuisine === 'all');
+            renderList(); updateMarkers(); return;
+        }
+        const dChip = e.target.closest('#district-chips .chip');
+        if (dChip) {
+            state.district = dChip.dataset.district;
+            document.querySelectorAll('#district-chips .chip').forEach(b => b.classList.toggle('active', b === dChip));
+            renderList(); updateMarkers(); return;
+        }
+        const item = e.target.closest('.rest-item');
+        if (item) { selectRestaurant(item.dataset.key, false); return; }
+        if (e.target.id === 'clear-cuisine') {
+            state.cuisine = 'all';
+            document.querySelectorAll('#cuisine-chips .chip').forEach(b => b.classList.toggle('active', b.dataset.cuisine === 'all'));
+            e.target.classList.add('hidden');
+            renderList(); updateMarkers(); return;
+        }
+        if (e.target.id === 'reset-btn') { resetFilters(); return; }
+    });
+
+    document.getElementById('search-input').addEventListener('input', function (e) {
+        state.q = e.target.value.trim().toLowerCase();
+        renderList(); updateMarkers();
+    });
+    document.getElementById('only-new').addEventListener('change', function (e) {
+        state.onlyNew = e.target.checked;
+        renderList(); updateMarkers();
+    });
+
+    function resetFilters() {
+        state.cat = 'all'; state.cuisine = 'all'; state.district = 'all'; state.q = ''; state.onlyNew = false;
+        document.getElementById('search-input').value = '';
+        document.getElementById('only-new').checked = false;
+        document.getElementById('clear-cuisine').classList.add('hidden');
+        document.querySelectorAll('.cat-btn').forEach(b => b.classList.toggle('active', b.dataset.cat === 'all'));
+        document.querySelectorAll('#cuisine-chips .chip').forEach(b => b.classList.toggle('active', b.dataset.cuisine === 'all'));
+        document.querySelectorAll('#district-chips .chip').forEach(b => b.classList.toggle('active', b.dataset.district === 'all'));
+        renderList(); updateMarkers();
+    }
+
+    /* ================= 过滤逻辑 ================= */
+    function match(r) {
+        if (state.cat !== 'all' && r.category !== state.cat) return false;
+        if (state.cuisine !== 'all' && r.cuisine !== state.cuisine) return false;
+        if (state.district !== 'all' && districtOf(r) !== state.district) return false;
+        if (state.onlyNew && !r.isNew) return false;
+        if (state.q) {
+            const hay = (r.name + ' ' + r.cuisine + ' ' + r.address + ' ' + r.desc).toLowerCase();
+            if (!hay.includes(state.q)) return false;
+        }
+        return true;
+    }
+
+    function updateMarkers() {
+        let shown = 0;
+        RESTAURANTS.forEach(r => {
+            const ok = match(r);
+            const mk = markerMap[r.key];
+            const el = mk.getElement();
+            if (el) {
+                el.style.display = ok ? '' : 'none';
+                const inner = el.querySelector('.m-icon');
+                if (inner) inner.classList.toggle('m-dim', false);
+            }
+            if (ok) shown++;
+        });
+        document.getElementById('map-hint').textContent = `显示 ${shown} / ${RESTAURANTS.length} 家 · 点击图标查看详情`;
+    }
+
+    /* ================= 名录 ================= */
+    function renderList() {
+        const list = document.getElementById('rest-list');
+        list.innerHTML = '';
+        const rows = RESTAURANTS.filter(match);
+        if (!rows.length) {
+            document.getElementById('empty-tip').classList.remove('hidden');
+            return;
+        }
+        document.getElementById('empty-tip').classList.add('hidden');
+
+        CAT_ORDER.forEach(cat => {
+            const group = rows.filter(r => r.category === cat);
+            if (!group.length) return;
+            const head = document.createElement('div');
+            head.className = 'flex items-center gap-2 mt-2 mb-0.5 px-1';
+            head.innerHTML = `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded text-white" style="background:${CAT_META[cat].color}">${CAT_META[cat].badge}</span>
+                <span class="text-[11px] font-bold text-[#1F402B]">${CAT_META[cat].label}</span>
+                <span class="text-[10px] text-gray-400">${group.length} 家</span>`;
+            list.appendChild(head);
+
+            group.sort((a, b) => a.name.localeCompare(b.name, 'zh'));
+            group.forEach(r => {
+                const meta = CAT_META[r.category];
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = `rest-item text-left w-full px-2.5 py-2 rounded-lg border border-gray-200 bg-white flex items-start gap-2 ${activeKey === r.key ? 'active' : ''}`;
+                btn.dataset.key = r.key;
+                const newTag = r.isNew ? `<span class="ml-1 text-[9px] font-bold text-[#DC2626] border border-red-300 bg-red-50 rounded px-1">新</span>` : '';
+                btn.innerHTML = `
+                    <span class="ri-star text-sm leading-5 shrink-0" style="color:${meta.color}">${meta.badge}</span>
+                    <span class="min-w-0 flex-1">
+                        <span class="ri-name block text-xs font-bold text-gray-800 truncate">${r.name}${newTag}</span>
+                        <span class="ri-sub block text-[9px] text-gray-500 truncate">${r.cuisine} · ${districtOf(r)} · ${r.price}${r.note ? ' · ' + r.note : ''}</span>
+                    </span>`;
+                list.appendChild(btn);
+            });
+        });
+    }
+
+    /* ================= 详情 ================= */
+    function selectRestaurant(key, fromMap) {
+        const r = RESTAURANTS.find(x => x.key === key);
+        if (!r) return;
+        activeKey = key;
+        const meta = CAT_META[r.category];
+
+        document.getElementById('detail-type').textContent = `📍 ${meta.label}`;
+        document.getElementById('detail-title').textContent = r.name;
+        document.getElementById('detail-icon').textContent = r.icon;
+        document.getElementById('detail-desc').textContent = r.desc;
+
+        const metaEl = document.getElementById('detail-meta');
+        metaEl.innerHTML = '';
+        const chips = [r.cuisine, districtOf(r), r.price];
+        if (r.note) chips.push('🏅 ' + r.note);
+        chips.forEach(t => {
+            const s = document.createElement('span');
+            s.className = `inline-block text-[10px] font-semibold mr-1.5 mb-1.5 px-2 py-0.5 rounded border ${meta.bg} ${meta.text} ${meta.border}`;
+            s.textContent = t;
+            metaEl.appendChild(s);
+        });
+
+        const addrBox = document.getElementById('detail-addr-box');
+        const addrEl = document.getElementById('detail-addr');
+        if (r.address && r.address !== '待核实') { addrBox.classList.remove('hidden'); addrEl.textContent = r.address; }
+        else addrBox.classList.add('hidden');
+
+        const tipBox = document.getElementById('detail-tip-box');
+        const tipEl = document.getElementById('detail-tip');
+        if (r.mnemonic) { tipBox.classList.remove('hidden'); tipEl.textContent = r.mnemonic; }
+        else tipBox.classList.add('hidden');
+
+        // 图标高亮
+        Object.values(markerMap).forEach(mk => {
+            const el = mk.getElement();
+            if (!el) return;
+            const inner = el.querySelector('.m-icon');
+            if (inner) inner.classList.toggle('is-active', inner.dataset.key === key);
+        });
+
+        // 名录高亮 + 滚动
+        document.querySelectorAll('.rest-item').forEach(b => b.classList.toggle('active', b.dataset.key === key));
+        const activeItem = document.querySelector(`.rest-item[data-key="${key}"]`);
+        if (activeItem && fromMap) activeItem.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+
+        map.flyTo(r.coords, Math.max(map.getZoom(), 15), { duration: 0.7 });
+    }
+
+    /* ================= 统计 ================= */
+    function renderStat() {
+        const byCat = {};
+        CAT_ORDER.forEach(c => byCat[c] = RESTAURANTS.filter(r => r.category === c).length);
+        const byDist = {};
+        RESTAURANTS.forEach(r => { const d = districtOf(r); byDist[d] = (byDist[d] || 0) + 1; });
+        const distStr = Object.entries(byDist).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${v}`).join(' · ');
+        document.getElementById('stat-line').innerHTML =
+            `星级 <b>${byCat.michelin3 + byCat.michelin2 + byCat.michelin1}</b> 家（三星 ${byCat.michelin3} / 二星 ${byCat.michelin2} / 一星 ${byCat.michelin1}） + 必比登 <b>${byCat.bib}</b> 家，共 <b>${RESTAURANTS.length}</b> 家。<br>行政区分布：${distStr}。菜系 <b>${CUISINES.length}</b> 类。`;
+    }
+</script>
+</body>
+</html>
