@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>120W总包 现金+期权 薪酬收益测算器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --cash-color: #059669;
+            --option-color: #7c3aed;
+            --danger: #dc2626;
+        }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+        }
+        .card {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.04);
+            border: 1px solid #e2e8f0;
+        }
+        .input-field {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1.5px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 15px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            background: #fff;
+            outline: none;
+        }
+        .input-field:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
+        }
+        .slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: linear-gradient(to right, #059669 0%, #7c3aed 100%);
+            outline: none;
+            cursor: pointer;
+        }
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #fff;
+            border: 3px solid var(--primary);
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        }
+        .stat-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .stat-cash { background: #d1fae5; color: #065f46; }
+        .stat-option { background: #ede9fe; color: #5b21b6; }
+        table.comp-table th, table.comp-table td {
+            padding: 10px 14px;
+            text-align: right;
+            font-size: 13px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        table.comp-table th {
+            background: #f1f5f9;
+            color: #475569;
+            font-weight: 600;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+        table.comp-table tr:hover td {
+            background: #f8fafc;
+        }
+        table.comp-table .highlight-row td {
+            background: #eff6ff;
+            font-weight: 600;
+        }
+        .risk-banner {
+            background: #fef2f2;
+            border: 1.5px solid #fecaca;
+            border-left: 4px solid #dc2626;
+            color: #991b1b;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-6 max-w-7xl mx-auto">
+
+    <!-- 标题 -->
+    <div class="card p-5 md:p-6 mb-6">
+        <h1 class="text-xl md:text-2xl font-bold text-center text-gray-800 flex items-center justify-center gap-2 flex-wrap">
+            <svg class="w-7 h-7 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+            120W总包 &nbsp;<span class="text-gray-400 font-normal text-lg">15薪(含3个月年终奖)</span>&nbsp;｜现金+期权薪酬收益测算器
+        </h1>
+    </div>
+
+    <!-- 风险警告 -->
+    <div class="risk-banner p-4 md:p-5 rounded-xl mb-6 text-sm leading-relaxed flex items-start gap-3">
+        <span class="text-xl flex-shrink-0">⚠️</span>
+        <div>
+            <p class="font-bold text-base mb-1">重要风险提示</p>
+            <p>期权纸面价值<strong>不等于</strong>现金；未上市期权流动性极差，有可能价值归零；上市存在重大不确定性；本测算仅基于假设参数的数学推演，<strong>不代表任何收益承诺</strong>。</p>
+        </div>
+    </div>
+
+    <!-- ==================== 输入区 ==================== -->
+    <div class="card p-5 md:p-6 mb-6">
+        <h2 class="text-lg font-semibold text-gray-700 mb-5 flex items-center gap-2">
+            <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            参数设置
+        </h2>
+
+        <!-- 第一行 -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+            <div>
+                <label class="block text-sm font-medium text-gray-600 mb-1">总包薪酬（万RMB）</label>
+                <div class="relative">
+                    <input type="number" id="totalPackage" value="120" min="10" step="1" class="input-field pr-10">
+                    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none">万</span>
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-600 mb-1">公司当前估值（亿RMB）</label>
+                <div class="relative">
+                    <input type="number" id="companyValuation" value="20" min="0.1" step="0.1" class="input-field pr-10">
+                    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none">亿</span>
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-600 mb-1">IPO后估值倍数</label>
+                <div class="relative">
+                    <input type="number" id="ipoMultiple" value="3" min="1" max="10" step="0.5" class="input-field pr-10">
+                    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none">倍</span>
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-600 mb-1">行权总成本（万RMB）</label>
+                <div class="relative">
+                    <input type="number" id="exerciseCost" value="" min="0" step="0.01" class="input-field pr-10" placeholder="留空=期权名义价值">
+                    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none">万</span>
+                </div>
+                <p class="text-xs text-gray-400 mt-1">留空则按当前估值等比折算行权价</p>
+            </div>
+        </div>
+
+        <!-- 第二行: 现金占比滑块 -->
+        <div class="mb-5">
+            <label class="block text-sm font-medium text-gray-600 mb-2">
+                总包分配比例：
+                <span class="text-green-700 font-bold" id="cashPctLabel">70%</span> 现金
+                <span class="text-gray-300 mx-1">|</span>
+                <span class="text-purple-700 font-bold" id="optionPctLabel">30%</span> 期权
+            </label>
+            <div class="flex items-center gap-4">
+                <span class="text-xs text-green-700 font-semibold w-8">0%</span>
+                <input type="range" id="cashRatio" min="0" max="100" value="70" step="1" class="slider flex-1">
+                <span class="text-xs text-purple-700 font-semibold w-10">100%</span>
+            </div>
+            <div class="flex justify-between text-xs text-gray-400 mt-1">
+                <span>全现金</span>
+                <span>全期权</span>
+            </div>
+        </div>
+
+        <!-- 第三行: 期权锁定期 + 公积金 + 专项扣除 -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-600 mb-1">悬崖期（月）</label>
+                <input type="number" id="cliffMonths" value="12" min="0" max="48" step="1" class="input-field">
+                <p class="text-xs text-gray-400 mt-1">满此月数归属 25%</p>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-600 mb-1">总归属期（月）</label>
+                <input type="number" id="totalVestingMonths" value="48" min="1" max="72" step="1" class="input-field">
+                <p class="text-xs text-gray-400 mt-1">剩余 75% 匀速归属</p>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-600 mb-1">公积金比例（%）</label>
+                <select id="hfRate" class="input-field">
+                    <option value="5">5%</option>
+                    <option value="6">6%</option>
+                    <option value="7" selected>7%</option>
+                    <option value="8">8%</option>
+                    <option value="9">9%</option>
+                    <option value="10">10%</option>
+                    <option value="11">11%</option>
+                    <option value="12">12%</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-600 mb-1">每月专项附加扣除（元）</label>
+                <input type="number" id="specialDeduction" value="0" min="0" step="100" class="input-field" placeholder="如 3000">
+                <p class="text-xs text-gray-400 mt-1">子女教育/房贷/赡养老人等</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 结果摘要区 ==================== -->
+    <div id="resultsArea">
+        <!-- 摘要卡片行 -->
+        <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
+            <!-- 现金类 -->
+            <div class="card p-4 border-l-4 border-l-green-500">
+                <p class="text-xs font-medium text-green-600 mb-1">年度税前现金</p>
+                <p id="annualCashGross" class="text-xl font-bold text-gray-800">0</p>
+                <p class="text-xs text-gray-400 mt-0.5">月薪 <span id="monthlySalaryDisplay">0</span> + 年终奖 <span id="bonusDisplay">0</span></p>
+            </div>
+            <div class="card p-4 border-l-4 border-l-green-600">
+                <p class="text-xs font-medium text-green-600 mb-1">年度税后到手现金</p>
+                <p id="annualCashNet" class="text-xl font-bold text-green-700">0</p>
+                <p class="text-xs text-gray-400 mt-0.5">每月到手约 <span id="monthlyNetDisplay">0</span></p>
+            </div>
+            <!-- 期权类 -->
+            <div class="card p-4 border-l-4 border-l-purple-500">
+                <p class="text-xs font-medium text-purple-600 mb-1">期权纸面价值</p>
+                <p id="optionNominal" class="text-xl font-bold text-gray-800">0</p>
+                <p class="text-xs text-gray-400 mt-0.5">对应股权 <span id="equityRatioDisplay">0</span></p>
+            </div>
+            <div class="card p-4 border-l-4 border-l-purple-600">
+                <p class="text-xs font-medium text-purple-600 mb-1">未上市预期收益</p>
+                <p id="unlistedValue" class="text-xl font-bold text-red-600">≈0</p>
+                <p class="text-xs text-gray-400 mt-0.5">内部回购通常极低</p>
+            </div>
+            <div class="card p-4 border-l-4 border-l-blue-500">
+                <p class="text-xs font-medium text-blue-600 mb-1">IPO税后期权净收益</p>
+                <p id="ipoNetOption" class="text-xl font-bold text-blue-700">0</p>
+                <p class="text-xs text-gray-400 mt-0.5"><span id="ipoValLabel">3倍</span> 估值、含税后</p>
+            </div>
+        </div>
+
+        <!-- 第二行摘要: 四年总计 -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
+            <div class="card p-4 bg-gradient-to-r from-green-50 to-white border-l-4 border-l-green-600">
+                <p class="text-sm font-semibold text-green-700 mb-1">4年累计税后现金</p>
+                <p id="fourYearCashNet" class="text-2xl font-bold text-green-800">0</p>
+            </div>
+            <div class="card p-4 bg-gradient-to-r from-purple-50 to-white border-l-4 border-l-purple-600">
+                <p class="text-sm font-semibold text-purple-700 mb-1">IPO情景 期权税后净收益</p>
+                <p id="fourYearOptionNet" class="text-2xl font-bold text-purple-800">0</p>
+            </div>
+            <div class="card p-4 bg-gradient-to-r from-blue-50 to-white border-l-4 border-l-blue-600">
+                <p class="text-sm font-semibold text-blue-700 mb-1">IPO情景 4年合计总回报</p>
+                <p id="fourYearTotal" class="text-2xl font-bold text-blue-800">0</p>
+                <p class="text-xs text-blue-500 mt-0.5">现金 + 期权税后</p>
+            </div>
+        </div>
+
+        <!-- ==================== 现金薪资详细结果 ==================== -->
+        <div class="card p-5 md:p-6 mb-6">
+            <h2 class="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                <span class="stat-badge stat-cash">现金</span> 现金薪资详细结果（上海五险一金 + 累计预扣个税）
+            </h2>
+            <div class="overflow-x-auto">
+                <table class="comp-table min-w-full" id="cashDetailTable">
+                    <thead>
+                        <tr>
+                            <th class="text-left rounded-tl-lg">月份</th>
+                            <th>税前工资</th>
+                            <th>养老(个)</th>
+                            <th>医疗(个)</th>
+                            <th>失业(个)</th>
+                            <th>公积金(个)</th>
+                            <th>专项附加</th>
+                            <th>个税</th>
+                            <th>税后到手</th>
+                            <th>税后+公积金(双边)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cashDetailBody"></tbody>
+                    <tfoot id="cashDetailFoot"></tfoot>
+                </table>
+            </div>
+        </div>
+
+        <!-- ==================== 期权-未上市 ==================== -->
+        <div class="card p-5 md:p-6 mb-6">
+            <h2 class="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                <span class="stat-badge stat-option">期权</span> 未上市情景（场景A）
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <p class="text-sm text-gray-500 mb-2">期权基本信息</p>
+                    <table class="w-full text-sm">
+                        <tr><td class="py-1.5 text-gray-500 w-32">期权纸面价值</td><td class="py-1.5 font-semibold" id="uaNominal">-</td></tr>
+                        <tr><td class="py-1.5 text-gray-500">对应股权比例</td><td class="py-1.5 font-semibold" id="uaEquity">-</td></tr>
+                        <tr><td class="py-1.5 text-gray-500">归属规则</td><td class="py-1.5" id="uaVesting">-</td></tr>
+                        <tr><td class="py-1.5 text-gray-500">4年累计归属</td><td class="py-1.5 font-semibold text-green-700" id="uaVestedRatio">-</td></tr>
+                    </table>
+                </div>
+                <div class="bg-red-50 p-4 rounded-lg border border-red-200">
+                    <p class="text-sm font-semibold text-red-700 mb-2">不上市预期收益</p>
+                    <p class="text-sm text-red-600 leading-relaxed" id="uaExplanation">
+                        公司若始终不上市，期权通常只能通过内部回购退出。绝大多数未上市公司的回购价格仅按<strong>行权价</strong>（甚至更低），收益极低甚至为0。期权可能完全归零。
+                    </p>
+                    <p class="mt-3 text-sm">
+                        <span class="text-gray-500">预期净收益：</span>
+                        <span class="font-bold text-red-600" id="uaNetValue">≈ 0 ～ 极低</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== 期权-IPO ==================== -->
+        <div class="card p-5 md:p-6 mb-6">
+            <h2 class="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                <span class="stat-badge stat-option">期权</span> IPO上市情景（场景B）
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div class="bg-blue-50 p-4 rounded-lg">
+                    <p class="text-xs text-blue-500 mb-1">上市后公司估值</p>
+                    <p class="text-xl font-bold text-blue-700" id="ipoPostVal">-</p>
+                    <p class="text-xs text-blue-400 mt-1">当前估值 × 倍数</p>
+                </div>
+                <div class="bg-purple-50 p-4 rounded-lg">
+                    <p class="text-xs text-purple-500 mb-1">归属期权对应市值</p>
+                    <p class="text-xl font-bold text-purple-700" id="ipoMarketVal">-</p>
+                    <p class="text-xs text-purple-400 mt-1">上市后估值 × 个人股权比例</p>
+                </div>
+                <div class="bg-green-50 p-4 rounded-lg">
+                    <p class="text-xs text-green-500 mb-1">税后期权净收益</p>
+                    <p class="text-xl font-bold text-green-700" id="ipoNetProceeds">-</p>
+                    <p class="text-xs text-green-400 mt-1">扣除行权成本、个税后</p>
+                </div>
+            </div>
+            <div class="bg-gray-50 p-4 rounded-lg">
+                <p class="text-sm font-medium text-gray-600 mb-3">税费明细</p>
+                <table class="w-full text-sm">
+                    <tr>
+                        <td class="py-1.5 text-gray-500 w-36">期权市值（IPO时）</td>
+                        <td class="py-1.5 font-semibold" id="ipoTaxMarketVal">-</td>
+                    </tr>
+                    <tr>
+                        <td class="py-1.5 text-gray-500">减：行权成本</td>
+                        <td class="py-1.5 text-red-600" id="ipoTaxCost">-</td>
+                    </tr>
+                    <tr>
+                        <td class="py-1.5 text-gray-500">应纳税所得额（行权）</td>
+                        <td class="py-1.5 font-semibold" id="ipoTaxIncome">-</td>
+                    </tr>
+                    <tr>
+                        <td class="py-1.5 text-gray-500">行权个税（工资薪金单独计税）</td>
+                        <td class="py-1.5 text-red-600 font-semibold" id="ipoExerciseTax">-</td>
+                    </tr>
+                    <tr>
+                        <td class="py-1.5 text-gray-500">二级市场卖出个税（20%）</td>
+                        <td class="py-1.5 text-red-600" id="ipoCapitalGainsTax">0（按行权价卖出无增值）</td>
+                    </tr>
+                    <tr class="border-t-2 border-gray-300">
+                        <td class="py-2 text-gray-700 font-semibold">税后期权净收益</td>
+                        <td class="py-2 text-lg font-bold text-green-700" id="ipoNetSummary">-</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- ==================== 多配比对比表 ==================== -->
+        <div class="card p-5 md:p-6 mb-6">
+            <h2 class="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                多配比参考对比（IPO情景）
+            </h2>
+            <div class="overflow-x-auto">
+                <table class="comp-table min-w-full" id="comparisonTable">
+                    <thead>
+                        <tr>
+                            <th class="text-left rounded-tl-lg">现金占比</th>
+                            <th>期权占比</th>
+                            <th>年度税后现金</th>
+                            <th>4年累计税后现金</th>
+                            <th>未上市期权收益</th>
+                            <th>IPO期权税后净收益</th>
+                            <th class="rounded-tr-lg">IPO 4年合计总回报</th>
+                        </tr>
+                    </thead>
+                    <tbody id="comparisonBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ==================== 计算说明 ==================== -->
+        <div class="card p-5 md:p-6 bg-blue-50/50">
+            <h2 class="text-lg font-semibold text-gray-700 mb-3">计算说明</h2>
+            <ul class="text-sm text-gray-600 space-y-1.5 list-disc list-inside">
+                <li><strong>现金部分：</strong>总包 × 现金占比，按15薪拆分（12月月薪 + 3月年终奖）。五险一金按上海2025.7起基数上限（社保封顶37,302元/月、公积金封顶37,302元/月），执行累计预扣法个税；年终奖按全年一次性奖金单独计税。</li>
+                <li><strong>期权纸面价值：</strong>总包 × 期权占比，并非现金。股权比例 = 期权纸面价值 ÷ 公司当前估值。</li>
+                <li><strong>归属规则：</strong>悬崖期（默认12个月）满归属25%，剩余75%在余下月份内匀速归属。4年全部归属完毕后，个人拥有该部分股权。</li>
+                <li><strong>行权成本：</strong>默认按当前估值等比折算（即行权价 ≈ 当前公允价），实际行权价以公司期权协议为准。</li>
+                <li><strong>IPO情景个税：</strong>行权收益（市值 − 行权成本）按工资薪金适用全年一次性奖金单独计税税率表；二级市场卖出按财产转让所得20%计税（假设按行权价卖出无增值）。</li>
+                <li><strong>未上市情景：</strong>公司不上市时，期权几乎无流动性；大多数未上市公司仅有极少量内部回购（通常仅按行权价），期权可能完全归零。</li>
+                <li>所有金额单位为人民币。本测算仅供参考，不构成任何投资或职业决策建议。</li>
+            </ul>
+        </div>
+    </div>
+
+<script>
+// ============ 常量 ============
+const WAN = 10000;
+const YI = 100000000; // 亿 = 10000万
+
+const RATES = {
+    PENSION_E: 0.08,
+    MEDICAL_E: 0.02,
+    UNEMPLOYMENT_E: 0.005,
+    PENSION_C: 0.16,
+    MEDICAL_C: 0.08,
+    UNEMPLOYMENT_C: 0.005,
+    WORK_INJURY_C: 0.0026,
+};
+const LIMITS = {
+    SS_LOWER: 7460,
+    SS_UPPER: 37302,
+    HF_LOWER: 2690,
+    HF_UPPER: 37302,
+};
+const MONTHS = 12;
+const BASIC_DEDUCTION = 5000; // 每月基本减除费用
+
+// 累计预扣税率表（年度）
+const TAX_BRACKETS_ANNUAL = [
+    { threshold: 0, rate: 0.03, quick: 0 },
+    { threshold: 36000, rate: 0.10, quick: 2520 },
+    { threshold: 144000, rate: 0.20, quick: 16920 },
+    { threshold: 300000, rate: 0.25, quick: 31920 },
+    { threshold: 420000, rate: 0.30, quick: 52920 },
+    { threshold: 660000, rate: 0.35, quick: 85920 },
+    { threshold: 960000, rate: 0.45, quick: 181920 },
+];
+
+// 按月换算的综合所得税率表（用于年终奖/期权行权收益单独计税）
+const BONUS_TAX_BRACKETS = [
+    { threshold: 3000, rate: 0.03, quick: 0 },
+    { threshold: 12000, rate: 0.10, quick: 210 },
+    { threshold: 25000, rate: 0.20, quick: 1410 },
+    { threshold: 35000, rate: 0.25, quick: 2660 },
+    { threshold: 55000, rate: 0.30, quick: 4410 },
+    { threshold: 80000, rate: 0.35, quick: 7160 },
+    { threshold: Infinity, rate: 0.45, quick: 15160 },
+];
+
+// ============ 工具函数 ============
+const formatRMB = (num) => {
+    if (num == null || isNaN(num)) return '0.00';
+    return parseFloat(num).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+};
+const formatWan = (yuan) => {
+    if (yuan == null || isNaN(yuan) || yuan === 0) return '0';
+    const wan = yuan / WAN;
+    let s = wan.toFixed(4);
+    s = s.replace(/\.?0+$/, '');
+    if (s.endsWith('.')) s = s.slice(0, -1);
+    return s;
+};
+const formatYi = (wan) => {
+    if (wan == null || isNaN(wan) || wan === 0) return '0';
+    const yi = wan / 10000;
+    let s = yi.toFixed(2);
+    s = s.replace(/\.?0+$/, '');
+    if (s.endsWith('.')) s = s.slice(0, -1);
+    return s;
+};
+const formatPct = (ratio) => (ratio * 100).toFixed(4) + '%';
+
+// ============ 核心计算 ============
+
+// 月五险一金
+function calcMonthlyDeductions(monthlySalary, hfRate) {
+    const ssBase = Math.min(Math.max(monthlySalary, LIMITS.SS_LOWER), LIMITS.SS_UPPER);
+    const hfBase = Math.min(Math.max(monthlySalary, LIMITS.HF_LOWER), LIMITS.HF_UPPER);
+    const pension_e = ssBase * RATES.PENSION_E;
+    const medical_e = ssBase * RATES.MEDICAL_E;
+    const unemployment_e = ssBase * RATES.UNEMPLOYMENT_E;
+    const housingFund_e = hfBase * hfRate;
+    const housingFund_c = hfBase * hfRate;
+    const individualTotal = pension_e + medical_e + unemployment_e + housingFund_e;
+    return {
+        ssBase, hfBase,
+        pension_e, medical_e, unemployment_e, housingFund_e,
+        housingFund_c,
+        individualTotal,
+        housingFundTotal: housingFund_e + housingFund_c,
+    };
+}
+
+// 年终奖/期权行权收益 单独计税
+function calcBonusTax(amount) {
+    if (amount <= 0) return { tax: 0, net: 0, rate: '0%' };
+    const monthlyEquiv = amount / 12;
+    let rate = BONUS_TAX_BRACKETS[0].rate;
+    let quick = BONUS_TAX_BRACKETS[0].quick;
+    for (const b of BONUS_TAX_BRACKETS) {
+        if (monthlyEquiv <= b.threshold) { rate = b.rate; quick = b.quick; break; }
+    }
+    const tax = Math.max(0, amount * rate - quick);
+    return { tax, net: amount - tax, rate: (rate * 100).toFixed(0) + '%' };
+}
+
+// 累计预扣法计算月度个税（全年）
+// annualCashWan: 年度现金总额（万RMB）
+function calcCashScenario(annualCashWan, hfRate, specialDeductionMonthly) {
+    const annualCash = annualCashWan * WAN; // 万 → 元
+    const monthlySalary = annualCash / 15; // 15薪 → 月薪（元）
+    const annualBonus = monthlySalary * 3; // 年终奖（元）
+    const deductions = calcMonthlyDeductions(monthlySalary, hfRate);
+    const monthlyWX = deductions.individualTotal; // 月五险一金个人
+    const monthlyHFT = deductions.housingFundTotal; // 月公积金双边
+
+    const months = [];
+    let cumulativeTax = 0;
+    let totalNet = 0;
+    let totalIIT = 0;
+    let totalHFT = 0;
+
+    for (let m = 1; m <= MONTHS; m++) {
+        const cumGross = monthlySalary * m;
+        const cumWX = monthlyWX * m;
+        const cumSpec = specialDeductionMonthly * m;
+        const cumBasic = BASIC_DEDUCTION * m;
+        const cumTaxable = Math.max(0, cumGross - cumWX - cumSpec - cumBasic);
+
+        let cumTaxPayable = 0;
+        let applicableRate = 0;
+        for (let i = TAX_BRACKETS_ANNUAL.length - 1; i >= 0; i--) {
+            if (cumTaxable > TAX_BRACKETS_ANNUAL[i].threshold) {
+                cumTaxPayable = cumTaxable * TAX_BRACKETS_ANNUAL[i].rate - TAX_BRACKETS_ANNUAL[i].quick;
+                applicableRate = TAX_BRACKETS_ANNUAL[i].rate;
+                break;
+            }
+        }
+        const monthIIT = Math.max(0, cumTaxPayable - cumulativeTax);
+        cumulativeTax += monthIIT;
+        totalIIT += monthIIT;
+        totalHFT += monthlyHFT;
+        const net = monthlySalary - monthlyWX - monthIIT;
+        totalNet += net;
+
+        months.push({
+            month: m, gross: monthlySalary,
+            pension_e: deductions.pension_e, medical_e: deductions.medical_e,
+            unemployment_e: deductions.unemployment_e, housingFund_e: deductions.housingFund_e,
+            housingFund_c: deductions.housingFund_c,
+            specDed: specialDeductionMonthly, iit: monthIIT,
+            net, netPlusHF: net + monthlyHFT,
+            cumTaxable, applicableRate: applicableRate * 100,
+        });
+    }
+
+    const bonusResult = calcBonusTax(annualBonus);
+    const annualGross = monthlySalary * 12 + annualBonus;
+    const annualNet = totalNet + bonusResult.net;
+
+    return {
+        monthlySalary, annualBonus, annualGross, annualNet,
+        totalNetSalary: totalNet, totalIIT, totalHFT,
+        bonusResult,
+        months,
+        deductions,
+    };
+}
+
+// 期权计算
+// optionNominalWan: 期权纸面价值（万RMB）, companyValYi: 公司估值（亿RMB）
+function calcOptionScenario(optionNominalWan, companyValYi, ipoMultiple, exerciseCostWan, cliffMonths, totalMonths) {
+    const optionNominal = optionNominalWan * WAN; // 万 → 元
+    const companyValYuan = companyValYi * YI; // 亿 → 元
+    const equityRatio = optionNominal / companyValYuan; // 无量纲比例
+
+    // 归属进度
+    const vestingSchedule = [];
+    let vestedRatio = 0;
+    const cliffRatio = 0.25;
+    const remainingRatio = 0.75;
+    const postCliffMonths = totalMonths - cliffMonths;
+
+    for (let m = 1; m <= totalMonths; m++) {
+        if (m < cliffMonths) {
+            // 无归属
+        } else if (m === cliffMonths) {
+            vestedRatio = cliffRatio;
+        } else if (postCliffMonths > 0) {
+            vestedRatio = cliffRatio + remainingRatio * ((m - cliffMonths) / postCliffMonths);
+        }
+        vestingSchedule.push({ month: m, vestedRatio: Math.min(1, vestedRatio) });
+    }
+
+    // IPO情景
+    const postIpoValYuan = companyValYuan * ipoMultiple; // 元
+    const fullyVestedEquityValue = postIpoValYuan * equityRatio; // 元
+
+    // 行权成本
+    let exerciseCost;
+    if (exerciseCostWan != null && !isNaN(exerciseCostWan) && exerciseCostWan > 0) {
+        exerciseCost = exerciseCostWan * WAN; // 万 → 元
+    } else {
+        // 默认按当前估值等比折算：行权成本 = 期权名义价值（即行权价=当前公允价）
+        exerciseCost = optionNominal; // 元
+    }
+
+    const exerciseGain = Math.max(0, fullyVestedEquityValue - exerciseCost);
+    const exerciseTaxResult = calcBonusTax(exerciseGain);
+    const netProceeds = fullyVestedEquityValue - exerciseCost - exerciseTaxResult.tax;
+
+    return {
+        optionNominal,       // 元
+        equityRatio,         // 无量纲
+        vestingSchedule,
+        cliffMonths,
+        totalMonths,
+        postIpoValYi: companyValYi * ipoMultiple, // 亿（展示用）
+        postIpoValYuan,      // 元
+        fullyVestedEquityValue, // 元
+        exerciseCost,        // 元
+        exerciseGain,        // 元
+        exerciseTaxResult,
+        capitalGainsTax: 0,  // 按行权价卖出无增值
+        netProceeds,         // 元
+    };
+}
+
+// ============ 获取输入 ============
+function getInputs() {
+    const totalPackage = Math.max(0, parseFloat(document.getElementById('totalPackage').value) || 0);
+    const companyValuation = Math.max(0.1, parseFloat(document.getElementById('companyValuation').value) || 0.1);
+    const cashRatio = Math.max(0, Math.min(100, parseInt(document.getElementById('cashRatio').value) || 70)) / 100;
+    const ipoMultiple = Math.max(1, parseFloat(document.getElementById('ipoMultiple').value) || 3);
+    const cliffMonths = Math.max(1, parseInt(document.getElementById('cliffMonths').value) || 12);
+    const totalVestingMonths = Math.max(cliffMonths + 1, parseInt(document.getElementById('totalVestingMonths').value) || 48);
+    const hfRate = (parseFloat(document.getElementById('hfRate').value) || 7) / 100;
+    const specialDeduction = Math.max(0, parseFloat(document.getElementById('specialDeduction').value) || 0);
+    const exerciseCostRaw = document.getElementById('exerciseCost').value;
+    const exerciseCostWan = (exerciseCostRaw === '' || exerciseCostRaw == null) ? null : parseFloat(exerciseCostRaw);
+
+    return {
+        totalPackage, companyValuation, cashRatio, optionRatio: 1 - cashRatio,
+        ipoMultiple, cliffMonths, totalVestingMonths,
+        hfRate, specialDeduction, exerciseCostWan,
+        annualCash: totalPackage * cashRatio,
+        optionNominalWan: totalPackage * (1 - cashRatio),
+    };
+}
+
+// ============ 渲染所有结果 ============
+function renderAll() {
+    const inp = getInputs();
+    const cashResult = calcCashScenario(inp.annualCash, inp.hfRate, inp.specialDeduction);
+    const optResult = calcOptionScenario(inp.optionNominalWan, inp.companyValuation, inp.ipoMultiple, inp.exerciseCostWan, inp.cliffMonths, inp.totalVestingMonths);
+
+    // 更新标签
+    document.getElementById('cashPctLabel').textContent = (inp.cashRatio * 100).toFixed(0) + '%';
+    document.getElementById('optionPctLabel').textContent = (inp.optionRatio * 100).toFixed(0) + '%';
+    document.getElementById('ipoValLabel').textContent = inp.ipoMultiple + '倍';
+
+    // 摘要
+    document.getElementById('annualCashGross').textContent = formatRMB(cashResult.annualGross);
+    document.getElementById('monthlySalaryDisplay').textContent = formatWan(cashResult.monthlySalary) + '万/月';
+    document.getElementById('bonusDisplay').textContent = formatWan(cashResult.annualBonus) + '万年终奖';
+
+    document.getElementById('annualCashNet').textContent = formatRMB(cashResult.annualNet);
+    document.getElementById('monthlyNetDisplay').textContent = formatWan(cashResult.annualNet / 12) + '万';
+
+    document.getElementById('optionNominal').textContent = formatRMB(optResult.optionNominal);
+    document.getElementById('equityRatioDisplay').textContent = formatPct(optResult.equityRatio);
+
+    document.getElementById('unlistedValue').textContent = '≈ 0 ～ 极低';
+    document.getElementById('ipoNetOption').textContent = formatRMB(optResult.netProceeds);
+
+    document.getElementById('fourYearCashNet').textContent = formatRMB(cashResult.annualNet * 4);
+    document.getElementById('fourYearOptionNet').textContent = formatRMB(optResult.netProceeds);
+    document.getElementById('fourYearTotal').textContent = formatRMB(cashResult.annualNet * 4 + optResult.netProceeds);
+
+    // 现金明细表
+    renderCashDetail(cashResult, inp);
+
+    // 未上市情景
+    document.getElementById('uaNominal').textContent = formatRMB(optResult.optionNominal);
+    document.getElementById('uaEquity').textContent = formatPct(optResult.equityRatio);
+    document.getElementById('uaVesting').textContent = `${optResult.cliffMonths}个月悬崖（归属25%）+ 剩余${optResult.totalMonths - optResult.cliffMonths}个月匀速归属剩余75%`;
+    document.getElementById('uaVestedRatio').textContent = '100%（4年全部归属）';
+    document.getElementById('uaNetValue').textContent = '≈ 0 ～ 极低（内部回购通常仅按行权价）';
+
+    // IPO情景
+    document.getElementById('ipoPostVal').textContent = optResult.postIpoValYi.toFixed(0) + '亿';
+    document.getElementById('ipoMarketVal').textContent = formatRMB(optResult.fullyVestedEquityValue);
+    document.getElementById('ipoNetProceeds').textContent = formatRMB(optResult.netProceeds);
+    document.getElementById('ipoTaxMarketVal').textContent = formatRMB(optResult.fullyVestedEquityValue);
+    document.getElementById('ipoTaxCost').textContent = '-' + formatRMB(optResult.exerciseCost);
+    document.getElementById('ipoTaxIncome').textContent = formatRMB(optResult.exerciseGain);
+    document.getElementById('ipoExerciseTax').textContent = formatRMB(optResult.exerciseTaxResult.tax) + '（' + optResult.exerciseTaxResult.rate + '）';
+    document.getElementById('ipoNetSummary').textContent = formatRMB(optResult.netProceeds);
+
+    // 多配比对比表
+    renderComparison(inp);
+}
+
+// 现金明细表
+function renderCashDetail(cashResult, inp) {
+    const body = document.getElementById('cashDetailBody');
+    const foot = document.getElementById('cashDetailFoot');
+    body.innerHTML = '';
+
+    let sumPensionE = 0, sumMedicalE = 0, sumUnemploymentE = 0, sumHFE = 0, sumHFC = 0, sumSpec = 0, sumIIT = 0, sumNet = 0, sumNetHF = 0;
+
+    cashResult.months.forEach(item => {
+        sumPensionE += item.pension_e;
+        sumMedicalE += item.medical_e;
+        sumUnemploymentE += item.unemployment_e;
+        sumHFE += item.housingFund_e;
+        sumHFC += item.housingFund_c;
+        sumSpec += item.specDed;
+        sumIIT += item.iit;
+        sumNet += item.net;
+        sumNetHF += item.netPlusHF;
+
+        const row = document.createElement('tr');
+        row.className = item.month % 2 === 0 ? 'bg-gray-50/50' : '';
+        row.innerHTML = `
+            <td class="text-left font-medium text-gray-700">${item.month}月</td>
+            <td class="font-medium">${formatRMB(item.gross)}</td>
+            <td class="text-red-600">${formatRMB(item.pension_e)}</td>
+            <td class="text-red-600">${formatRMB(item.medical_e)}</td>
+            <td class="text-red-600">${formatRMB(item.unemployment_e)}</td>
+            <td class="text-purple-700">${formatRMB(item.housingFund_e)}</td>
+            <td class="text-red-600">${formatRMB(item.specDed)}</td>
+            <td class="text-red-700 font-semibold">${formatRMB(item.iit)}</td>
+            <td class="text-green-700 font-bold">${formatRMB(item.net)}</td>
+            <td class="text-teal-700 font-bold">${formatRMB(item.netPlusHF)} <span class="text-gray-400 font-normal text-xs">(${formatRMB(item.housingFund_e + item.housingFund_c)})</span></td>
+        `;
+        body.appendChild(row);
+    });
+
+    // 年终奖行
+    const bonusRow = document.createElement('tr');
+    bonusRow.className = 'bg-yellow-50';
+    bonusRow.innerHTML = `
+        <td class="text-left font-medium text-yellow-700" colspan="8">年终奖（单独计税）— 税前 ${formatRMB(cashResult.annualBonus)}，税率 ${cashResult.bonusResult.rate}，个税 ${formatRMB(cashResult.bonusResult.tax)}</td>
+        <td class="text-yellow-700 font-bold">${formatRMB(cashResult.bonusResult.net)}</td>
+        <td class="text-yellow-700 font-bold">${formatRMB(cashResult.bonusResult.net)}</td>
+    `;
+    body.appendChild(bonusRow);
+
+    foot.innerHTML = `
+        <tr>
+            <td class="text-left text-sm font-bold text-gray-800 bg-gray-100 rounded-bl-lg">年度总计</td>
+            <td class="text-sm font-bold text-gray-800 bg-gray-100">${formatRMB(cashResult.monthlySalary * 12)}</td>
+            <td class="text-sm font-bold text-red-700 bg-gray-100">${formatRMB(sumPensionE)}</td>
+            <td class="text-sm font-bold text-red-700 bg-gray-100">${formatRMB(sumMedicalE)}</td>
+            <td class="text-sm font-bold text-red-700 bg-gray-100">${formatRMB(sumUnemploymentE)}</td>
+            <td class="text-sm font-bold text-purple-700 bg-gray-100">${formatRMB(sumHFE)}</td>
+            <td class="text-sm font-bold text-red-700 bg-gray-100">${formatRMB(sumSpec)}</td>
+            <td class="text-sm font-bold text-red-700 bg-gray-100">${formatRMB(sumIIT)}</td>
+            <td class="text-sm font-bold text-green-700 bg-gray-100">${formatRMB(cashResult.totalNetSalary)}</td>
+            <td class="text-sm font-bold text-teal-700 bg-gray-100 rounded-br-lg">${formatRMB(cashResult.totalNetSalary + cashResult.totalHFT)} <span class="font-normal text-xs text-gray-400">(${formatRMB(cashResult.totalHFT)})</span></td>
+        </tr>
+    `;
+}
+
+// 多配比对比表
+function renderComparison(inp) {
+    const ratios = [
+        { cash: 0.90, option: 0.10 },
+        { cash: 0.70, option: 0.30 },
+        { cash: 0.50, option: 0.50 },
+        { cash: 0.30, option: 0.70 },
+    ];
+    const body = document.getElementById('comparisonBody');
+    body.innerHTML = '';
+
+    ratios.forEach(r => {
+        const annualCash = inp.totalPackage * r.cash;
+        const optNominal = inp.totalPackage * r.option;
+        const cashR = calcCashScenario(annualCash, inp.hfRate, inp.specialDeduction);
+        const optR = calcOptionScenario(optNominal, inp.companyValuation, inp.ipoMultiple, inp.exerciseCostWan, inp.cliffMonths, inp.totalVestingMonths);
+        const fourYearCash = cashR.annualNet * 4;
+        const fourYearOption = optR.netProceeds;
+        const fourYearTotal = fourYearCash + fourYearOption;
+
+        const isDefault = r.cash === 0.70;
+        const row = document.createElement('tr');
+        row.className = isDefault ? 'highlight-row' : '';
+        row.innerHTML = `
+            <td class="text-left"><span class="stat-badge stat-cash">${(r.cash * 100).toFixed(0)}%</span></td>
+            <td><span class="stat-badge stat-option">${(r.option * 100).toFixed(0)}%</span></td>
+            <td class="text-green-700">${formatRMB(cashR.annualNet)}</td>
+            <td class="text-green-700">${formatRMB(fourYearCash)}</td>
+            <td class="text-red-600">≈ 0 ～ 极低</td>
+            <td class="text-purple-700">${formatRMB(fourYearOption)}</td>
+            <td class="font-bold ${fourYearTotal > fourYearCash ? 'text-blue-700' : 'text-gray-700'}">${formatRMB(fourYearTotal)}</td>
+        `;
+        body.appendChild(row);
+    });
+}
+
+// ============ 事件绑定 ============
+function bindEvents() {
+    const ids = ['totalPackage', 'companyValuation', 'cashRatio', 'ipoMultiple', 'cliffMonths', 'totalVestingMonths', 'hfRate', 'specialDeduction', 'exerciseCost'];
+    ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener('input', renderAll);
+        el.addEventListener('change', renderAll);
+    });
+}
+
+window.onload = function () {
+    bindEvents();
+    renderAll();
+};
+</script>
+</body>
+</html>

@@ -380,8 +380,8 @@
                     <li>**公积金基数：** 留空时按上海标准自动封顶（<span id="hfLimitsNote">0.269 - 3.7302</span> 万/月，2025.7 起）；手动填写则直接使用输入值，不限制在上海范围内。</li>
                     <li id="actualBaseNote" class="hidden">**本次计算基数：** 社保 <span id="actualSsBaseDisplay">0</span> 万/月，公积金 <span id="actualHfBaseDisplay">0</span> 万/月。</li>
                     <li>**个税计算：** 严格采用**累计预扣法**，因此个税扣除金额会随着月份的累积而变化，尤其是在年初。</li>
-                    <li>**年终奖税：** 采用**单独计税**的优惠方式计算。</li>
-                    <li>**期权/RSU：** 按本年度税前归属价值估算，采用与年终奖相同的**单独计税**方式；实际归属月份、汇率及是否并入综合所得以公司发放规则为准。</li>
+                    <li>**年终奖/期权税：** 采用**单独计税**：总额 ÷ 12 查按月换算的综合所得税率表，**全额**适用该档位税率（非分段累进），存在跨档「多发 1 元少拿几千」的临界点盲区。</li>
+                    <li>**期权/RSU：** 按本年度税前归属价值估算，计税规则与年终奖相同；实际归属月份、汇率及是否并入综合所得以公司发放规则为准。</li>
                     <li>**金额输入：** 所有工资、基数、奖金、期权等金额输入均以**万元**为单位。</li>
                 </ul>
             </div>
@@ -412,7 +412,7 @@
 
         const TAX_DEDUCTION_ANNUAL_BASIC = 60000; // 每年基本减除费用 (60000 / 12 = 5000元/月)
 
-        // 年度税率表 (用于累计预扣法和年终奖计算)
+        // 年度税率表 (用于工资累计预扣法)
         const TAX_BRACKETS = [
             { threshold: 0, rate: 0.03, quick: 0 },
             { threshold: 36000, rate: 0.10, quick: 2520 },
@@ -421,6 +421,17 @@
             { threshold: 420000, rate: 0.30, quick: 52920 },
             { threshold: 660000, rate: 0.35, quick: 85920 },
             { threshold: 960000, rate: 0.45, quick: 181920 },
+        ];
+
+        // 按月换算的综合所得税率表 (用于年终奖/期权单独计税，财税〔2018〕164号)
+        const BONUS_TAX_BRACKETS = [
+            { threshold: 3000, rate: 0.03, quick: 0 },
+            { threshold: 12000, rate: 0.10, quick: 210 },
+            { threshold: 25000, rate: 0.20, quick: 1410 },
+            { threshold: 35000, rate: 0.25, quick: 2660 },
+            { threshold: 55000, rate: 0.30, quick: 4410 },
+            { threshold: 80000, rate: 0.35, quick: 7160 },
+            { threshold: Infinity, rate: 0.45, quick: 15160 },
         ];
 
         const WAN = 10000; // 输入金额单位：万元
@@ -502,32 +513,28 @@
         }
 
         /**
-         * 计算年终奖税费（单独计税）
-         * @param {number} bonus - 年终奖金额
+         * 计算年终奖/期权税费（全年一次性奖金单独计税）
+         * 总额 ÷ 12 查按月换算税率表，全额适用该档位（非分段累进）
+         * @param {number} bonus - 年终奖或期权税前金额
          * @returns {object} 包含税额和税后金额
          */
         function calculateBonusTax(bonus) {
             if (bonus <= 0) {
                 return { tax: 0, net: 0, rate: '0%', quick: 0 };
             }
-            
-            // 1. 将年终奖除以 12 确定税率
+
             const monthlyEquivalent = bonus / 12;
+            let rate = BONUS_TAX_BRACKETS[0].rate;
+            let quick = BONUS_TAX_BRACKETS[0].quick;
 
-            let rate = 0;
-            let quick = 0;
-
-            // 2. 查找适用的税率和速算扣除数 (使用月等效金额查找年度税率表)
-            for (let i = TAX_BRACKETS.length - 1; i >= 0; i--) {
-                const bracket = TAX_BRACKETS[i];
-                if (monthlyEquivalent * 12 > bracket.threshold) {
+            for (const bracket of BONUS_TAX_BRACKETS) {
+                if (monthlyEquivalent <= bracket.threshold) {
                     rate = bracket.rate;
                     quick = bracket.quick;
                     break;
                 }
             }
-            
-            // 3. 计算税额: 应纳税所得额 = 全额年终奖
+
             const tax = bonus * rate - quick;
             const netBonus = bonus - tax;
 
