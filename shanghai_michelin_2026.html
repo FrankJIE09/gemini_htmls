@@ -2352,10 +2352,8 @@
             if (inner) inner.classList.toggle('is-active', inner.dataset.key === key);
         });
 
-        // 名录高亮 + 滚动
+        // 名录高亮（不自动滚动，避免打断当前浏览位置）
         document.querySelectorAll('.rest-item').forEach(b => b.classList.toggle('active', b.dataset.key === key));
-        const activeItem = document.querySelector(`.rest-item[data-key="${key}"]`);
-        if (activeItem && fromMap) activeItem.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 
         map.flyTo(r.coords, Math.max(map.getZoom(), 15), { duration: 0.7 });
     }
