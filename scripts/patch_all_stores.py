@@ -28,7 +28,7 @@ AVG = {
     "both_miheliang": 128,           # m.dianping.com/shop/121466563 ¥128/人
     "both_hongziji_fenghuanglou": 150,  # m.dianping.com/shop/885613757 ¥150/人
     "both_chilis": 145,              # m.dianping.com/shop/131955258 ¥145/人
-    "both_nongjiacai_laoda": 113,    # 澎湃新闻《这些上海第1的店》人均113（松江店）
+    "both_nongjiacai_laoda": 107,    # m.dianping.com/shop/3341992  ¥107/人（松江店）
     # --- 扫街榜门店（自查核实） ---
     "saojie_nanmen_shuanrou": 132,   # m.dianping.com/shop/43596947  ¥132/人
     "saojie_jinqiang_niuroumian": 37,    # m.dianping.com/shop/623329407 ¥37/人
@@ -52,7 +52,7 @@ AVG = {
     "bichi_rongxiaoguan": 207,       # 大众点评 shop/G5fkD33G5aLyFJWb 用户反馈 ¥207/人
     "bichi_chenglonghang_xiewangfu": 324,  # m.dianping.com/shop/500102 ¥324/人（暂停营业）
     "bichi_linhu_sushi": 108,        # m.dianping.com/shop/96738324 ¥108/人
-    "bichi_longhua_suzhai": 38,      # 大众点评素食热门榜：龙华素斋 38元/人
+    "bichi_longhua_suzhai": 33,      # m.dianping.com/shop/5339502 ¥33/人
     "bichi_yulixiang": 78,           # m.dianping.com/shop/1483756340 ¥78/人
     "bichi_zheyuan_guangzhou": 110,  # 携程（大众点评用户反馈） 徐家汇店 ¥110/人
     "bichi_alimentari_grande": 165,  # m.dianping.com/shop/1732863225 ¥165/人
@@ -164,11 +164,11 @@ def main():
     unknown = set(FIX) - set(by_key)
     if unknown:
         sys.exit(f"FIX 里有不存在的 key：{unknown}")
-    unknown = set(REMOVE) - set(by_key)
-    if unknown:
-        sys.exit(f"REMOVE 里有不存在的 key：{unknown}")
-
+    # REMOVE 是幂等的：已删过就跳过，不再报错
     if REMOVE:
+        missing = set(REMOVE) - set(by_key)
+        if missing:
+            print(f"（REMOVE 中 {len(missing)} 条已删除，跳过）")
         stores = [r for r in stores if r["key"] not in REMOVE]
         by_key = {r["key"]: r for r in stores}
 
