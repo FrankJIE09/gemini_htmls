@@ -18,6 +18,10 @@ UA = ("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) "
       "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1")
 
 
+class Blocked(RuntimeError):
+    """被美团风控拦截（spiderindefence / 验证中心），而非店铺不存在。"""
+
+
 def fetch(shop_id: str, timeout: int = 25) -> str:
     url = f"https://m.dianping.com/shop/{shop_id}"
     req = urllib.request.Request(url, headers={
@@ -26,7 +30,19 @@ def fetch(shop_id: str, timeout: int = 25) -> str:
         "Referer": "https://m.dianping.com/",
     })
     with urllib.request.urlopen(req, timeout=timeout) as resp:
-        return resp.read().decode("utf-8", errors="ignore")
+        # 被风控时会 302 到 verify.meituan.com，urlopen 默认跟随，
+        # 于是拿到的是「验证中心」页而不是店铺页 —— 必须显式识别，
+        # 否则各字段会静默取成 "-"，看起来像店铺数据缺失。
+        final = resp.geturl()
+        html = resp.read().decode("utf-8", errors="ignore")
+    if "verify.meituan.com" in final or "spiderindefence" in final \
+            or "验证中心" in html[:3000]:
+        raise Blocked(
+            "被美团风控拦截（spiderindefence）。请降低请求频率、稍后重试，"
+            "或改用浏览器会话读取。注意：curl/urllib 高频访问后本机 IP "
+            "通常会被临时封禁，连浏览器一并受影响。"
+        )
+    return html
 
 
 def first(pattern: str, text: str, default="-"):
