@@ -175,6 +175,38 @@
         .thin-scroll::-webkit-scrollbar { width: 7px; }
         .thin-scroll::-webkit-scrollbar-thumb { background: #C88A4B; border-radius: 4px; }
         .thin-scroll::-webkit-scrollbar-track { background: #EFE7D8; }
+
+        /* ===== 定位（我的位置） ===== */
+        .user-dot {
+            position: relative;
+            width: 18px; height: 18px; border-radius: 50%;
+            background: #2563EB; border: 2.5px solid #FFFDF9;
+            box-shadow: 0 0 0 2px #3E3933, 2px 2px 0 rgba(62, 57, 51, 0.3);
+        }
+        .user-dot::after {
+            content: ''; position: absolute; inset: -7px; border-radius: 50%;
+            background: rgba(37, 99, 235, 0.30);
+            animation: userPulse 2s ease-out infinite;
+            pointer-events: none;
+        }
+        @keyframes userPulse {
+            0%   { transform: scale(0.55); opacity: 0.85; }
+            100% { transform: scale(1.9);  opacity: 0; }
+        }
+        .user-tip {
+            font-size: 10px !important; font-weight: 700;
+            padding: 1px 5px !important;
+            background: #2563EB !important; color: #FFFFFF !important;
+            border: 1.5px solid #3E3933 !important;
+            box-shadow: 2px 2px 0px #3E3933 !important;
+            border-radius: 4px !important;
+        }
+        .user-tip::before { border-top-color: #3E3933 !important; }
+        .leaflet-bar a.locate-on { background: #DBEAFE !important; box-shadow: inset 0 0 0 2px #2563EB; }
+        .sort-btn { transition: all 0.15s ease; }
+        .sort-btn.active { background-color: #2563EB !important; color: #FAF5EB !important; border-color: #2563EB !important; }
+        .dist-tag { color: #2563EB; font-weight: 700; }
+        .rest-item.active .dist-tag { color: #93C5FD !important; }
     </style>
 </head>
 <body class="min-h-screen pb-12">
@@ -240,6 +272,8 @@
                 <span class="flex items-center gap-1.5"><span class="inline-block" style="width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-bottom:7px solid #7A8494"></span>交通枢纽</span>
                 <span class="flex items-center gap-1.5"><span class="text-[10px] font-bold text-[#1F402B] bg-[#FAF5EB] border border-[#1F402B]/40 px-1 rounded">区</span>区域锚点标签</span>
                 <span class="flex items-center gap-1.5">📍 地图右上角按钮可开关地标参照</span>
+                <span class="flex items-center gap-1.5"><span class="inline-block w-3.5 h-3.5 rounded-full border-2" style="border-color:#2563EB;background:#DBEAFE"></span>我的位置（地图右上角 🧭 定位 · ✕ 清除）</span>
+                <span class="flex items-center gap-1.5">📏 名录内点 <b>近→远</b> 可按距你远近排序</span>
             </div>
             <div id="stat-line" class="text-[11px] text-gray-500 mt-3 leading-relaxed"></div>
         </div>
@@ -270,6 +304,8 @@
                     <span class="text-xs font-bold text-amber-900 block">🧠 认路落脚点:</span>
                     <p id="detail-tip" class="text-xs text-amber-950 font-medium mt-1 leading-relaxed"></p>
                 </div>
+                <a id="detail-nav" href="#" target="_blank" rel="noopener noreferrer"
+                   class="hidden mt-3 w-full items-center justify-center gap-1.5 text-xs font-bold py-2 rounded-lg border-2 border-[#1F402B] bg-[#1F402B] text-[#FAF5EB] hover:bg-[#2C5A3C]">🧭 在高德地图打开</a>
             </div>
         </div>
 
@@ -284,6 +320,7 @@
                     <button type="button" data-cat="michelin2" class="cat-btn px-2 py-1 text-[10px] font-semibold rounded border border-amber-400 bg-amber-50 text-amber-900">⭐⭐ 二星 12</button>
                     <button type="button" data-cat="michelin1" class="cat-btn px-2 py-1 text-[10px] font-semibold rounded border border-yellow-400 bg-yellow-50 text-yellow-900">⭐ 一星 38</button>
                     <button type="button" data-cat="bib" class="cat-btn px-2 py-1 text-[10px] font-semibold rounded border border-red-300 bg-red-50 text-red-900">🥢 必比登 35</button>
+                    <button type="button" id="sort-dist" class="sort-btn ml-auto px-2 py-1 text-[10px] font-semibold rounded border border-blue-300 bg-blue-50 text-blue-800" title="按距我的位置远近排序（首次点击会请求定位授权）">📏 近→远</button>
                 </div>
 
                 <!-- 搜索 -->
@@ -328,7 +365,8 @@
 
         <p class="text-[10px] text-gray-400 leading-relaxed px-1">
             数据来源：米其林指南官方 2026 沪苏浙榜单（michelin.com / guide.michelin.com）。星级、菜系、地址取自官方；坐标为官方 WGS-84 点位（已修正 1 处官方坐标错误）。人均为官方价位档（¥ / ¥¥ / ¥¥¥ / ¥¥¥¥）换算参考，非实际账单。<br>
-            🛣️ 道路骨架抽取自同站《上海中心城区认路宝典》，共 227 条（核心干道 52 + 主要干道 66 + 较长道路 109）；路名在放大到 13 级后显示。骨架仅覆盖市中心六区；浦东、闵行偏远片区（虹桥商务区 / 七宝 / 前滩 / 三林等）以区域锚点与地标参照补方位。
+            🛣️ 道路骨架抽取自同站《上海中心城区认路宝典》，共 227 条（核心干道 52 + 主要干道 66 + 较长道路 109）；路名在放大到 13 级后显示。骨架仅覆盖市中心六区；浦东、闵行偏远片区（虹桥商务区 / 七宝 / 前滩 / 三林等）以区域锚点与地标参照补方位。<br>
+            🧭 定位由浏览器 Geolocation 提供（需 HTTPS 并授权），坐标仅在你的设备本地用于计算距离与排序，<b>不会上传或存储</b>；名录中的「📍距离」为直线距离，非步行路径。
         </p>
     </section>
 </main>
@@ -2022,7 +2060,7 @@
     let map;
     let markerMap = {};        // key -> marker
     let activeKey = null;
-    const state = { cat: 'all', cuisine: 'all', district: 'all', price: [], q: '', onlyNew: false };
+    const state = { cat: 'all', cuisine: 'all', district: 'all', price: [], q: '', onlyNew: false, sortByDist: false };
     let labelsPermanent = false;
     let roadsGroup = null;     // 道路线
     let roadLabelsA = null;    // 核心干道路名（z≥13）
@@ -2088,6 +2126,7 @@
         });
 
         bindLabels();
+        initLocate();
 
         const bounds = L.latLngBounds(RESTAURANTS.map(r => r.coords));
         map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
@@ -2351,6 +2390,7 @@
     }
 
     document.addEventListener('click', function (e) {
+        if (e.target.closest('#sort-dist')) { toggleSortDist(); return; }
         const catBtn = e.target.closest('.cat-btn');
         if (catBtn) {
             state.cat = catBtn.dataset.cat;
@@ -2416,6 +2456,7 @@
         document.querySelectorAll('#cuisine-chips .chip').forEach(b => b.classList.toggle('active', b.dataset.cuisine === 'all'));
         document.querySelectorAll('#district-chips .chip').forEach(b => b.classList.toggle('active', b.dataset.district === 'all'));
         syncPriceChips();
+        syncSortBtn();
         renderList(); updateMarkers();
     }
 
@@ -2446,7 +2487,18 @@
             }
             if (ok) shown++;
         });
-        document.getElementById('map-hint').textContent = `显示 ${shown} / ${RESTAURANTS.length} 家 · 点击图标查看详情`;
+        let extra = '';
+        if (userLatLng) {
+            const mine = RESTAURANTS.filter(match);
+            if (mine.length) {
+                let best = mine[0], bd = distOf(best);
+                mine.forEach(r => { const d = distOf(r); if (d != null && d < bd) { bd = d; best = r; } });
+                extra = bd == null ? ' · 📍 已定位' : ` · 📍 已定位 · 最近 ${best.name} ${fmtDist(bd)}`;
+            } else {
+                extra = ' · 📍 已定位';
+            }
+        }
+        document.getElementById('map-hint').textContent = `显示 ${shown} / ${RESTAURANTS.length} 家 · 点击图标查看详情${extra}`;
     }
 
     /* ================= 名录 ================= */
@@ -2470,7 +2522,9 @@
                 <span class="text-[10px] text-gray-400">${group.length} 家</span>`;
             list.appendChild(head);
 
-            group.sort((a, b) => a.name.localeCompare(b.name, 'zh'));
+            group.sort(state.sortByDist && userLatLng
+                ? (a, b) => (distOf(a) ?? Infinity) - (distOf(b) ?? Infinity)
+                : (a, b) => a.name.localeCompare(b.name, 'zh'));
             group.forEach(r => {
                 const meta = CAT_META[r.category];
                 const btn = document.createElement('button');
@@ -2478,11 +2532,13 @@
                 btn.className = `rest-item text-left w-full px-2.5 py-2 rounded-lg border border-gray-200 bg-white flex items-start gap-2 ${activeKey === r.key ? 'active' : ''}`;
                 btn.dataset.key = r.key;
                 const newTag = r.isNew ? `<span class="ml-1 text-[9px] font-bold text-[#DC2626] border border-red-300 bg-red-50 rounded px-1">新</span>` : '';
+                const dm = distOf(r);
+                const distTag = dm == null ? '' : ` · <span class="dist-tag">📍${fmtDist(dm)}</span>`;
                 btn.innerHTML = `
                     <span class="ri-star text-sm leading-5 shrink-0" style="color:${meta.color}">${meta.badge}</span>
                     <span class="min-w-0 flex-1">
                         <span class="ri-name block text-xs font-bold text-gray-800 truncate">${r.name}${newTag}</span>
-                        <span class="ri-sub block text-[9px] text-gray-500 truncate">${r.cuisine} · ${districtOf(r)} · ${r.price}${r.note ? ' · ' + r.note : ''}</span>
+                        <span class="ri-sub block text-[9px] text-gray-500 truncate">${r.cuisine} · ${districtOf(r)} · ${r.price}${r.note ? ' · ' + r.note : ''}${distTag}</span>
                     </span>`;
                 list.appendChild(btn);
             });
@@ -2505,6 +2561,8 @@
         metaEl.innerHTML = '';
         const chips = [r.cuisine, districtOf(r), r.price];
         if (r.note) chips.push('🏅 ' + r.note);
+        const dm = distOf(r);
+        if (dm != null) chips.unshift(`📍 距你约 ${fmtDist(dm)}（${bearingOf(r)}）`);
         chips.forEach(t => {
             const s = document.createElement('span');
             s.className = `inline-block text-[10px] font-semibold mr-1.5 mb-1.5 px-2 py-0.5 rounded border ${meta.bg} ${meta.text} ${meta.border}`;
@@ -2533,7 +2591,213 @@
         // 名录高亮（不自动滚动，避免打断当前浏览位置）
         document.querySelectorAll('.rest-item').forEach(b => b.classList.toggle('active', b.dataset.key === key));
 
+        updateNavLink(r);
         map.flyTo(r.coords, Math.max(map.getZoom(), 15), { duration: 0.7 });
+    }
+
+    /* ================= 定位（我的位置） ================= */
+    let userMarker = null;      // 我的位置标记
+    let userCircle = null;      // 定位精度圆
+    let userLatLng = null;      // [lat, lng]
+    let watchId = null;         // watchPosition 句柄
+    let geoBusy = false;        // 正在请求定位
+
+    const GEO_OPTS = { enableHighAccuracy: true, timeout: 12000, maximumAge: 20000 };
+
+    /* 球面距离（米） */
+    function geoDist(a, b) {
+        const R = 6371000, rad = d => d * Math.PI / 180;
+        const dLat = rad(b[0] - a[0]), dLng = rad(b[1] - a[1]);
+        const la1 = rad(a[0]), la2 = rad(b[0]);
+        const h = Math.sin(dLat / 2) ** 2 + Math.cos(la1) * Math.cos(la2) * Math.sin(dLng / 2) ** 2;
+        return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
+    }
+    /* 我 → 门店的直线距离（未定位返回 null） */
+    function distOf(r) {
+        return (userLatLng && r && r.coords) ? geoDist(userLatLng, r.coords) : null;
+    }
+    function fmtDist(m) {
+        if (m == null) return '';
+        if (m < 1000) return `${Math.round(m / 10) * 10} m`;
+        return `${(m / 1000).toFixed(m < 10000 ? 1 : 0)} km`;
+    }
+    /* 我 → 门店的 8 向方位 */
+    function bearingOf(r) {
+        if (!userLatLng || !r || !r.coords) return '';
+        const rad = d => d * Math.PI / 180;
+        const y = Math.sin(rad(r.coords[1] - userLatLng[1])) * Math.cos(rad(r.coords[0]));
+        const x = Math.cos(rad(userLatLng[0])) * Math.sin(rad(r.coords[0])) -
+                  Math.sin(rad(userLatLng[0])) * Math.cos(rad(r.coords[0])) * Math.cos(rad(r.coords[1] - userLatLng[1]));
+        const deg = (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+        return ['正北', '东北', '正东', '东南', '正南', '西南', '正西', '西北'][Math.round(deg / 45) % 8];
+    }
+
+    function setGeoBtn(on, busy) {
+        const btn = document.getElementById('locate-btn');
+        const clr = document.getElementById('locate-clear');
+        if (btn) {
+            btn.classList.toggle('locate-on', !!on);
+            btn.innerHTML = busy ? '⏳' : '🧭';
+            btn.title = on ? '重新居中到我的位置' : '定位到我的位置（需浏览器授权）';
+        }
+        if (clr) clr.style.display = on ? 'flex' : 'none';
+    }
+    function syncSortBtn() {
+        const b = document.getElementById('sort-dist');
+        if (!b) return;
+        b.classList.toggle('active', state.sortByDist);
+        b.textContent = (state.sortByDist ? '📏 近→远 ✓' : '📏 近→远');
+        b.title = state.sortByDist ? '已按距你远近排序，再点一次恢复按店名排序' : '按距我的位置远近排序（首次点击会请求定位授权）';
+    }
+    /* 定位/错误提示：借用地图上方的 hint 条，5 秒后恢复默认统计 */
+    function flashHint(msg, isErr) {
+        const el = document.getElementById('map-hint');
+        if (!el) return;
+        el.textContent = msg;
+        el.style.color = isErr ? '#B91C1C' : '#1F402B';
+        el.style.borderColor = isErr ? '#FCA5A5' : '#86EFAC';
+        el.style.background = '#FFFFFF';
+        clearTimeout(flashHint._t);
+        flashHint._t = setTimeout(() => {
+            el.style.color = ''; el.style.borderColor = ''; el.style.background = '';
+            updateMarkers();
+        }, 5000);
+    }
+
+    /* 把定位结果显示到地图上；recenter=true 时才移动地图 */
+    function applyUserPos(pos, recenter) {
+        const c = pos.coords;
+        const next = [c.latitude, c.longitude];
+        const moved = userLatLng ? geoDist(userLatLng, next) : Infinity;
+        userLatLng = next;
+
+        if (!userMarker) {
+            userMarker = L.marker(userLatLng, {
+                zIndexOffset: 2000,
+                keyboard: false,
+                icon: L.divIcon({ className: '', html: '<div class="user-dot"></div>', iconSize: [18, 18], iconAnchor: [9, 9] })
+            }).addTo(map).bindTooltip('我的位置', { permanent: true, direction: 'top', offset: [0, -12], className: 'user-tip' });
+        } else {
+            userMarker.setLatLng(userLatLng);
+        }
+
+        const acc = Math.max(20, c.accuracy || 50);
+        if (!userCircle) {
+            userCircle = L.circle(userLatLng, {
+                radius: acc, color: '#2563EB', weight: 1.2, opacity: 0.55,
+                fillColor: '#3B82F6', fillOpacity: 0.13, interactive: false
+            }).addTo(map);
+        } else {
+            userCircle.setLatLng(userLatLng).setRadius(acc);
+        }
+
+        if (recenter) map.flyTo(userLatLng, Math.max(map.getZoom(), 15), { duration: 0.8 });
+        if (recenter || moved > 40) { renderList(); updateMarkers(); }
+        return acc;
+    }
+
+    function onGeoOk(pos) {
+        geoBusy = false;
+        setGeoBtn(true, false);
+        const acc = applyUserPos(pos, true);
+        syncSortBtn();
+        flashHint(`📍 已定位（精度约 ${fmtDist(acc)}）· 名录已显示距离`, false);
+    }
+    function onGeoErr(err) {
+        geoBusy = false;
+        setGeoBtn(!!userLatLng, false);
+        const code = err && err.code;
+        flashHint(code === 1 ? '🚫 定位被拒绝：请点地址栏的「位置」图标允许授权后重试'
+            : code === 3 ? '⏱️ 定位超时：请到窗边 / 室外，并确认系统定位服务已开启'
+            : '⚠️ 暂时拿不到位置：请检查系统定位服务或稍后重试', true);
+    }
+
+    /* 点击 🧭：首次请求授权定位，之后仅重新居中 */
+    function locateMe() {
+        if (!navigator.geolocation) { flashHint('❌ 当前浏览器不支持定位（Geolocation API）', true); return; }
+        if (userLatLng) { map.flyTo(userLatLng, Math.max(map.getZoom(), 15), { duration: 0.8 }); return; }
+        if (geoBusy) return;
+        geoBusy = true;
+        setGeoBtn(true, true);
+        navigator.geolocation.getCurrentPosition(onGeoOk, onGeoErr, GEO_OPTS);
+        if (watchId == null) {
+            // 持续跟踪：位置变化只刷新标记与距离，不打断正在浏览的地图
+            watchId = navigator.geolocation.watchPosition(
+                p => applyUserPos(p, false),
+                () => {},
+                GEO_OPTS
+            );
+        }
+    }
+
+    function clearLocation() {
+        if (watchId != null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
+        if (userMarker) { map.removeLayer(userMarker); userMarker = null; }
+        if (userCircle) { map.removeLayer(userCircle); userCircle = null; }
+        userLatLng = null;
+        geoBusy = false;
+        setGeoBtn(false, false);
+        const nav = document.getElementById('detail-nav');
+        if (nav) nav.style.display = 'none';
+        renderList(); updateMarkers();
+        syncSortBtn();
+        flashHint('已清除定位：距离与排序已恢复默认', false);
+    }
+
+    /* 详情卡里的高德打开 / 导航按钮 */
+    function updateNavLink(r) {
+        const nav = document.getElementById('detail-nav');
+        if (!nav) return;
+        if (!r || !r.coords) { nav.style.display = 'none'; return; }
+        const [lat, lng] = r.coords;
+        const name = encodeURIComponent(r.name);
+        nav.href = userLatLng
+            ? `https://uri.amap.com/navigation?from=${userLatLng[1]},${userLatLng[0]},我的位置&to=${lng},${lat},${name}&mode=walk&coordinate=wgs84&callnative=0`
+            : `https://uri.amap.com/marker?position=${lng},${lat}&name=${name}&coordinate=wgs84&callnative=0`;
+        nav.textContent = userLatLng ? '🧭 高德步行导航到店' : '🧭 在高德地图打开';
+        nav.style.display = 'flex';
+    }
+
+    function toggleSortDist() {
+        if (state.sortByDist) {
+            state.sortByDist = false;
+        } else {
+            state.sortByDist = true;
+            if (!userLatLng) locateMe();       // 未定位时顺手请求授权
+        }
+        syncSortBtn();
+        renderList();
+    }
+
+    /* 右上角定位控件（🧭 定位 / ✕ 清除） */
+    function initLocate() {
+        const LocateControl = L.Control.extend({
+            options: { position: 'topright' },
+            onAdd: function () {
+                const wrap = L.DomUtil.create('div', 'leaflet-bar');
+                const css = 'display:flex;align-items:center;justify-content:center;width:30px;height:30px;text-decoration:none;background:#FCF9F2;';
+
+                const btn = L.DomUtil.create('a', '', wrap);
+                btn.id = 'locate-btn';
+                btn.href = '#';
+                btn.innerHTML = '🧭';
+                btn.title = '定位到我的位置（需浏览器授权）';
+                btn.style.cssText = css + 'font-size:15px;';
+                L.DomEvent.on(btn, 'click', function (e) { L.DomEvent.stop(e); locateMe(); });
+
+                const clr = L.DomUtil.create('a', '', wrap);
+                clr.id = 'locate-clear';
+                clr.href = '#';
+                clr.innerHTML = '✕';
+                clr.title = '清除定位与距离';
+                clr.style.cssText = css + 'display:none;font-size:13px;color:#7F1D1D;';
+                L.DomEvent.on(clr, 'click', function (e) { L.DomEvent.stop(e); clearLocation(); });
+                return wrap;
+            }
+        });
+        map.addControl(new LocateControl());
+        setGeoBtn(false, false);
+        syncSortBtn();
     }
 
     /* ================= 统计 ================= */
